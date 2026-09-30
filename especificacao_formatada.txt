@@ -1,0 +1,76 @@
+﻿EspecificaÃ§Ã£o e Resumo do Sistema
+1. EcrÃ£ / Painel Geral (Resumo)
+Painel principal com a visÃ£o consolidada das contas, cartÃµes e mÃ³dulos: 
+Saldos BancÃ¡rios / Contas: 
+Bradesco 
+Nubank (Nu) 
+Banco do Brasil (BB) 
+Caixa EconÃ³mica Federal (PoupanÃ§a)
+Caixa EconÃ³mica Federal (Caixa CP) 
+Seven
+Carteira (Dinheiro fÃ­sico) 
+Atalhos / VisÃ£o Geral de MÃ³dulos: 
+Investimentos 
+CartÃ£o de CrÃ©dito 
+Troco Jotur
+Gastos mensais
+Receita mensal
+Bombeiro ComunitÃ¡rio 
+2. GestÃ£o Mensal (Janeiro a Dezembro)
+MÃ³dulo para acompanhamento das entradas e saÃ­das mensais divididas por categorias: 
+Receitas: 
+Campos: MÃªs | Fonte de Renda | Valor | Data | Estado (Status) | Banco / Conta
+Despesas Fixas: 
+Campos: Conta | Vencimento | Valor Previsto | Valor Pago | Estado (Status) | Banco / Conta
+Despesas VariÃ¡veis: 
+Campos: Despesa | Data | Valor | Banco / Conta
+3. CartÃ£o de CrÃ©dito
+Controlo de faturas, compras parceladas e integraÃ§Ã£o com as despesas mensais: 
+CartÃµes: 
+Master 
+Nubank (Nu) 
+Campos de Registo de Compras: 
+Compra (DescriÃ§Ã£o) 
+Onde comprou (Estabelecimento) 
+Data
+Quantidade de vezes (Parcelamento) 
+Regras de NegÃ³cio: 
+Listagem das compras mensais parceladas. 
+O valor das parcelas/mÃªs Ã© encaminhado diretamente para as despesas do mÃªs correspondente. 
+4. Sonhos / Compras Futuras
+MÃ³dulo de objetivos financeiros e compras planeadas: 
+Campos: 
+Produto
+Valor
+Meta (Prazo / Data objetivo) 
+5. Bombeiro ComunitÃ¡rio
+Registo de valores e ressarcimentos decorrentes da atividade: 
+Campos: 
+Meses
+Data solicitada
+Data de pagamento
+Valor a receber
+6. Controlo de Caixa / Troco (Jotur)
+GestÃ£o do fluxo de troco em numerÃ¡rio e conferÃªncia de caixa: 
+Controlo de Troco Base: R$ 200,00 
+Controlo por CÃ©dulas e Moedas: 
+Notas: R$ 20 | R$ 10 | R$ 5 | R$ 2 
+Moedas: R$ 1,00 | R$ 0,50 | R$ 0,25 | R$ 0,10 
+ConferÃªncia: 
+CÃ¡lculo de Sobra / Falta
+Resumo Geral do Troco 
+7. Investimentos
+MÃ³dulo dedicado ao acompanhamento de aplicaÃ§Ãµes e ativos financeiros: 
+Bolsa de Valores (AÃ§Ãµes / FIIs): 
+Data
+AÃ§Ã£o / Ativo
+Estado (Status)
+Quantidade de Cotas
+Valor por Cota
+Total
+Nubank (Renda Fixa / Caixinhas): 
+Data
+Estado (Status)
+Valor
+8. Senhas
+Senhas: Estrutura idÃªntica/equivalente ao modelo utilizado para a ACBCSJ.

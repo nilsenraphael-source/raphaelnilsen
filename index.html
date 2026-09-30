@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Financeiro Raphael Nilsen | Gestão Executiva</title>
+  
+  <!-- Fontes Executivas do Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Estilos Executivos -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ========================================================================
+       TELA DE LOGIN EXECUTIVA (SISTEMA FECHADO - 1 USUÁRIO)
+       ======================================================================== -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-brand">
+        <!-- Ícone Executivo SVG -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+      </div>
+      <h1 class="login-title">Sistema Financeiro</h1>
+      <p class="login-subtitle">Raphael Nilsen • Acesso Restrito</p>
+
+      <div id="loginFeedback" class="login-feedback"></div>
+
+      <form id="loginForm" class="login-form">
+        <div class="form-group">
+          <label class="form-label" for="loginEmail">E-mail de Acesso</label>
+          <div class="form-input-wrapper">
+            <span class="form-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </span>
+            <input type="email" id="loginEmail" class="form-input" value="raphael_nilsen@hotmail.com" required placeholder="seu@email.com">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="loginPassword">Senha de Segurança</label>
+          <div class="form-input-wrapper">
+            <span class="form-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </span>
+            <input type="password" id="loginPassword" class="form-input" value="12345" required placeholder="Digite sua senha">
+            <button type="button" id="btnToggleLoginPwd" class="btn-toggle-pwd" title="Ver / Ocultar Senha">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 1rem;">
+          Acessar Painel Executivo
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </form>
+
+      <div class="login-credentials-hint">
+        🔐 <strong>Acesso Exclusivo Pessoal:</strong> Seus dados ficam protegidos no seu navegador e sincronizados no Cofre Seguro.
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       APLICAÇÃO PRINCIPAL (PAINEL EXECUTIVO)
+       ======================================================================== -->
+  <div id="appContainer" class="app-container" style="display: none;">
+    
+    <!-- SIDEBAR EXECUTIVA -->
+    <aside id="appSidebar" class="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">SISTEMA FINANCEIRO</div>
+          <div class="sidebar-brand-tag">Raphael Nilsen</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-label">Visão Geral</div>
+        <div class="nav-item active" data-tab="resumo">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </span>
+          <span>1. Resumo</span>
+        </div>
+
+        <div class="sidebar-label">Módulos do Sistema</div>
+        
+        <div class="nav-item" data-tab="meses">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </span>
+          <span>2. Meses (Jan-Dez)</span>
+        </div>
+
+        <div class="nav-item" data-tab="cartoes">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+          </span>
+          <span>3. Cartão de Crédito</span>
+        </div>
+
+        <div class="nav-item" data-tab="senhas">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </span>
+          <span>4. Senhas</span>
+        </div>
+
+        <div class="nav-item" data-tab="sonhos">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          </span>
+          <span>5. Sonhos - Compras</span>
+        </div>
+
+        <div class="nav-item" data-tab="bombeiro">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+          </span>
+          <span>6. Bombeiro Comunitário</span>
+        </div>
+
+        <div class="nav-item" data-tab="jotur">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M7 7h10v10H7z"></path></svg>
+          </span>
+          <span>7. Troco Jotur (R$ 200)</span>
+        </div>
+
+        <div class="nav-item" data-tab="investimentos">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          </span>
+          <span>8. Investimentos</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-badge">
+          <div class="user-avatar">RN</div>
+          <div class="user-info">
+            <span class="user-name">Raphael Nilsen</span>
+            <span class="user-role">Usuário Único</span>
+          </div>
+        </div>
+        <button class="btn-sidebar-action" title="Sair do Sistema" onclick="app.logout()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="app-main">
+      <!-- CABEÇALHO SUPERIOR -->
+      <header class="app-header">
+        <div class="header-left">
+          <button id="btnMobileToggle" class="btn-mobile-toggle" aria-label="Abrir Menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="header-title-wrap">
+            <h2 id="pageTitle" class="header-page-title">Sistema Financeiro — Raphael Nilsen</h2>
+            <span id="headerDate" class="header-date-badge">Visão geral do sistema e finanças.</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- Identificação do Usuário -->
+          <div class="user-header-profile">
+            <span class="user-header-name">Raphael Nilsen</span>
+          </div>
+
+          <!-- Botões de Ações de Backup -->
+          <button class="btn-header" title="Baixar Backup dos Dados" onclick="app.downloadBackup()">
+            💾 Backup
+          </button>
+          <button class="btn-header" title="Restaurar Cópia de Segurança" onclick="app.triggerImportBackup()">
+            📂 Restaurar
+          </button>
+
+          <!-- Botão Sair -->
+          <button class="btn-header-logout" title="Sair do Sistema" onclick="app.logout()">
+            Sair
+          </button>
+        </div>
+      </header>
+
+      <!-- CORPO DAS PÁGINAS -->
+      <div class="app-content">
+
+        <!-- ====================================================================
+             1. PÁGINA: RESUMO (PAINEL GERAL)
+             ==================================================================== -->
+        <section id="view-resumo" class="page-view active">
+          
+          <!-- BANNER CONSOLIDADO DO BALANÇO (INICIAL EXECUTIVO) -->
+          <div class="total-consolidated-banner">
+            <div>
+              <div class="banner-title">Patrimônio Líquido em Caixa</div>
+              <div id="bannerTotalBalance" class="banner-value">R$ 0,00</div>
+            </div>
+            <div class="banner-metrics">
+              <div class="metric-pill">
+                <div class="metric-pill-label">Receitas Mês Atual</div>
+                <div id="bannerMonthRevenue" class="metric-pill-val positive">+ R$ 0,00</div>
+              </div>
+              <div class="metric-pill">
+                <div class="metric-pill-label">Despesas Mês Atual</div>
+                <div id="bannerMonthExpense" class="metric-pill-val negative">- R$ 0,00</div>
+              </div>
+              <div class="metric-pill">
+                <div class="metric-pill-label">Fatura Cartões</div>
+                <div id="shortcutCardVal" class="metric-pill-val" style="color: #fbbf24;">R$ 0,00</div>
+              </div>
+              <div class="metric-pill">
+                <div class="metric-pill-label">Investimentos</div>
+                <div id="shortcutInvestVal" class="metric-pill-val" style="color: #38bdf8;">R$ 0,00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SALDOS BANCÁRIOS & CARTEIRA -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.15);">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Saldos Bancários & Carteira</h3>
+                  <span class="card-subtitle">Visão de liquidez distribuída entre as contas</span>
+                </div>
+              </div>
+              <span class="badge-pill-counter green">7 contas ativas</span>
+            </div>
+            <!-- Grid com Bradesco, Nubank, BB, Caixa P, Caixa CP, Seven, Carteira -->
+            <div id="bankCardsGrid" class="bank-cards-grid"></div>
+          </div>
+
+          <!-- ATALHOS / VISÃO GERAL DE MÓDULOS -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.15);">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Módulos Integrados de Gestão</h3>
+                  <span class="card-subtitle">Acesso direto e status dos módulos</span>
+                </div>
+              </div>
+              <span class="badge-pill-counter orange">Acesso Rápido</span>
+            </div>
+
+            <div class="shortcuts-grid">
+              <div class="shortcut-card" onclick="app.navigateTo('investimentos')">
+                <div class="shortcut-icon" style="background:rgba(37,99,235,0.15); color:#38bdf8;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+                </div>
+                <div class="shortcut-info">
+                  <div class="shortcut-title">Investimentos</div>
+                  <div class="shortcut-meta">Bolsa de Valores & Caixinhas</div>
+                  <div id="shortcutInvestVal2" class="shortcut-val" style="color:#38bdf8;">R$ 0,00</div>
+                </div>
+              </div>
+
+              <div class="shortcut-card" onclick="app.navigateTo('cartoes')">
+                <div class="shortcut-icon" style="background:rgba(239,68,68,0.15); color:#f87171;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                </div>
+                <div class="shortcut-info">
+                  <div class="shortcut-title">Fatura Cartões (Mês Atual)</div>
+                  <div class="shortcut-meta">Master & Nubank</div>
+                  <div id="shortcutCardVal2" class="shortcut-val" style="color:#fbbf24;">R$ 0,00</div>
+                </div>
+              </div>
+
+              <div class="shortcut-card" onclick="app.navigateTo('jotur')">
+                <div class="shortcut-icon" style="background:rgba(16,185,129,0.15); color:#34d399;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg>
+                </div>
+                <div class="shortcut-info">
+                  <div class="shortcut-title">Troco Jotur</div>
+                  <div class="shortcut-meta">Conferência de Caixa (R$ 200,00)</div>
+                  <div class="shortcut-val" style="color: #34d399;">R$ 200,00 Base</div>
+                </div>
+              </div>
+
+              <div class="shortcut-card" onclick="app.navigateTo('bombeiro')">
+                <div class="shortcut-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                </div>
+                <div class="shortcut-info">
+                  <div class="shortcut-title">Bombeiro Comunitário</div>
+                  <div class="shortcut-meta">Ressarcimentos a Receber</div>
+                  <div id="shortcutBombeiroVal2" class="shortcut-val" style="color:#ffffff;">R$ 0,00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ====================================================================
+             2. PÁGINA: GESTÃO MENSAL (JANEIRO A DEZEMBRO)
+             ==================================================================== -->
+        <section id="view-meses" class="page-view">
+          
+          <!-- SELETOR DE MESES -->
+          <div id="monthSelectorBar" class="month-selector-bar"></div>
+
+          <!-- RESUMO DO MÊS SELECIONADO -->
+          <div class="card" style="padding: 1.25rem 1.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <span style="font-size:0.8rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Mês em Foco</span>
+                <h3 id="activeMonthName" style="font-size:1.45rem; font-weight:800; color:var(--navy);">Janeiro</h3>
+              </div>
+              <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+                <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light);">
+                  <div class="metric-pill-label">Receitas</div>
+                  <div id="monthSumRev" class="metric-pill-val" style="color:var(--success);">R$ 0,00</div>
+                </div>
+                <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light);">
+                  <div class="metric-pill-label">Desp. Fixas</div>
+                  <div id="monthSumFix" class="metric-pill-val" style="color:var(--danger);">R$ 0,00</div>
+                </div>
+                <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light);">
+                  <div class="metric-pill-label">Desp. Variáveis</div>
+                  <div id="monthSumVar" class="metric-pill-val" style="color:var(--danger);">R$ 0,00</div>
+                </div>
+                <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light);">
+                  <div class="metric-pill-label">Fatura Cartões</div>
+                  <div id="monthSumCard" class="metric-pill-val" style="color:var(--danger);">R$ 0,00</div>
+                </div>
+                <div class="metric-pill" style="background:var(--navy); border-color:var(--navy);">
+                  <div class="metric-pill-label" style="color:#94a3b8;">Saldo Líquido Mês</div>
+                  <div id="monthSumBal" class="metric-pill-val" style="color:#34d399;">R$ 0,00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-ABAS DO MÊS -->
+          <div class="subtabs-nav">
+            <button class="subtab-btn active" data-subtab="receitas" onclick="app.selectMonthSubtab('receitas')">
+              💰 Receitas
+            </button>
+            <button class="subtab-btn" data-subtab="fixas" onclick="app.selectMonthSubtab('fixas')">
+              📌 Despesas Fixas
+            </button>
+            <button class="subtab-btn" data-subtab="variaveis" onclick="app.selectMonthSubtab('variaveis')">
+              🛒 Despesas Variáveis
+            </button>
+            <button class="subtab-btn" data-subtab="cartao_mes" onclick="app.selectMonthSubtab('cartao_mes')">
+              💳 Fatura de Cartões (Neste Mês)
+            </button>
+          </div>
+
+          <!-- CONTEÚDO DA SUB-ABA -->
+          <div id="monthSubtabContent" class="card"></div>
+
+        </section>
+
+        <!-- ====================================================================
+             3. PÁGINA: CARTÃO DE CRÉDITO
+             ==================================================================== -->
+        <section id="view-cartoes" class="page-view">
+          
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:var(--danger-subtle); color:var(--danger);">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Gestão de Cartões de Crédito & Parcelamentos</h3>
+                  <span class="card-subtitle">As parcelas caem automaticamente nos meses de destino</span>
+                </div>
+              </div>
+              <button class="btn-header primary" onclick="app.openModal('modalNovaCompraCartao')">
+                + Nova Compra Parcelada
+              </button>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+              <div style="display:flex; gap:0.5rem;">
+                <button class="month-tab card-filter-btn active" data-card="todos" onclick="app.filterCard('todos')">Todos os Cartões</button>
+                <button class="month-tab card-filter-btn" data-card="master" onclick="app.filterCard('master')">Mastercard</button>
+                <button class="month-tab card-filter-btn" data-card="nubank" onclick="app.filterCard('nubank')">Nubank (Nu)</button>
+              </div>
+              <div style="font-size:0.95rem; font-weight:700; color:var(--text-secondary);">
+                Total de Compras em Aberto: <span id="totalOpenCardPurchases" style="color:var(--danger); font-size:1.2rem;">R$ 0,00</span>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Descrição da Compra</th>
+                    <th>Estabelecimento</th>
+                    <th>Cartão</th>
+                    <th>Data</th>
+                    <th>Parcelamento</th>
+                    <th>Valor Total</th>
+                    <th style="width: 80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="cardPurchasesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ====================================================================
+             4. PÁGINA: COFRE DE SENHAS
+             ==================================================================== -->
+        <section id="view-senhas" class="page-view">
+          
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:#f5f3ff; color:#8b5cf6;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Cofre de Senhas Protegido</h3>
+                  <span class="card-subtitle">Armazenamento seguro e criptografado de credenciais</span>
+                </div>
+              </div>
+              <button class="btn-header primary" onclick="app.openModal('modalNovaSenha')">
+                + Nova Senha
+              </button>
+            </div>
+
+            <!-- Barra de Busca -->
+            <div style="margin-bottom: 1.5rem;">
+              <div class="form-input-wrapper">
+                <span class="form-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                </span>
+                <input type="text" id="pwdSearchInput" class="form-input" placeholder="Pesquisar por serviço, conta, usuário ou observação...">
+              </div>
+            </div>
+
+            <!-- Lista de Senhas -->
+            <div id="passwordsListContainer"></div>
+          </div>
+
+        </section>
+
+        <!-- ====================================================================
+             5. PÁGINA: SONHOS / COMPRAS FUTURAS
+             ==================================================================== -->
+        <section id="view-sonhos" class="page-view">
+          
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:#fffbeb; color:#f59e0b;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Sonhos & Compras Planejadas</h3>
+                  <span class="card-subtitle">Metas e objetivos financeiros com acompanhamento visual</span>
+                </div>
+              </div>
+              <button class="btn-header primary" onclick="app.openModal('modalNovoSonho')">
+                + Novo Sonho / Compra
+              </button>
+            </div>
+
+            <!-- Grid de Sonhos com barras de progresso -->
+            <div id="dreamsGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1.5rem;"></div>
+          </div>
+
+        </section>
+
+        <!-- ====================================================================
+             6. PÁGINA: BOMBEIRO COMUNITÁRIO
+             ==================================================================== -->
+        <section id="view-bombeiro" class="page-view">
+          
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:#fee2e2; color:#dc2626;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Bombeiro Comunitário (Ressarcimentos)</h3>
+                  <span class="card-subtitle">Controle de valores solicitados e datas de pagamento</span>
+                </div>
+              </div>
+              <button class="btn-header primary" onclick="app.openModal('modalNovoBombeiro')">
+                + Novo Registro
+              </button>
+            </div>
+
+            <!-- Métricas Bombeiro -->
+            <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+              <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light); flex:1;">
+                <div class="metric-pill-label">Total a Receber (Pendente)</div>
+                <div id="bombeiroTotalPending" class="metric-pill-val" style="color:var(--warning); font-size:1.35rem;">R$ 0,00</div>
+              </div>
+              <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light); flex:1;">
+                <div class="metric-pill-label">Total Já Recebido</div>
+                <div id="bombeiroTotalPaid" class="metric-pill-val" style="color:var(--success); font-size:1.35rem;">R$ 0,00</div>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mês de Referência</th>
+                    <th>Data Solicitada</th>
+                    <th>Data de Pagamento</th>
+                    <th>Valor a Receber</th>
+                    <th>Estado (Status)</th>
+                    <th style="width: 80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="bombeiroTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ====================================================================
+             7. PÁGINA: CONTROLE DE TROCO JOTUR (BASE R$ 200,00)
+             ==================================================================== -->
+        <section id="view-jotur" class="page-view">
+          
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:var(--success-subtle); color:var(--success);">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M7 7h10v10H7z"></path></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Controle de Troco & Caixa Jotur</h3>
+                  <span class="card-subtitle">Base padrão: R$ 200,00 com contagem detalhada de notas e moedas</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="jotur-container">
+              <!-- Grid de Contagem -->
+              <div>
+                <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.75rem;">
+                  💵 Cédulas (Notas)
+                </h4>
+                <div class="jotur-counter-grid" style="margin-bottom:1.5rem;">
+                  <div class="coin-box">
+                    <div class="coin-label">R$ 20,00</div>
+                    <div class="coin-type">Nota</div>
+                    <input type="number" id="jt_n20" class="coin-input" min="0" value="0">
+                    <div id="sub_n20" class="coin-subtotal">R$ 0,00</div>
+                  </div>
+                  <div class="coin-box">
+                    <div class="coin-label">R$ 10,00</div>
+                    <div class="coin-type">Nota</div>
+                    <input type="number" id="jt_n10" class="coin-input" min="0" value="0">
+                    <div id="sub_n10" class="coin-subtotal">R$ 0,00</div>
+                  </div>
+                  <div class="coin-box">
+                    <div class="coin-label">R$ 5,00</div>
+                    <div class="coin-type">Nota</div>
+                    <input type="number" id="jt_n5" class="coin-input" min="0" value="0">
+                    <div id="sub_n5" class="coin-subtotal">R$ 0,00</div>
+                  </div>
+                  <div class="coin-box">
+                    <div class="coin-label">R$ 2,00</div>
+                    <div class="coin-type">Nota</div>
+                    <input type="number" id="jt_n2" class="coin-input" min="0" value="0">
+                    <div id="sub_n2" class="coin-subtotal">R$ 0,00</div>
+                  </div>
+                </div>
+
+                <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.75rem;">
+                  🪙 Moedas
+                </h4>
+                <div class="jotur-counter-grid">
+                  <div class="coin-box">
+                    <div class="coin-label">R$ 1,00</div>
+                    <div class="coin-type">Moeda</div>
+                    <input type="number" id="jt_m100" class="coin-input" min="0" value="0">
+                    <div id="sub_m100" class="coin-subtotal">R$ 0,00</div>
+                  </div>
+                  <div class="coin-box">
+                    <div class="coin-label">R$ 0,50</div>
+                    <div class="coin-type">Moeda</div>
+                    <input type="number" id="jt_m50" class="coin-input" min="0" value="0">
+                    <div id="sub_m50" class="coin-subtotal">R$ 0,00</div>
+                  </div>
+                  <div class="coin-box">
+                    <div class="coin-label">R$ 0,25</div>
+                    <div class="coin-type">Moeda</div>
+                    <input type="number" id="jt_m25" class="coin-input" min="0" value="0">
+                    <div id="sub_m25" class="coin-subtotal">R$ 0,00</div>
+                  </div>
+                  <div class="coin-box">
+                    <div class="coin-label">R$ 0,10</div>
+                    <div class="coin-type">Moeda</div>
+                    <input type="number" id="jt_m10" class="coin-input" min="0" value="0">
+                    <div id="sub_m10" class="coin-subtotal">R$ 0,00</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Painel Lateral de Conferência -->
+              <div class="jotur-summary-card">
+                <div>
+                  <h4 style="font-size:1.1rem; font-weight:800; color:var(--navy); margin-bottom:1rem;">Resultado da Conferência</h4>
+                  
+                  <div style="margin-bottom:0.75rem;">
+                    <span style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Troco Base Estabelecido:</span>
+                    <div id="joturBaseDisplay" style="font-size:1.15rem; font-weight:700; color:var(--navy);">R$ 200,00</div>
+                  </div>
+
+                  <div style="margin-bottom:1rem;">
+                    <span style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Total Contado no Caixa:</span>
+                    <div id="joturTotalCounted" style="font-size:1.85rem; font-weight:800; color:var(--primary);">R$ 0,00</div>
+                  </div>
+
+                  <div id="joturResultBox" class="jotur-result-box">
+                    <div id="joturResultTitle" style="font-weight:800; font-size:1.05rem;">Aguardando contagem</div>
+                    <div id="joturResultDiff" style="font-size:0.9rem; font-weight:700; margin-top:0.25rem;">Diferença: R$ 0,00</div>
+                  </div>
+                </div>
+
+                <button class="btn-primary" style="margin-top:1rem;" onclick="app.saveCurrentJotur()">
+                  💾 Salvar Conferência no Histórico
+                </button>
+              </div>
+            </div>
+
+            <!-- Tabela de Histórico Jotur -->
+            <div style="margin-top:2.5rem;">
+              <h4 style="font-size:1.05rem; font-weight:800; color:var(--navy); margin-bottom:1rem;">
+                Histórico de Conferências Salvas
+              </h4>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Data e Hora</th>
+                      <th>Troco Base</th>
+                      <th>Total Contado</th>
+                      <th>Resultado (Sobra / Falta)</th>
+                      <th style="width: 80px;">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="joturHistoryTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ====================================================================
+             8. PÁGINA: INVESTIMENTOS
+             ==================================================================== -->
+        <section id="view-investimentos" class="page-view">
+          
+          <!-- BANNER INVESTIMENTOS -->
+          <div class="card" style="background:linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color:#fff; border:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.5rem;">
+              <div>
+                <span style="font-size:0.85rem; font-weight:600; text-transform:uppercase; color:#93c5fd;">Patrimônio Total Investido</span>
+                <div id="investTotalAssets" style="font-size:2.4rem; font-weight:800; color:#fff;">R$ 0,00</div>
+              </div>
+              <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+                <div class="metric-pill" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.15);">
+                  <div class="metric-pill-label" style="color:#bfdbfe;">Bolsa (Ações / FIIs)</div>
+                  <div id="investTotalStocks" class="metric-pill-val" style="color:#60a5fa;">R$ 0,00</div>
+                </div>
+                <div class="metric-pill" style="background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.15);">
+                  <div class="metric-pill-label" style="color:#e9d5ff;">Nubank (Caixinhas)</div>
+                  <div id="investTotalBoxes" class="metric-pill-val" style="color:#c084fc;">R$ 0,00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SEÇÃO BOLSA DE VALORES -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:#eff6ff; color:#2563eb;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Bolsa de Valores (Ações / FIIs)</h3>
+                  <span class="card-subtitle">Acompanhamento de posições, cotas e preço médio</span>
+                </div>
+              </div>
+              <button class="btn-header primary" onclick="app.openModal('modalNovoAtivoBolsa')">
+                + Novo Ativo em Bolsa
+              </button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ativo / Ticker</th>
+                    <th>Tipo</th>
+                    <th>Data Compra</th>
+                    <th>Qtd. Cotas</th>
+                    <th>Valor por Cota</th>
+                    <th>Total Aplicado</th>
+                    <th style="width: 80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="stocksTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SEÇÃO NUBANK CAIXINHAS -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:#f5f3ff; color:#8b5cf6;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Nubank (Renda Fixa & Caixinhas)</h3>
+                  <span class="card-subtitle">Reservas de emergência e aplicações de liquidez</span>
+                </div>
+              </div>
+              <button class="btn-header primary" onclick="app.openModal('modalNovaCaixinhaNubank')">
+                + Nova Caixinha
+              </button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Nome da Caixinha / Aplicação</th>
+                    <th>Data</th>
+                    <th>Valor Guardado</th>
+                    <th>Status</th>
+                    <th style="width: 80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="nubankBoxesTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ========================================================================
+       MODAIS EXECUTIVOS (FORMULÁRIOS DE CADASTRO)
+       ======================================================================== -->
+
+  <!-- Modal: Nova Receita -->
+  <div id="modalNovaReceita" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Cadastrar Nova Receita</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovaReceita')">✕</button>
+      </div>
+      <form id="formNovaReceita">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Fonte de Renda / Descrição</label>
+            <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Salário, Honorários, Extra">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Valor (R$)</label>
+              <input type="number" step="0.01" id="rev_value" class="form-input" required placeholder="0,00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <input type="date" id="rev_date" class="form-input" required>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Estado</label>
+              <select id="rev_status" class="form-input">
+                <option value="Recebido">Recebido</option>
+                <option value="Pendente">Pendente</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Banco / Conta</label>
+              <select id="rev_bank" class="form-input">
+                <option value="Bradesco">Bradesco</option>
+                <option value="Nubank (Nu)">Nubank (Nu)</option>
+                <option value="Banco do Brasil">Banco do Brasil (BB)</option>
+                <option value="Caixa Poupança">Caixa Econômica (Poupança)</option>
+                <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
+                <option value="Seven">Seven</option>
+                <option value="Carteira">Carteira (Dinheiro)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaReceita')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Receita</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Nova Despesa Fixa -->
+  <div id="modalNovaDespesaFixa" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Cadastrar Despesa Fixa</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovaDespesaFixa')">✕</button>
+      </div>
+      <form id="formNovaDespesaFixa">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Conta / Descrição</label>
+            <input type="text" id="fix_desc" class="form-input" required placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Data de Vencimento</label>
+              <input type="date" id="fix_date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Previsto (R$)</label>
+              <input type="number" step="0.01" id="fix_val_exp" class="form-input" required placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Valor Pago (Opcional)</label>
+              <input type="number" step="0.01" id="fix_val_paid" class="form-input" placeholder="0,00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Estado</label>
+              <select id="fix_status" class="form-input">
+                <option value="Pendente">Pendente</option>
+                <option value="Pago">Pago</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Banco / Conta para Pagamento</label>
+            <select id="fix_bank" class="form-input">
+              <option value="Bradesco">Bradesco</option>
+              <option value="Nubank (Nu)">Nubank (Nu)</option>
+              <option value="Banco do Brasil">Banco do Brasil (BB)</option>
+              <option value="Caixa Poupança">Caixa Econômica (Poupança)</option>
+              <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
+              <option value="Seven">Seven</option>
+              <option value="Carteira">Carteira (Dinheiro)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaDespesaFixa')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Despesa Fixa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Nova Despesa Variável -->
+  <div id="modalNovaDespesaVariavel" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Cadastrar Despesa Variável</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovaDespesaVariavel')">✕</button>
+      </div>
+      <form id="formNovaDespesaVariavel">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Despesa / Descrição</label>
+            <input type="text" id="var_desc" class="form-input" required placeholder="Ex: Mercado, Combustível, Farmácia">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Valor (R$)</label>
+              <input type="number" step="0.01" id="var_val" class="form-input" required placeholder="0,00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <input type="date" id="var_date" class="form-input" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Banco / Conta</label>
+            <select id="var_bank" class="form-input">
+              <option value="Bradesco">Bradesco</option>
+              <option value="Nubank (Nu)">Nubank (Nu)</option>
+              <option value="Banco do Brasil">Banco do Brasil (BB)</option>
+              <option value="Caixa Poupança">Caixa Econômica (Poupança)</option>
+              <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
+              <option value="Seven">Seven</option>
+              <option value="Carteira">Carteira (Dinheiro)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaDespesaVariavel')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Despesa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Nova Compra no Cartão -->
+  <div id="modalNovaCompraCartao" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Cadastrar Compra no Cartão de Crédito</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovaCompraCartao')">✕</button>
+      </div>
+      <form id="formNovaCompraCartao">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Compra (Descrição)</label>
+            <input type="text" id="card_desc" class="form-input" required placeholder="Ex: Smartphone, Seguro, Supermercado">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Onde Comprou (Estabelecimento)</label>
+              <input type="text" id="card_place" class="form-input" placeholder="Ex: Amazon, Magazine Luiza, Posto">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cartão Utilizado</label>
+              <select id="card_type" class="form-input">
+                <option value="Master">Mastercard</option>
+                <option value="Nubank (Nu)">Nubank (Nu)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Data da Compra</label>
+              <input type="date" id="card_date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Total da Compra (R$)</label>
+              <input type="number" step="0.01" id="card_val" class="form-input" required placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Quantidade de Vezes (Parcelamento)</label>
+              <select id="card_installments" class="form-input">
+                <option value="1">1x (À vista na fatura)</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+                <option value="6">6x</option>
+                <option value="7">7x</option>
+                <option value="8">8x</option>
+                <option value="9">9x</option>
+                <option value="10">10x</option>
+                <option value="12">12x</option>
+                <option value="18">18x</option>
+                <option value="24">24x</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mês de Início da Cobrança</label>
+              <select id="card_start_month" class="form-input">
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+              </select>
+            </div>
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-surface-alt); padding:0.6rem; border-radius:var(--radius-sm);">
+            💡 <strong>Regra Automática:</strong> O valor de cada parcela será encaminhado diretamente para as despesas do mês correspondente!
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaCompraCartao')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Cadastrar Compra</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Novo Sonho -->
+  <div id="modalNovoSonho" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Cadastrar Novo Sonho / Compra</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovoSonho')">✕</button>
+      </div>
+      <form id="formNovoSonho">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Produto / Objetivo</label>
+            <input type="text" id="dream_title" class="form-input" required placeholder="Ex: Viagem de Férias, Carro Novo, Reforma">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Valor Estimado (R$)</label>
+              <input type="number" step="0.01" id="dream_val" class="form-input" required placeholder="0,00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Já Guardado (R$)</label>
+              <input type="number" step="0.01" id="dream_saved" class="form-input" placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Meta (Prazo / Data Objetivo)</label>
+            <input type="date" id="dream_date" class="form-input" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovoSonho')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Sonho</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Bombeiro Comunitário -->
+  <div id="modalNovoBombeiro" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Novo Registro do Bombeiro Comunitário</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovoBombeiro')">✕</button>
+      </div>
+      <form id="formNovoBombeiro">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Mês de Referência</label>
+            <input type="text" id="ff_month" class="form-input" required placeholder="Ex: Setembro / 2026">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Data Solicitada</label>
+              <input type="date" id="ff_date_req" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data de Pagamento</label>
+              <input type="date" id="ff_date_pay" class="form-input">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Valor a Receber (R$)</label>
+              <input type="number" step="0.01" id="ff_amount" class="form-input" required placeholder="0,00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Estado (Status)</label>
+              <select id="ff_status" class="form-input">
+                <option value="Solicitado">Solicitado</option>
+                <option value="Em Análise">Em Análise</option>
+                <option value="Pago">Pago</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovoBombeiro')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Registro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Ativo Bolsa de Valores -->
+  <div id="modalNovoAtivoBolsa" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Novo Ativo na Bolsa de Valores</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovoAtivoBolsa')">✕</button>
+      </div>
+      <form id="formNovoAtivoBolsa">
+        <div class="modal-body">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Código / Ticker</label>
+              <input type="text" id="stk_ticker" class="form-input" required placeholder="Ex: PETR4, MXRF11, ITUB4">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo de Ativo</label>
+              <select id="stk_type" class="form-input">
+                <option value="Ação">Ação</option>
+                <option value="FII">Fundo Imobiliário (FII)</option>
+                <option value="ETF">ETF</option>
+                <option value="BDR">BDR</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data da Aplicação</label>
+            <input type="date" id="stk_date" class="form-input" required>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Quantidade de Cotas</label>
+              <input type="number" id="stk_shares" class="form-input" required placeholder="Ex: 100">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor por Cota (R$)</label>
+              <input type="number" step="0.01" id="stk_price" class="form-input" required placeholder="0,00">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovoAtivoBolsa')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Ativo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Caixinha Nubank -->
+  <div id="modalNovaCaixinhaNubank" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Nova Caixinha / Renda Fixa Nubank</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovaCaixinhaNubank')">✕</button>
+      </div>
+      <form id="formNovaCaixinhaNubank">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nome da Caixinha / Finalidade</label>
+            <input type="text" id="box_name" class="form-input" required placeholder="Ex: Reserva de Emergência, Férias, IPVA">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <input type="date" id="box_date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Aplicado (R$)</label>
+              <input type="number" step="0.01" id="box_val" class="form-input" required placeholder="0,00">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaCaixinhaNubank')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Caixinha</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Nova Senha (Padrão ACBCSJ) -->
+  <div id="modalNovaSenha" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Cadastrar Senha no Cofre</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovaSenha')">✕</button>
+      </div>
+      <form id="formNovaSenha">
+        <div class="modal-body">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Serviço / Título</label>
+              <input type="text" id="pwd_service" class="form-input" required placeholder="Ex: Portal Bradesco, E-mail Pessoal">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Categoria</label>
+              <select id="pwd_category" class="form-input">
+                <option value="Bancos">Bancos</option>
+                <option value="E-mails">E-mails</option>
+                <option value="Serviços & Portais">Serviços & Portais</option>
+                <option value="Trabalho">Trabalho</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Usuário / Login</label>
+              <input type="text" id="pwd_user" class="form-input" required placeholder="Ex: raphael@email.com ou CPF">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Senha</label>
+              <input type="text" id="pwd_pass" class="form-input" required placeholder="Digite a senha">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Endereço de Acesso (URL)</label>
+            <input type="url" id="pwd_url" class="form-input" placeholder="https://exemplo.com.br">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Observações / Anotações</label>
+            <input type="text" id="pwd_notes" class="form-input" placeholder="Ex: Dica de recuperação, chave Pix associada">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaSenha')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Guardar Senha</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Configuração do Supabase (Cofre na Nuvem) -->
+  <div id="modalConfigSupabase" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Conectar Cofre de Dados (Supabase)</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalConfigSupabase')">✕</button>
+      </div>
+      <form id="formConfigSupabase">
+        <div class="modal-body">
+          <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:1.25rem;">
+            Conecte seu projeto gratuito do <strong>Supabase</strong> para sincronizar seus dados automaticamente na nuvem segura. Se ainda não tiver as chaves, não se preocupe: seus dados continuam 100% seguros no seu computador.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Project URL (Endereço do Cofre)</label>
+            <input type="url" id="sb_url" class="form-input" placeholder="https://seuprojeto.supabase.co">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Anon Public Key (Chave Pública do Cofre)</label>
+            <input type="password" id="sb_key" class="form-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalConfigSupabase')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar e Sincronizar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Input Oculto para Importar Backup -->
+  <input type="file" id="importBackupInput" accept=".json" style="display:none;" onchange="app.handleImportFile(this.files[0])">
+
+  <!-- Container de Notificações Toast -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/data.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
