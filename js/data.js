@@ -72,14 +72,15 @@ const INITIAL_DATABASE = {
     userPasswordHash: '12345',
     lastSync: null,
     supabase: {
-      url: '',
-      anonKey: ''
+      url: 'https://mpqovczuspebtnbdawcp.supabase.co',
+      anonKey: 'sb_publishable_G9fek0q02UhIXKx6aSXkIQ_3_ovrTLZ'
     }
   }
 };
 
 class DataStore {
   constructor() {
+    this._syncTimeout = null;
     this.data = this.load();
   }
 
@@ -88,7 +89,12 @@ class DataStore {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        return { ...INITIAL_DATABASE, ...parsed };
+        const merged = { ...INITIAL_DATABASE, ...parsed };
+        if (!merged.settings) merged.settings = { ...INITIAL_DATABASE.settings };
+        if (!merged.settings.supabase || !merged.settings.supabase.url || !merged.settings.supabase.anonKey) {
+          merged.settings.supabase = { ...INITIAL_DATABASE.settings.supabase };
+        }
+        return merged;
       }
     } catch (e) {
       console.error('Erro ao ler localStorage', e);
@@ -96,9 +102,15 @@ class DataStore {
     return JSON.parse(JSON.stringify(INITIAL_DATABASE));
   }
 
-  save() {
+  save(skipCloudSync = false) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      if (!skipCloudSync && typeof window !== 'undefined' && window.supabaseService && window.supabaseService.isConfigured()) {
+        if (this._syncTimeout) clearTimeout(this._syncTimeout);
+        this._syncTimeout = setTimeout(() => {
+          window.supabaseService.syncToCloud(true);
+        }, 1500);
+      }
     } catch (e) {
       console.error('Erro ao salvar no localStorage', e);
     }

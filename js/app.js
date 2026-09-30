@@ -61,9 +61,35 @@ const app = {
       if (loginScreen) loginScreen.style.display = 'none';
       if (appContainer) appContainer.style.display = 'flex';
       this.render();
+      this.autoSyncOnStartup();
     } else {
       if (loginScreen) loginScreen.style.display = 'flex';
       if (appContainer) appContainer.style.display = 'none';
+    }
+  },
+
+  async autoSyncOnStartup() {
+    if (typeof supabaseService !== 'undefined' && supabaseService.isConfigured()) {
+      const res = await supabaseService.loadFromCloud(true);
+      if (res.success) {
+        this.render();
+        this.showToast('☁️ Dados sincronizados com a Nuvem!', 'success');
+      } else {
+        // Se ainda não havia dados na nuvem, sobe o estado inicial
+        supabaseService.syncToCloud(true);
+      }
+    }
+  },
+
+  async syncCloud() {
+    const btn = document.getElementById('btnSyncCloud');
+    if (btn) btn.textContent = '⏳ Sincronizando...';
+    const res = await supabaseService.syncToCloud(false);
+    if (btn) btn.textContent = '☁️ Nuvem';
+    if (res.success) {
+      this.showToast('✅ Sincronizado com o Supabase!', 'success');
+    } else {
+      this.showToast(res.error || res.reason || 'Erro ao sincronizar', 'warning');
     }
   },
 

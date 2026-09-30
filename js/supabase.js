@@ -10,7 +10,7 @@ class SupabaseService {
   }
 
   init() {
-    const config = store.data.settings.supabase;
+    const config = typeof store !== 'undefined' ? store.data.settings.supabase : null;
     if (config && config.url && config.anonKey) {
       if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
         try {
@@ -24,7 +24,7 @@ class SupabaseService {
   }
 
   isConfigured() {
-    const config = store.data.settings.supabase;
+    const config = typeof store !== 'undefined' ? store.data.settings.supabase : null;
     return !!(config && config.url && config.anonKey);
   }
 
@@ -33,12 +33,13 @@ class SupabaseService {
       url: url.trim(),
       anonKey: anonKey.trim()
     };
-    store.save();
+    store.save(true);
     this.init();
   }
 
   // Sincronização Segura do Estado Completo do Sistema
-  async syncToCloud() {
+  async syncToCloud(silent = false) {
+    if (!this.client) this.init();
     if (!this.isConfigured() || !this.client) {
       return { success: false, reason: 'Cofre Supabase não configurado. Dados salvos com segurança no navegador!' };
     }
@@ -57,7 +58,8 @@ class SupabaseService {
       if (error) throw error;
 
       store.data.settings.lastSync = new Date().toISOString();
-      store.save();
+      store.save(true); // salva lastSync sem disparar novo loop
+      if (!silent) console.log('[Cofre Supabase] Sincronização concluída com sucesso.');
       return { success: true, message: 'Dados salvos com sucesso no Cofre Supabase!' };
     } catch (e) {
       console.error('[Cofre Supabase] Erro ao sincronizar:', e);
@@ -66,7 +68,8 @@ class SupabaseService {
   }
 
   // Carregar dados da Nuvem
-  async loadFromCloud() {
+  async loadFromCloud(silent = false) {
+    if (!this.client) this.init();
     if (!this.isConfigured() || !this.client) {
       return { success: false, reason: 'Cofre Supabase não configurado' };
     }
@@ -78,12 +81,15 @@ class SupabaseService {
         .eq('user_email', store.data.settings.userEmail)
         .single();
 
-      if (error) throw error;
+      if (error && error.code !== 'PGRST116') { // PGRST116 = zero rows found
+        throw error;
+      }
 
       if (data && data.data_json) {
         store.data = data.data_json;
         store.data.settings.lastSync = data.updated_at;
-        store.save();
+        store.save(true);
+        if (!silent) console.log('[Cofre Supabase] Dados carregados da nuvem com sucesso.');
         return { success: true, message: 'Dados restaurados com sucesso da nuvem!' };
       }
       return { success: false, reason: 'Nenhum backup encontrado na nuvem para este usuário' };
@@ -95,3 +101,5 @@ class SupabaseService {
 }
 
 const supabaseService = new SupabaseService();
+window.supabaseService = supabaseService;
+
