@@ -86,7 +86,7 @@ const app = {
   receitasFilterMonth: 'todos',
   receitasFilterBank: 'todos',
   receitasSearch: '',
-  activeTabCartao: 'master', // Padrão Mastercard (estilo Notion do print)
+  activeTabCartao: 'todos', // Exibe todos os cartões cadastrados por padrão
   cardCalendarOffset: 0,
   cardSearchQuery: '',
   activeTabInvest: 'bolsa',
@@ -1618,19 +1618,22 @@ const app = {
 
   getCardCalendarMonthColumns() {
     const now = new Date();
-    const baseYear = Number(store.activeYear) || now.getFullYear();
-    const baseMonth = now.getMonth() + 1; // 1 a 12
-
-    // Janela de 6 meses iniciando 2 meses antes do mês atual (ex: se hoje é Outubro, exibe Ago, Set, Out, Nov, Dez, Jan/27)
-    const startAbsMonth = (baseYear * 12) + (baseMonth - 1) - 2 + (this.cardCalendarOffset || 0);
+    const currYear = now.getFullYear();
+    const currMonth = now.getMonth() + 1;
+    const year = Number(store.activeYear) || currYear;
+    const monthNames = [
+      '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
 
     const cols = [];
-    for (let i = 0; i < 6; i++) {
-      const abs = startAbsMonth + i;
-      const year = Math.floor(abs / 12);
-      const month = (abs % 12) + 1;
-      const isCurrent = (year === now.getFullYear() && month === (now.getMonth() + 1));
-      cols.push({ month, year, isCurrent });
+    for (let m = 1; m <= 12; m++) {
+      cols.push({
+        month: m,
+        year: year,
+        name: monthNames[m],
+        isCurrent: (year === currYear && m === currMonth)
+      });
     }
     return cols;
   },
@@ -1719,18 +1722,6 @@ const app = {
     return `${day} de ${monthNames[month] || month} de ${year}`;
   },
 
-  getCardCalendarColTitle(mNum, year, refYear) {
-    const monthNames = [
-      '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    const name = monthNames[mNum] || `Mês ${mNum}`;
-    if (year !== refYear) {
-      return `# ${name}/${String(year).slice(-2)}`;
-    }
-    return `# ${name}`;
-  },
-
   renderCardCalendarMatrix() {
     const container = document.getElementById('cardCalendarMatrixContainer');
     if (!container) return;
@@ -1747,29 +1738,31 @@ const app = {
 
     const cardTitle = (this.activeTabCartao === 'todos') ? 'Todos os Cartões' : ((this.activeTabCartao === 'nubank') ? 'Nubank (Nu)' : 'Mastercard');
     const cols = this.getCardCalendarMonthColumns();
-    const refYear = cols[0].year;
     const colTotals = new Array(cols.length).fill(0);
+    let grandTotalYear = 0;
 
     container.innerHTML = `
       <div class="notion-card-calendar-container">
         <!-- CABEÇALHO NOTION -->
         <div class="notion-card-calendar-header">
           <div class="notion-card-title-wrap">
-            <h2 class="notion-card-title">${cardTitle}</h2>
+            <h2 class="notion-card-title">${cardTitle} (${store.activeYear})</h2>
             <div class="notion-card-tabs">
+              <button class="notion-card-tab ${this.activeTabCartao === 'todos' ? 'active' : ''}" onclick="app.filterCard('todos')">Todos os Cartões</button>
               <button class="notion-card-tab ${this.activeTabCartao === 'master' ? 'active' : ''}" onclick="app.filterCard('master')">Mastercard</button>
               <button class="notion-card-tab ${this.activeTabCartao === 'nubank' ? 'active' : ''}" onclick="app.filterCard('nubank')">Nubank (Nu)</button>
-              <button class="notion-card-tab ${this.activeTabCartao === 'todos' ? 'active' : ''}" onclick="app.filterCard('todos')">Todos os Cartões</button>
             </div>
           </div>
 
           <div class="notion-card-toolbar">
             <div style="display:flex; align-items:center; gap:0.25rem;">
-              <button class="notion-icon-btn" title="Meses Anteriores" onclick="app.shiftCardCalendarMonths(-3)">
+              <button class="notion-icon-btn" title="Ano Anterior (${store.activeYear - 1})" onclick="app.prevYear()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
               </button>
-              <button class="notion-btn-pill" title="Voltar ao período atual" onclick="app.resetCardCalendarMonths()">Mês Atual</button>
-              <button class="notion-icon-btn" title="Próximos Meses" onclick="app.shiftCardCalendarMonths(3)">
+              <span class="notion-btn-pill" style="cursor:default; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25);">
+                Ano ${store.activeYear}
+              </span>
+              <button class="notion-icon-btn" title="Próximo Ano (${store.activeYear + 1})" onclick="app.nextYear()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
               </button>
             </div>
@@ -1789,39 +1782,43 @@ const app = {
           </div>
         </div>
 
-        <!-- TABELA MATRIZ CALENDÁRIO -->
+        <!-- TABELA MATRIZ CALENDÁRIO (12 MESES DO ANO) -->
         <div class="notion-matrix-scroll">
           <table class="notion-matrix-table">
             <thead>
               <tr>
-                <th style="min-width: 220px;"><span class="th-icon">Aa</span> Compra</th>
-                <th style="min-width: 140px;"><span class="th-icon">⊙</span> Site</th>
-                <th style="min-width: 160px;"><span class="th-icon">📅</span> Data Compra</th>
+                <th style="min-width: 200px;"><span class="th-icon">Aa</span> Compra</th>
+                <th style="min-width: 120px;"><span class="th-icon">⊙</span> Site</th>
+                <th style="min-width: 130px;"><span class="th-icon">💳</span> Cartão</th>
+                <th style="min-width: 130px;"><span class="th-icon">📅</span> Data Compra</th>
                 ${cols.map(col => `
                   <th class="col-month ${col.isCurrent ? 'col-current-month' : ''}">
-                    ${this.getCardCalendarColTitle(col.month, col.year, refYear)}
+                    # ${col.name}
                   </th>
                 `).join('')}
-                <th style="width: 40px; text-align: center; color: #64748b;">+</th>
+                <th style="min-width: 120px; text-align: right; color: #38bdf8;">Total ${store.activeYear}</th>
               </tr>
             </thead>
             <tbody>
               ${purchases.length === 0 ? `
                 <tr>
-                  <td colspan="${4 + cols.length}" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
-                    Nenhuma compra registrada para ${cardTitle}. Clique em "+ Nova" para cadastrar sua compra.
+                  <td colspan="${5 + cols.length}" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+                    Nenhuma compra encontrada para ${cardTitle} no ano ${store.activeYear}. Clique em "+ Nova" para cadastrar sua compra.
                   </td>
                 </tr>
               ` : purchases.map(p => {
                 const info = this.getPurchaseInstallmentInfo(p, store.activeYear);
                 const siteTag = this.getSiteTagHtml(p.place);
                 const dateText = this.formatDateFullPT(p.date);
+                let rowTotalYear = 0;
 
                 const cellsHtml = cols.map((col, idx) => {
                   const monthDiff = (col.year - info.startYear) * 12 + (col.month - info.startMonth);
                   const hasInstallment = (monthDiff >= 0 && monthDiff < info.count);
                   if (hasInstallment) {
                     colTotals[idx] += info.installmentValue;
+                    rowTotalYear += info.installmentValue;
+                    grandTotalYear += info.installmentValue;
                     return `<td class="col-month ${col.isCurrent ? 'col-current-month' : ''}">${formatBRL(info.installmentValue)}</td>`;
                   }
                   return `<td class="col-month ${col.isCurrent ? 'col-current-month' : ''}"></td>`;
@@ -1837,24 +1834,27 @@ const app = {
                       </div>
                     </td>
                     <td>${siteTag}</td>
+                    <td><span class="notion-tag" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1;">${escapeHtml(p.card || 'Mastercard')}</span></td>
                     <td style="color: #94a3b8; font-size: 0.8rem;">${dateText}</td>
                     ${cellsHtml}
-                    <td style="text-align: center; color: rgba(255,255,255,0.15);"></td>
+                    <td style="text-align: right; font-weight: 700; color: #38bdf8;">${rowTotalYear > 0 ? formatBRL(rowTotalYear) : '—'}</td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
             <tfoot>
               <tr>
-                <td colspan="3" style="text-align: right; color: #94a3b8; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                <td colspan="4" style="text-align: right; color: #94a3b8; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
                   Total da Fatura:
                 </td>
                 ${cols.map((col, idx) => `
-                  <td class="col-month ${col.isCurrent ? 'col-current-month' : ''}" style="color: #60a5fa; font-weight: 800; font-size: 0.9rem;">
+                  <td class="col-month ${col.isCurrent ? 'col-current-month' : ''}" style="color: #60a5fa; font-weight: 800; font-size: 0.88rem;">
                     ${colTotals[idx] > 0 ? formatBRL(colTotals[idx]) : '—'}
                   </td>
                 `).join('')}
-                <td></td>
+                <td style="text-align: right; color: #38bdf8; font-weight: 800; font-size: 0.95rem;">
+                  ${grandTotalYear > 0 ? formatBRL(grandTotalYear) : '—'}
+                </td>
               </tr>
             </tfoot>
           </table>
