@@ -492,21 +492,28 @@ class DataStore {
     this.save();
   }
 
-  // Parcelas de cartão que incidem no mês
-  getCardInstallmentsForMonth(monthNum) {
+  // Parcelas de cartão que incidem no mês (considerando mês e ano)
+  getCardInstallmentsForMonth(monthNum, year = this.activeYear) {
     const list = [];
     const targetMonth = Number(monthNum);
-    const m = this.data.months[targetMonth];
+    const targetYear = Number(year) || this.activeYear;
+    const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][targetMonth] : this.data.months[targetMonth];
+
+    if (!this.data.cardPurchases) return list;
 
     this.data.cardPurchases.forEach(purchase => {
       const installmentsCount = Number(purchase.installments) || 1;
       const startMonth = Number(purchase.startMonth) || 1;
+      const startYear = Number(purchase.startYear) || (purchase.date ? parseInt(purchase.date.split('-')[0], 10) : this.activeYear);
       const installmentValue = (Number(purchase.totalAmount) || 0) / installmentsCount;
 
       for (let i = 0; i < installmentsCount; i++) {
-        // Mês da parcela (ajuste cíclico 1 a 12)
-        const dueMonth = ((startMonth - 1 + i) % 12) + 1;
-        if (dueMonth === targetMonth) {
+        // Cálculo temporal exato: calcula o mês e o ano em que cada parcela incide
+        const totalMonths = (startMonth - 1) + i;
+        const dueYear = startYear + Math.floor(totalMonths / 12);
+        const dueMonth = (totalMonths % 12) + 1;
+
+        if (dueYear === targetYear && dueMonth === targetMonth) {
           const key = `${purchase.id}_${i + 1}`;
           const status = (m && m.cardInstallmentStatus && m.cardInstallmentStatus[key]) || 'Pendente';
           list.push({
@@ -519,6 +526,10 @@ class DataStore {
             installmentsTotal: installmentsCount,
             value: installmentValue,
             date: purchase.date,
+            startMonth: startMonth,
+            startYear: startYear,
+            dueMonth: dueMonth,
+            dueYear: dueYear,
             status: status
           });
         }
@@ -528,8 +539,9 @@ class DataStore {
     return list;
   }
 
-  toggleCardInstallmentStatus(monthNum, key) {
-    const m = this.data.months[monthNum];
+  toggleCardInstallmentStatus(monthNum, key, year = this.activeYear) {
+    const targetYear = Number(year) || this.activeYear;
+    const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
     if (!m) return 'Pendente';
     if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
     const current = m.cardInstallmentStatus[key] || 'Pendente';
@@ -539,11 +551,12 @@ class DataStore {
     return next;
   }
 
-  setAllCardInstallmentsStatus(monthNum, status = 'Pago') {
-    const m = this.data.months[monthNum];
+  setAllCardInstallmentsStatus(monthNum, status = 'Pago', year = this.activeYear) {
+    const targetYear = Number(year) || this.activeYear;
+    const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
     if (!m) return;
     if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
-    const installments = this.getCardInstallmentsForMonth(monthNum);
+    const installments = this.getCardInstallmentsForMonth(monthNum, targetYear);
     installments.forEach(inst => {
       m.cardInstallmentStatus[inst.key] = status;
     });
@@ -625,6 +638,9 @@ class DataStore {
     purchase.id = 'cp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
     purchase.totalAmount = Number(purchase.totalAmount) || 0;
     purchase.installments = Number(purchase.installments) || 1;
+    purchase.startMonth = Number(purchase.startMonth) || 1;
+    purchase.startYear = Number(purchase.startYear) || (purchase.date ? parseInt(purchase.date.split('-')[0], 10) : this.activeYear);
+    if (!this.data.cardPurchases) this.data.cardPurchases = [];
     this.data.cardPurchases.push(purchase);
     this.save();
     return purchase;

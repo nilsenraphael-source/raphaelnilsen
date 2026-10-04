@@ -1180,7 +1180,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Valor Total da Compra (R$)</label>
-              <input type="number" step="0.01" id="card_val" class="form-input" required placeholder="0,00">
+              <input type="text" inputmode="decimal" id="card_val" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
           </div>
           <div class="form-grid-2">
@@ -1203,21 +1203,32 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Mês de Início da Cobrança</label>
-              <select id="card_start_month" class="form-input">
-                <option value="1">Janeiro</option>
-                <option value="2">Fevereiro</option>
-                <option value="3">Março</option>
-                <option value="4">Abril</option>
-                <option value="5">Maio</option>
-                <option value="6">Junho</option>
-                <option value="7">Julho</option>
-                <option value="8">Agosto</option>
-                <option value="9">Setembro</option>
-                <option value="10">Outubro</option>
-                <option value="11">Novembro</option>
-                <option value="12">Dezembro</option>
-              </select>
+              <label class="form-label">Início da Cobrança (1ª Parcela)</label>
+              <div style="display:flex; gap:0.5rem;">
+                <select id="card_start_month" class="form-input" style="flex:1.4;" title="Mês da 1ª Parcela">
+                  <option value="1">Janeiro</option>
+                  <option value="2">Fevereiro</option>
+                  <option value="3">Março</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Maio</option>
+                  <option value="6">Junho</option>
+                  <option value="7">Julho</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Setembro</option>
+                  <option value="10">Outubro</option>
+                  <option value="11">Novembro</option>
+                  <option value="12">Dezembro</option>
+                </select>
+                <select id="card_start_year" class="form-input" style="flex:1;" title="Ano da 1ª Parcela">
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026" selected>2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2028">2028</option>
+                  <option value="2029">2029</option>
+                  <option value="2030">2030</option>
+                </select>
+              </div>
             </div>
           </div>
           <div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-surface-alt); padding:0.6rem; border-radius:var(--radius-sm);">

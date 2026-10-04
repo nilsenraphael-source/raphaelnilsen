@@ -1519,7 +1519,8 @@ const app = {
     ` : purchases.map(p => {
       const parcelas = Number(p.installments) || 1;
       const valorParcela = (Number(p.totalAmount) || 0) / parcelas;
-      const mesInicio = store.data.months[p.startMonth]?.name || 'Janeiro';
+      const mesInicio = (store.data.months[p.startMonth]?.name) || (INITIAL_DATABASE.months[p.startMonth]?.name) || 'Janeiro';
+      const anoInicio = p.startYear || (p.date ? p.date.split('-')[0] : store.activeYear);
 
       return `
         <tr>
@@ -1527,7 +1528,12 @@ const app = {
           <td>${p.place || '-'}</td>
           <td><span class="status-badge neutral">${p.card}</span></td>
           <td>${formatDateBR(p.date)}</td>
-          <td><span class="status-badge waiting">${parcelas}x de ${formatBRL(valorParcela)}</span></td>
+          <td>
+            <span class="status-badge waiting">${parcelas}x de ${formatBRL(valorParcela)}</span>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
+              1ª parcela: <strong>${mesInicio}/${anoInicio}</strong>
+            </div>
+          </td>
           <td style="font-weight: 800; color: var(--navy);">${formatBRL(p.totalAmount)}</td>
           <td>
             <div class="table-actions">
@@ -2313,6 +2319,23 @@ const app = {
     }
 
     // Formulário Nova Compra no Cartão
+    const cardDateInp = document.getElementById('card_date');
+    if (cardDateInp) {
+      cardDateInp.addEventListener('change', (e) => {
+        if (e.target.value) {
+          const parts = e.target.value.split('-');
+          if (parts.length === 3) {
+            const y = parts[0];
+            const m = parseInt(parts[1], 10);
+            const mSelect = document.getElementById('card_start_month');
+            const ySelect = document.getElementById('card_start_year');
+            if (mSelect) mSelect.value = String(m);
+            if (ySelect) ySelect.value = String(y);
+          }
+        }
+      });
+    }
+
     const formCard = document.getElementById('formNovaCompraCartao');
     if (formCard) {
       formCard.addEventListener('submit', (e) => {
@@ -2322,9 +2345,10 @@ const app = {
           place: document.getElementById('card_place').value,
           card: document.getElementById('card_type').value,
           date: document.getElementById('card_date').value,
-          totalAmount: document.getElementById('card_val').value,
-          installments: document.getElementById('card_installments').value,
-          startMonth: document.getElementById('card_start_month').value
+          totalAmount: parseMoney(document.getElementById('card_val').value),
+          installments: Number(document.getElementById('card_installments').value) || 1,
+          startMonth: Number(document.getElementById('card_start_month').value) || 1,
+          startYear: Number(document.getElementById('card_start_year')?.value) || store.activeYear
         };
         store.addCardPurchase(purchase);
         this.closeModal('modalNovaCompraCartao');
@@ -2332,7 +2356,7 @@ const app = {
         this.renderCartoes();
         this.renderMeses();
         this.renderResumo();
-        this.showToast('Compra no cartão cadastrada! Parcelas distribuídas nos meses.', 'success');
+        this.showToast(`Compra no cartão cadastrada! Parcelas iniciadas em ${purchase.startMonth}/${purchase.startYear}.`, 'success');
       });
     }
 
