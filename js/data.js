@@ -574,6 +574,7 @@ class DataStore {
     const totalRevenuesPaid = m.revenues.filter(r => r.status === 'Pago' || r.status === 'Recebido').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
     const totalRevenuesPending = m.revenues.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
 
+    const fixedExpected = m.fixedExpenses.reduce((acc, e) => acc + (Number(e.valueExpected) || 0), 0);
     const totalFixed = m.fixedExpenses.reduce((acc, e) => acc + (e.status === 'Pago' ? (Number(e.valuePaid) || Number(e.valueExpected) || 0) : (Number(e.valueExpected) || 0)), 0);
     const fixedPaid = m.fixedExpenses.filter(e => e.status === 'Pago').reduce((acc, e) => acc + (Number(e.valuePaid) || Number(e.valueExpected) || 0), 0);
     const fixedPending = m.fixedExpenses.filter(e => e.status !== 'Pago').reduce((acc, e) => acc + (Number(e.valueExpected) || 0), 0);
@@ -601,6 +602,7 @@ class DataStore {
       revenuesPaid: totalRevenuesPaid,
       revenuesPending: totalRevenuesPending,
       fixed: totalFixed,
+      fixedExpected: fixedExpected,
       fixedPaid: fixedPaid,
       fixedPending: fixedPending,
       fixedCount: fixedCount,

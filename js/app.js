@@ -468,6 +468,12 @@ const app = {
     const elRev = document.getElementById('monthSumRev');
     if (elRev) elRev.textContent = formatBRL(summary.revenues);
 
+    const elFixExp = document.getElementById('monthSumFixExp');
+    if (elFixExp) elFixExp.textContent = formatBRL(summary.fixedExpected !== undefined ? summary.fixedExpected : summary.fixed);
+
+    const elFixPaid = document.getElementById('monthSumFixPaid');
+    if (elFixPaid) elFixPaid.textContent = formatBRL(summary.fixedPaid || 0);
+
     const elFix = document.getElementById('monthSumFix');
     if (elFix) elFix.textContent = formatBRL(summary.fixed);
 
@@ -603,6 +609,12 @@ const app = {
 
     const elRev = document.getElementById('monthSumRev');
     if (elRev) elRev.textContent = formatBRL(summary.revenues);
+
+    const elFixExp = document.getElementById('monthSumFixExp');
+    if (elFixExp) elFixExp.textContent = formatBRL(summary.fixedExpected !== undefined ? summary.fixedExpected : summary.fixed);
+
+    const elFixPaid = document.getElementById('monthSumFixPaid');
+    if (elFixPaid) elFixPaid.textContent = formatBRL(summary.fixedPaid || 0);
 
     const elFix = document.getElementById('monthSumFix');
     if (elFix) elFix.textContent = formatBRL(summary.fixed);
@@ -1029,8 +1041,9 @@ const app = {
             <span style="font-weight:800; font-family:monospace; font-size:0.95rem; color:${fixIsComplete ? '#34d399' : 'var(--text-primary)'};">${fixHasItems ? summary.fixedPct + '%' : '-'}</span>
           </div>
           <div class="subtab-progress-banner-stats">
-            <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.fixedPaid)}</span>
-            <span class="progress-stat-pill pending"><span class="dot"></span> Pendente: ${formatBRL(summary.fixedPending)}</span>
+            <span class="progress-stat-pill" style="background: rgba(251, 191, 36, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.25);"><span class="dot" style="background: #fbbf24;"></span> Prevista: ${formatBRL(summary.fixedExpected || 0)}</span>
+            <span class="progress-stat-pill paid"><span class="dot"></span> Realizada: ${formatBRL(summary.fixedPaid)}</span>
+            <span class="progress-stat-pill pending"><span class="dot"></span> Restante: ${formatBRL(summary.fixedPending)}</span>
           </div>
         </div>
 
@@ -1081,6 +1094,18 @@ const app = {
                 </tr>
               `;}).join('')}
             </tbody>
+            ${m.fixedExpenses.length > 0 ? `
+            <tfoot>
+              <tr style="font-weight: 700; background: rgba(255,255,255,0.02); border-top: 1px solid var(--border-light);">
+                <td colspan="2" style="text-align: right; color: var(--text-muted); padding: 0.85rem 1rem;">Total Previsto e Realizado:</td>
+                <td style="color: #fbbf24; padding: 0.85rem 1rem; font-weight:800;">${formatBRL(summary.fixedExpected || 0)}</td>
+                <td style="color: var(--success); padding: 0.85rem 1rem; font-weight:800;">${formatBRL(summary.fixedPaid)}</td>
+                <td colspan="3" style="color: var(--text-muted); font-size: 0.82rem; padding: 0.85rem 1rem;">
+                  Restante a pagar: <strong style="color: #f87171;">${formatBRL(summary.fixedPending)}</strong>
+                </td>
+              </tr>
+            </tfoot>
+            ` : ''}
           </table>
         </div>
       `;
