@@ -667,13 +667,13 @@ const app = {
             </div>
           </div>
 
-          <!-- TABELA MINIMALISTA ESTILO NOTION (BANCO) -->
+          <!-- TABELA MINIMALISTA ESTILO NOTION (RENDIMENTOS) -->
           <div class="notion-table-card">
             <div class="notion-header-bar">
               <div class="notion-title-group">
                 <div class="notion-title-text">
                   <span>🏦</span>
-                  <span>BANCO</span>
+                  <span>Rendimentos</span>
                 </div>
                 <span class="notion-title-badge">${m.name}</span>
               </div>
@@ -703,7 +703,7 @@ const app = {
                   ${m.revenues.length === 0 ? `
                     <tr>
                       <td colspan="6" style="text-align: center; padding: 2.75rem 1.5rem; color: var(--text-muted);">
-                        <div style="font-size: 1.05rem; font-weight: 600; color: #ffffff; margin-bottom: 0.35rem;">Nenhum lançamento no BANCO em ${m.name}</div>
+                        <div style="font-size: 1.05rem; font-weight: 600; color: #ffffff; margin-bottom: 0.35rem;">Nenhum rendimento em ${m.name}</div>
                         <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Cadastre suas rendas e marque os meses em que serão recebidas. O valor, a data e o banco são adicionados diretamente nas células abaixo.</p>
                         <button class="notion-btn-blue" onclick="app.openModalNovaReceita()">+ Inserir Rendimento</button>
                       </td>
@@ -834,7 +834,7 @@ const app = {
               <div class="notion-title-group">
                 <div class="notion-title-text">
                   <span>🏦</span>
-                  <span>BANCO (Visão Anual)</span>
+                  <span>Rendimentos (Visão Anual)</span>
                 </div>
                 <span class="notion-title-badge">${filteredRevs.length} lançamentos</span>
               </div>
