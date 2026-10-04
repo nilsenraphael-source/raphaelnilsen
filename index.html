@@ -424,7 +424,7 @@
                 <div style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">
                   Total Aberto: <span id="totalOpenCardPurchases" style="color:var(--danger); font-size:1.05rem;">R$ 0,00</span>
                 </div>
-                <button class="btn-header primary" onclick="event.stopPropagation(); app.openModal('modalNovaCompraCartao')">
+                <button class="btn-header primary" onclick="event.stopPropagation(); app.openModalNovaCompraCartao()">
                   + Nova Compra
                 </button>
               </div>
@@ -1248,6 +1248,7 @@
                   <option value="2030">2030</option>
                 </select>
               </div>
+              <div id="card_billing_hint" style="font-size:0.75rem; color:#38bdf8; margin-top:0.35rem;"></div>
             </div>
           </div>
           <div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-surface-alt); padding:0.6rem; border-radius:var(--radius-sm);">
@@ -1577,7 +1578,7 @@
           <div class="quick-card-title">+ Desp. Variável</div>
           <div class="quick-card-sub">Mercado, Lazer...</div>
         </button>
-        <button class="quick-action-card" onclick="app.toggleMobileQuickMenu(false); app.openModal('modalNovaCompraCartao');">
+        <button class="quick-action-card" onclick="app.toggleMobileQuickMenu(false); app.openModalNovaCompraCartao();">
           <div class="quick-card-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">💳</div>
           <div class="quick-card-title">+ Compra no Cartão</div>
           <div class="quick-card-sub">Parcelado ou à vista</div>

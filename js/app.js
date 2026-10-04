@@ -1639,17 +1639,38 @@ const app = {
   },
 
   getPurchaseInstallmentInfo(p, fallbackYear) {
-    let dateYear = fallbackYear || new Date().getFullYear();
+    let dateYear = fallbackYear || Number(store.activeYear) || new Date().getFullYear();
     let dateMonth = 1;
+    let dateDay = 1;
     if (p.date) {
       const parts = p.date.split('-');
       if (parts.length >= 2) {
         dateYear = parseInt(parts[0], 10) || dateYear;
         dateMonth = parseInt(parts[1], 10) || 1;
+        if (parts.length >= 3) dateDay = parseInt(parts[2], 10) || 1;
       }
     }
-    const sMonth = Number(p.startMonth) || dateMonth || 1;
-    const sYear = Number(p.startYear) || dateYear;
+
+    let sMonth = Number(p.startMonth);
+    let sYear = Number(p.startYear);
+
+    // Validação estrita: a cobrança NUNCA pode iniciar em mês/ano anterior à compra!
+    if (!sMonth || !sYear || sYear < dateYear || (sYear === dateYear && sMonth < dateMonth)) {
+      const cardObj = (store.data.cards || []).find(c => (c.name || '').toLowerCase() === (p.card || '').toLowerCase());
+      const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
+      if (p.date && dateDay > closingDay) {
+        sMonth = dateMonth + 1;
+        sYear = dateYear;
+        if (sMonth > 12) {
+          sMonth = 1;
+          sYear += 1;
+        }
+      } else {
+        sMonth = dateMonth;
+        sYear = dateYear;
+      }
+    }
+
     const count = Number(p.installments) || 1;
     const valTotal = Number(p.totalAmount) || 0;
     const valPerInstallment = count > 0 ? (valTotal / count) : valTotal;
@@ -1776,7 +1797,7 @@ const app = {
                    value="${escapeHtml(this.cardSearchQuery || '')}" 
                    oninput="app.filterCardSearch(this.value)">
 
-            <button class="notion-btn-blue" onclick="app.openModal('modalNovaCompraCartao')">
+            <button class="notion-btn-blue" onclick="app.openModalNovaCompraCartao()">
               Nova <span style="font-size:0.65rem; margin-left:2px;">▾</span>
             </button>
           </div>
@@ -2452,6 +2473,74 @@ const app = {
     }
   },
 
+  openModalNovaCompraCartao() {
+    const form = document.getElementById('formNovaCompraCartao');
+    if (form) form.reset();
+
+    const dateInp = document.getElementById('card_date');
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+
+    if (dateInp) {
+      dateInp.value = todayStr;
+    }
+
+    this.updateCardStartBillingSuggestion();
+    this.openModal('modalNovaCompraCartao');
+  },
+
+  updateCardStartBillingSuggestion() {
+    const dateInp = document.getElementById('card_date');
+    const cardSelect = document.getElementById('card_type');
+    const mSelect = document.getElementById('card_start_month');
+    const ySelect = document.getElementById('card_start_year');
+    const hintEl = document.getElementById('card_billing_hint');
+
+    if (!dateInp || !mSelect || !ySelect) return;
+
+    let dYear = Number(store.activeYear) || new Date().getFullYear();
+    let dMonth = new Date().getMonth() + 1;
+    let dDay = new Date().getDate();
+
+    if (dateInp.value) {
+      const parts = dateInp.value.split('-');
+      if (parts.length >= 2) {
+        dYear = parseInt(parts[0], 10) || dYear;
+        dMonth = parseInt(parts[1], 10) || dMonth;
+        if (parts.length >= 3) dDay = parseInt(parts[2], 10) || dDay;
+      }
+    }
+
+    const cardName = cardSelect ? cardSelect.value : 'Mastercard';
+    const cardObj = (store.data.cards || []).find(c => (c.name || '').toLowerCase() === cardName.toLowerCase());
+    const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
+    const dueDay = cardObj ? (cardObj.dueDay || 10) : 10;
+
+    let sMonth = dMonth;
+    let sYear = dYear;
+    let hint = '';
+
+    const monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    if (dDay > closingDay) {
+      sMonth = dMonth + 1;
+      if (sMonth > 12) {
+        sMonth = 1;
+        sYear += 1;
+      }
+      hint = `💡 Compra feita após o fechamento (dia ${closingDay}). 1ª parcela na fatura de ${monthNames[sMonth]}/${sYear} (venc. dia ${dueDay}).`;
+    } else {
+      hint = `💡 Compra feita antes do fechamento (dia ${closingDay}). 1ª parcela na fatura de ${monthNames[sMonth]}/${sYear} (venc. dia ${dueDay}).`;
+    }
+
+    mSelect.value = String(sMonth);
+    if (ySelect) ySelect.value = String(sYear);
+    if (hintEl) hintEl.textContent = hint;
+  },
+
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -2785,37 +2874,64 @@ const app = {
       });
     }
 
-    // Formulário Nova Compra no Cartão
+    // Formulário Nova Compra no Cartão: atualização dinâmica de fechamento e início de cobrança
     const cardDateInp = document.getElementById('card_date');
+    const cardTypeInp = document.getElementById('card_type');
     if (cardDateInp) {
-      cardDateInp.addEventListener('change', (e) => {
-        if (e.target.value) {
-          const parts = e.target.value.split('-');
-          if (parts.length === 3) {
-            const y = parts[0];
-            const m = parseInt(parts[1], 10);
-            const mSelect = document.getElementById('card_start_month');
-            const ySelect = document.getElementById('card_start_year');
-            if (mSelect) mSelect.value = String(m);
-            if (ySelect) ySelect.value = String(y);
-          }
-        }
-      });
+      cardDateInp.addEventListener('input', () => this.updateCardStartBillingSuggestion());
+      cardDateInp.addEventListener('change', () => this.updateCardStartBillingSuggestion());
+    }
+    if (cardTypeInp) {
+      cardTypeInp.addEventListener('change', () => this.updateCardStartBillingSuggestion());
     }
 
     const formCard = document.getElementById('formNovaCompraCartao');
     if (formCard) {
       formCard.addEventListener('submit', (e) => {
         e.preventDefault();
+        const dateVal = document.getElementById('card_date').value;
+        let dYear = Number(store.activeYear) || new Date().getFullYear();
+        let dMonth = 1;
+        let dDay = 1;
+        if (dateVal) {
+          const parts = dateVal.split('-');
+          if (parts.length >= 2) {
+            dYear = parseInt(parts[0], 10) || dYear;
+            dMonth = parseInt(parts[1], 10) || 1;
+            if (parts.length >= 3) dDay = parseInt(parts[2], 10) || 1;
+          }
+        }
+
+        let sMonth = Number(document.getElementById('card_start_month').value) || 1;
+        let sYear = Number(document.getElementById('card_start_year')?.value) || dYear;
+
+        // Se a data de início da cobrança ficou anterior à data da compra, ajusta automaticamente
+        if (sYear < dYear || (sYear === dYear && sMonth < dMonth)) {
+          const cardTypeVal = document.getElementById('card_type').value;
+          const cardObj = (store.data.cards || []).find(c => (c.name || '').toLowerCase() === (cardTypeVal || '').toLowerCase());
+          const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
+          if (dDay > closingDay) {
+            sMonth = dMonth + 1;
+            sYear = dYear;
+            if (sMonth > 12) {
+              sMonth = 1;
+              sYear += 1;
+            }
+          } else {
+            sMonth = dMonth;
+            sYear = dYear;
+          }
+        }
+
         const purchase = {
           description: document.getElementById('card_desc').value,
           place: document.getElementById('card_place').value,
           card: document.getElementById('card_type').value,
-          date: document.getElementById('card_date').value,
+          date: dateVal,
           totalAmount: parseMoney(document.getElementById('card_val').value),
           installments: Number(document.getElementById('card_installments').value) || 1,
-          startMonth: Number(document.getElementById('card_start_month').value) || 1,
-          startYear: Number(document.getElementById('card_start_year')?.value) || store.activeYear
+          startMonth: sMonth,
+          startYear: sYear
         };
         store.addCardPurchase(purchase);
         this.closeModal('modalNovaCompraCartao');
