@@ -1038,36 +1038,45 @@ const app = {
                 <th>Conta / Descrição</th>
                 <th>Vencimento</th>
                 <th>Valor Previsto</th>
-                <th>Valor Pago</th>
+                <th>Valor Realizado</th>
                 <th>Estado</th>
                 <th>Banco / Conta</th>
-                <th style="width: 80px;">Ações</th>
+                <th style="width: 90px; text-align: center;">Ações</th>
               </tr>
             </thead>
             <tbody>
               ${m.fixedExpenses.length === 0 ? `
                 <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma despesa fixa cadastrada para este mês.</td></tr>
-              ` : m.fixedExpenses.map(e => `
-                <tr>
+              ` : m.fixedExpenses.map(e => {
+                const isPaid = (e.status === 'Pago');
+                const valExp = Number(e.valueExpected) || 0;
+                const valPaid = Number(e.valuePaid) || 0;
+                return `
+                <tr class="${isPaid ? 'row-paid' : ''}">
                   <td><strong>${e.description}</strong></td>
                   <td>${formatDateBR(e.dueDate)}</td>
-                  <td>${formatBRL(e.valueExpected)}</td>
-                  <td style="color: var(--danger); font-weight: 700;">${formatBRL(e.valuePaid || e.valueExpected)}</td>
+                  <td style="color: var(--text-secondary); font-weight: 600;">${formatBRL(valExp)}</td>
+                  <td style="color: ${isPaid ? 'var(--success)' : (valPaid > 0 ? 'var(--text-primary)' : 'var(--text-muted)')}; font-weight: 700;">
+                    ${isPaid ? formatBRL(valPaid > 0 ? valPaid : valExp) : (valPaid > 0 ? formatBRL(valPaid) : '—')}
+                  </td>
                   <td>
-                    <button class="status-badge ${e.status === 'Pago' ? 'paid' : 'pending'}" style="cursor:pointer; border:none;" onclick="app.toggleFixedExpenseStatus(${this.activeMonth}, '${e.id}')" title="Clique para alterar status">
-                      ${e.status === 'Pago' ? '✓ Pago' : '⏳ Pendente'}
+                    <button class="status-badge ${isPaid ? 'paid' : 'pending'}" style="cursor:pointer; border:none;" onclick="app.toggleFixedExpenseStatus(${this.activeMonth}, '${e.id}')" title="Clique para alterar status">
+                      ${isPaid ? '✓ Pago' : '⏳ Pendente'}
                     </button>
                   </td>
                   <td>${e.bank || '-'}</td>
-                  <td>
-                    <div class="table-actions">
+                  <td style="text-align: center;">
+                    <div class="table-actions" style="justify-content: center; gap: 0.35rem;">
+                      <button class="btn-table-icon" title="Editar Despesa Fixa" onclick="app.openEditFixedExpenseModal(${this.activeMonth}, '${e.id}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                      </button>
                       <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteFixedExpense(${this.activeMonth}, '${e.id}')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                       </button>
                     </div>
                   </td>
                 </tr>
-              `).join('')}
+              `;}).join('')}
             </tbody>
           </table>
         </div>
@@ -1397,10 +1406,29 @@ const app = {
     }
   },
 
+  openEditFixedExpenseModal(monthNum, id) {
+    const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
+    if (!expense) return;
+
+    document.getElementById('edit_fix_id').value = expense.id;
+    document.getElementById('edit_fix_month').value = monthNum;
+    document.getElementById('edit_fix_desc').value = expense.description || '';
+    document.getElementById('edit_fix_date').value = expense.dueDate || '';
+    document.getElementById('edit_fix_val_exp').value = formatMoneyDisplay(expense.valueExpected);
+    document.getElementById('edit_fix_val_paid').value = expense.valuePaid ? formatMoneyDisplay(expense.valuePaid) : '';
+    document.getElementById('edit_fix_status').value = expense.status || 'Pendente';
+    document.getElementById('edit_fix_bank').value = expense.bank || 'Bradesco';
+
+    this.openModal('modalEditarDespesaFixa');
+  },
+
   toggleFixedExpenseStatus(monthNum, id) {
     const expense = store.data.months[monthNum].fixedExpenses.find(e => e.id === id);
     if (expense) {
       expense.status = expense.status === 'Pago' ? 'Pendente' : 'Pago';
+      if (expense.status === 'Pago' && (!expense.valuePaid || Number(expense.valuePaid) === 0)) {
+        expense.valuePaid = expense.valueExpected;
+      }
       store.save();
       this.renderMeses();
       this.renderResumo();
@@ -2179,12 +2207,20 @@ const app = {
     if (formFix) {
       formFix.addEventListener('submit', (e) => {
         e.preventDefault();
+        const valExpected = parseMoney(document.getElementById('fix_val_exp').value);
+        const valPaidRaw = document.getElementById('fix_val_paid').value.trim();
+        const status = document.getElementById('fix_status').value;
+        let valPaid = parseMoney(valPaidRaw);
+        if (status === 'Pago' && !valPaidRaw) {
+          valPaid = valExpected;
+        }
+
         const exp = {
           description: document.getElementById('fix_desc').value,
           dueDate: document.getElementById('fix_date').value,
-          valueExpected: document.getElementById('fix_val_exp').value,
-          valuePaid: document.getElementById('fix_val_paid').value || document.getElementById('fix_val_exp').value,
-          status: document.getElementById('fix_status').value,
+          valueExpected: valExpected,
+          valuePaid: valPaid,
+          status: status,
           bank: document.getElementById('fix_bank').value
         };
         store.addFixedExpense(this.activeMonth, exp);
@@ -2193,6 +2229,38 @@ const app = {
         this.renderMeses();
         this.renderResumo();
         this.showToast('Despesa fixa cadastrada!', 'success');
+      });
+    }
+
+    // Formulário Editar Despesa Fixa
+    const formEditFix = document.getElementById('formEditarDespesaFixa');
+    if (formEditFix) {
+      formEditFix.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const monthNum = Number(document.getElementById('edit_fix_month').value) || this.activeMonth;
+        const id = document.getElementById('edit_fix_id').value;
+        const valExpected = parseMoney(document.getElementById('edit_fix_val_exp').value);
+        const valPaidRaw = document.getElementById('edit_fix_val_paid').value.trim();
+        const status = document.getElementById('edit_fix_status').value;
+        let valPaid = parseMoney(valPaidRaw);
+        if (status === 'Pago' && !valPaidRaw) {
+          valPaid = valExpected;
+        }
+
+        const updated = {
+          description: document.getElementById('edit_fix_desc').value,
+          dueDate: document.getElementById('edit_fix_date').value,
+          valueExpected: valExpected,
+          valuePaid: valPaid,
+          status: status,
+          bank: document.getElementById('edit_fix_bank').value
+        };
+        store.updateFixedExpense(monthNum, id, updated);
+        this.closeModal('modalEditarDespesaFixa');
+        formEditFix.reset();
+        this.renderMeses();
+        this.renderResumo();
+        this.showToast('Despesa fixa atualizada com sucesso!', 'success');
       });
     }
 

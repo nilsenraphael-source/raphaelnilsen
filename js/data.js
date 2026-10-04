@@ -454,6 +454,23 @@ class DataStore {
     return expense;
   }
 
+  updateFixedExpense(monthNum, id, updatedData) {
+    if (!this.data.months[monthNum] || !this.data.months[monthNum].fixedExpenses) return null;
+    const index = this.data.months[monthNum].fixedExpenses.findIndex(e => e.id === id);
+    if (index === -1) return null;
+
+    const currentItem = this.data.months[monthNum].fixedExpenses[index];
+    this.data.months[monthNum].fixedExpenses[index] = {
+      ...currentItem,
+      ...updatedData,
+      valueExpected: updatedData.valueExpected !== undefined ? (Number(updatedData.valueExpected) || 0) : currentItem.valueExpected,
+      valuePaid: updatedData.valuePaid !== undefined ? (Number(updatedData.valuePaid) || 0) : currentItem.valuePaid
+    };
+
+    this.save();
+    return this.data.months[monthNum].fixedExpenses[index];
+  }
+
   deleteFixedExpense(monthNum, id) {
     if (!this.data.months[monthNum]) return;
     this.data.months[monthNum].fixedExpenses = this.data.months[monthNum].fixedExpenses.filter(e => e.id !== id);
@@ -575,10 +592,12 @@ class DataStore {
     const cardPct = cardCount === 0 ? 100 : (totalCard > 0 ? Math.min(100, Math.round((cardPaid / totalCard) * 100)) : (cardPaidCount === cardCount ? 100 : 0));
 
     const totalExpenses = totalFixed + totalVariable + totalCard;
-    const balance = totalRevenues - totalExpenses;
+    // O Saldo Líquido do Mês considera apenas as receitas EFETIVAMENTE RECEBIDAS (Pago)
+    const balance = totalRevenuesPaid - totalExpenses;
 
     return {
-      revenues: totalRevenues,
+      revenues: totalRevenuesPaid,
+      revenuesExpected: totalRevenues,
       revenuesPaid: totalRevenuesPaid,
       revenuesPending: totalRevenuesPending,
       fixed: totalFixed,
