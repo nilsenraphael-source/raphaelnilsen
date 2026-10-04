@@ -7,6 +7,24 @@ const STORAGE_KEY = 'sf_raphael_nilsen_data_v1';
 const SESSION_KEY = 'sf_raphael_nilsen_session';
 
 // Estrutura inicial padrão de alta fidelidade
+// Estrutura inicial padrão de alta fidelidade
+function createEmptyMonths() {
+  return {
+    1: { name: 'Janeiro', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    2: { name: 'Fevereiro', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    3: { name: 'Março', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    4: { name: 'Abril', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    5: { name: 'Maio', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    6: { name: 'Junho', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    7: { name: 'Julho', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    8: { name: 'Agosto', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    9: { name: 'Setembro', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    10: { name: 'Outubro', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    11: { name: 'Novembro', revenues: [], fixedExpenses: [], variableExpenses: [] },
+    12: { name: 'Dezembro', revenues: [], fixedExpenses: [], variableExpenses: [] }
+  };
+}
+
 const INITIAL_DATABASE = {
   // 1. Contas Bancárias / Saldos
   accounts: [
@@ -21,20 +39,10 @@ const INITIAL_DATABASE = {
 
   // 2. Gestão Mensal (Janeiro a Dezembro)
   // Estrutura de cada mês: { revenues: [], fixedExpenses: [], variableExpenses: [] }
-  months: {
-    1: { name: 'Janeiro', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    2: { name: 'Fevereiro', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    3: { name: 'Março', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    4: { name: 'Abril', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    5: { name: 'Maio', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    6: { name: 'Junho', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    7: { name: 'Julho', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    8: { name: 'Agosto', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    9: { name: 'Setembro', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    10: { name: 'Outubro', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    11: { name: 'Novembro', revenues: [], fixedExpenses: [], variableExpenses: [] },
-    12: { name: 'Dezembro', revenues: [], fixedExpenses: [], variableExpenses: [] }
-  },
+  months: createEmptyMonths(),
+
+  // Suporte a Múltiplos Anos
+  years: {},
 
   // 3. Cartões de Crédito
   creditCards: [
@@ -81,12 +89,14 @@ const INITIAL_DATABASE = {
 class DataStore {
   constructor() {
     this._syncTimeout = null;
+    this.activeYear = new Date().getFullYear();
     this.data = this.load();
   }
 
   load() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+      const currYear = new Date().getFullYear();
       if (stored) {
         const parsed = JSON.parse(stored);
         const merged = { ...INITIAL_DATABASE, ...parsed };
@@ -94,12 +104,77 @@ class DataStore {
         if (!merged.settings.supabase || !merged.settings.supabase.url || !merged.settings.supabase.anonKey) {
           merged.settings.supabase = { ...INITIAL_DATABASE.settings.supabase };
         }
+
+        // Multi-Ano: migração e compatibilidade transparente
+        if (!merged.years || typeof merged.years !== 'object') {
+          merged.years = {};
+        }
+        if (!merged.years[currYear]) {
+          merged.years[currYear] = merged.months || createEmptyMonths();
+        }
+        this.activeYear = Number(merged.activeYear) || currYear;
+        if (!merged.years[this.activeYear]) {
+          merged.years[this.activeYear] = createEmptyMonths();
+        }
+        merged.months = merged.years[this.activeYear];
         return merged;
       }
     } catch (e) {
       console.error('Erro ao ler localStorage', e);
     }
-    return JSON.parse(JSON.stringify(INITIAL_DATABASE));
+    const initial = JSON.parse(JSON.stringify(INITIAL_DATABASE));
+    const currYear = new Date().getFullYear();
+    initial.years = { [currYear]: initial.months };
+    this.activeYear = currYear;
+    return initial;
+  }
+
+  setYear(year) {
+    const y = parseInt(year, 10);
+    if (!y || isNaN(y)) return;
+    this.activeYear = y;
+    this.data.activeYear = y;
+    if (!this.data.years) this.data.years = {};
+    if (!this.data.years[y]) {
+      this.data.years[y] = createEmptyMonths();
+    }
+    this.data.months = this.data.years[y];
+    this.save();
+    return this.data.months;
+  }
+
+  getAvailableYears() {
+    if (!this.data.years) this.data.years = {};
+    const existing = Object.keys(this.data.years).map(Number).filter(n => !isNaN(n));
+    const current = new Date().getFullYear();
+    const defaults = [current - 2, current - 1, current, current + 1, current + 2, current + 3];
+    return Array.from(new Set([...existing, ...defaults])).sort((a, b) => a - b);
+  }
+
+  copyFixedExpensesFromYear(fromYear, toYear) {
+    const fY = Number(fromYear);
+    const tY = Number(toYear);
+    if (!this.data.years || !this.data.years[fY] || !this.data.years[tY]) return 0;
+    let count = 0;
+    for (let m = 1; m <= 12; m++) {
+      const srcMonth = this.data.years[fY][m];
+      const targetMonth = this.data.years[tY][m];
+      if (srcMonth && targetMonth && srcMonth.fixedExpenses) {
+        srcMonth.fixedExpenses.forEach(exp => {
+          const exists = targetMonth.fixedExpenses.some(e => e.name.toLowerCase() === exp.name.toLowerCase());
+          if (!exists) {
+            targetMonth.fixedExpenses.push({
+              ...exp,
+              id: 'fix_' + Date.now() + '_' + m + '_' + Math.random().toString(36).substr(2, 4),
+              status: 'Pendente'
+            });
+            count++;
+          }
+        });
+      }
+    }
+    this.save();
+    return count;
   }
 
   save(skipCloudSync = false) {
@@ -262,7 +337,7 @@ class DataStore {
     const isMultiMonth = months.length > 1;
     const groupId = isMultiMonth ? ('series_rev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)) : null;
     const created = [];
-    const year = new Date().getFullYear();
+    const year = this.activeYear || new Date().getFullYear();
 
     months.forEach(mNum => {
       const m = parseInt(mNum, 10);
@@ -288,6 +363,11 @@ class DataStore {
 
       this.data.months[m].revenues.push(revItem);
       created.push(revItem);
+
+      // Se foi inserido já como Pago e com banco e valor definidos, credita na conta
+      if ((status === 'Pago' || status === 'Recebido') && bank && value > 0) {
+        this.creditToBank(bank, value);
+      }
     });
 
     this.save();

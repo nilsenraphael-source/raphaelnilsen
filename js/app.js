@@ -190,7 +190,7 @@ const app = {
   navigateTo(tabId) {
     this.currentTab = tabId;
 
-    // Atualiza Sidebar
+    // Atualiza Sidebar Desktop
     document.querySelectorAll('.nav-item').forEach(item => {
       if (item.dataset.tab === tabId) {
         item.classList.add('active');
@@ -198,6 +198,18 @@ const app = {
         item.classList.remove('active');
       }
     });
+
+    // Atualiza Barra Inferior Mobile
+    document.querySelectorAll('.mobile-nav-item').forEach(item => {
+      if (item.dataset.tab === tabId) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+
+    // Fecha sidebar no celular se aberta
+    this.toggleSidebarMobile(false);
 
     // Atualiza View
     document.querySelectorAll('.page-view').forEach(view => {
@@ -209,7 +221,7 @@ const app = {
     // Atualiza Título do Cabeçalho
     const titles = {
       resumo: 'Resumo Executivo Consolidado',
-      meses: 'Gestão Mensal de Entradas e Saídas',
+      meses: `Gestão Mensal (${store.activeYear})`,
       cartoes: 'Cartão de Crédito e Compras Parceladas',
       senhas: 'Cofre de Senhas Protegido',
       sonhos: 'Sonhos & Planejamento de Compras',
@@ -220,12 +232,87 @@ const app = {
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = titles[tabId] || 'Sistema Financeiro';
 
-    // Fecha sidebar no celular se aberta
-    const sidebar = document.getElementById('appSidebar');
-    if (sidebar) sidebar.classList.remove('open');
-
     // Renderiza o módulo específico
     this.render();
+  },
+
+  // =========================================================================
+  // GESTÃO DE MÚLTIPLOS ANOS (2025, 2026, 2027...)
+  // =========================================================================
+  renderYearSelector() {
+    const lbl = document.getElementById('activeYearLabel');
+    if (lbl) lbl.textContent = store.activeYear;
+
+    const select = document.getElementById('yearSelectDropdown');
+    if (select) {
+      const years = store.getAvailableYears();
+      select.innerHTML = years.map(y => `
+        <option value="${y}" ${y === store.activeYear ? 'selected' : ''}>Ano ${y}</option>
+      `).join('');
+    }
+  },
+
+  changeYear(year) {
+    const y = Number(year);
+    if (!y || y === store.activeYear) return;
+    store.setYear(y);
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl && this.currentTab === 'meses') {
+      titleEl.textContent = `Gestão Mensal (${store.activeYear})`;
+    }
+    this.render();
+    this.showToast(`📅 Navegando no ano ${y}!`, 'info');
+  },
+
+  prevYear() {
+    this.changeYear(store.activeYear - 1);
+  },
+
+  nextYear() {
+    this.changeYear(store.activeYear + 1);
+  },
+
+  promptCopyFixedFromPreviousYear() {
+    const prevY = store.activeYear - 1;
+    const currY = store.activeYear;
+    if (confirm(`Deseja copiar as Despesas Fixas de ${prevY} para ${currY}? Itens com mesmo nome não serão duplicados.`)) {
+      const count = store.copyFixedExpensesFromYear(prevY, currY);
+      this.renderMeses();
+      this.renderResumo();
+      if (count > 0) {
+        this.showToast(`✓ ${count} despesa(s) fixa(s) copiadas de ${prevY} para ${currY}!`, 'success');
+      } else {
+        this.showToast(`Nenhuma despesa fixa nova encontrada em ${prevY} para copiar.`, 'info');
+      }
+    }
+  },
+
+  // =========================================================================
+  // AÇÕES MOBILE APP
+  // =========================================================================
+  toggleSidebarMobile(force) {
+    const sidebar = document.getElementById('appSidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (!sidebar) return;
+    const shouldOpen = (force !== undefined) ? force : !sidebar.classList.contains('open');
+    if (shouldOpen) {
+      sidebar.classList.add('open');
+      if (backdrop) backdrop.classList.add('active');
+    } else {
+      sidebar.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('active');
+    }
+  },
+
+  toggleMobileQuickMenu(force) {
+    const sheet = document.getElementById('mobileQuickActionSheet');
+    if (!sheet) return;
+    if (force !== undefined) {
+      if (force) sheet.classList.add('active');
+      else sheet.classList.remove('active');
+    } else {
+      sheet.classList.toggle('active');
+    }
   },
 
   // Disparador de Renderização
@@ -329,6 +416,9 @@ const app = {
   // 2. MÓDULO MESES (JANEIRO A DEZEMBRO)
   // =========================================================================
   renderMeses() {
+    // 0. Seletor de Ano
+    this.renderYearSelector();
+
     // 1. Barra de Meses
     const bar = document.getElementById('monthSelectorBar');
     if (bar) {
@@ -1115,10 +1205,32 @@ const app = {
     const form = document.getElementById('formNovaReceita');
     if (form) form.reset();
 
+    // Popula dropdown de contas/bancos dinamicamente
+    const bankSelect = document.getElementById('rev_bank');
+    if (bankSelect) {
+      bankSelect.innerHTML = `<option value="">Selecione o banco (ou na planilha)...</option>` +
+        store.data.accounts.map(acc => `<option value="${acc.name}">${acc.name}</option>`).join('');
+    }
+
     // Marca o mês atual por padrão
     this.selectCurrentMonthOnly();
 
+    // Preenche data padrão sugerida (dia de hoje no ano e mês ativo)
+    const dateInput = document.getElementById('rev_date');
+    if (dateInput) {
+      const today = new Date();
+      const y = store.activeYear || today.getFullYear();
+      const m = String(this.activeMonth).padStart(2, '0');
+      const d = String(today.getDate()).padStart(2, '0');
+      dateInput.value = `${y}-${m}-${d}`;
+    }
+
     this.openModal('modalNovaReceita');
+
+    setTimeout(() => {
+      const inputSource = document.getElementById('rev_source');
+      if (inputSource) inputSource.focus();
+    }, 150);
   },
 
   updateRevenueField(monthNum, id, field, value) {
@@ -1909,15 +2021,14 @@ const app = {
 
     // Mobile Sidebar Toggle
     const btnMobile = document.getElementById('btnMobileToggle');
-    const sidebar = document.getElementById('appSidebar');
-    if (btnMobile && sidebar) {
+    if (btnMobile) {
       btnMobile.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
+        this.toggleSidebarMobile();
       });
     }
 
-    // Navegação Sidebar
-    document.querySelectorAll('.nav-item').forEach(item => {
+    // Navegação Sidebar Desktop & Barra Inferior Mobile
+    document.querySelectorAll('.nav-item, .mobile-nav-item[data-tab]').forEach(item => {
       item.addEventListener('click', () => {
         const tab = item.dataset.tab;
         if (tab) this.navigateTo(tab);
@@ -1935,36 +2046,53 @@ const app = {
       pwdSearch.addEventListener('input', () => this.renderSenhas());
     }
 
-    // Formulário Inserir Rendimento (Renda + Meses; Valor, Data e Banco diretamente na planilha)
+    // Formulário Inserir Rendimento (Renda + Meses; Valor, Data, Banco e Status)
     const formRev = document.getElementById('formNovaReceita');
     if (formRev) {
       formRev.addEventListener('submit', (e) => {
         e.preventDefault();
-        const source = document.getElementById('rev_source').value.trim();
+        const source = (document.getElementById('rev_source')?.value || '').trim();
+        if (!source) {
+          this.showToast('Por favor, digite o nome da fonte de renda.', 'warning');
+          return;
+        }
 
-        // Coleta meses marcados
-        const checkedMonths = Array.from(document.querySelectorAll('input[name="rev_month_chk"]:checked'))
+        const value = Number(document.getElementById('rev_value')?.value) || 0;
+        const date = document.getElementById('rev_date')?.value || '';
+        const bank = document.getElementById('rev_bank')?.value || '';
+        const status = document.getElementById('rev_status')?.value || 'Pendente';
+
+        // Coleta meses marcados (se nenhum marcado, usa o mês em foco)
+        let checkedMonths = Array.from(document.querySelectorAll('input[name="rev_month_chk"]:checked'))
           .map(chk => Number(chk.value));
 
         if (checkedMonths.length === 0) {
-          alert('Por favor, marque pelo menos um mês em que esse rendimento será recebido.');
-          return;
+          checkedMonths = [this.activeMonth];
         }
 
         store.addRevenueToMonths({
           source,
           months: checkedMonths,
-          bank: '',
-          value: 0,
-          date: '',
-          status: 'Pendente'
+          bank,
+          value,
+          date,
+          status
         });
 
         this.closeModal('modalNovaReceita');
         formRev.reset();
+
+        // Se o mês atual não estava na seleção mas selecionou meses, navega para o primeiro selecionado
+        if (!checkedMonths.includes(this.activeMonth) && checkedMonths.length > 0) {
+          this.activeMonth = checkedMonths[0];
+        }
+
         this.renderMeses();
         this.renderResumo();
-        this.showToast(`Rendimento "${source}" inserido em ${checkedMonths.length} mês(es)! Preencha o valor, data e banco diretamente na planilha.`, 'success');
+        this.renderContas();
+        
+        const feedbackValue = value > 0 ? ` (+${formatBRL(value)})` : '';
+        this.showToast(`Rendimento "${source}" inserido com sucesso em ${checkedMonths.length} mês(es)${feedbackValue}!`, 'success');
       });
     }
 

@@ -2,8 +2,18 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Sistema Financeiro Raphael Nilsen | Gestão Executiva</title>
+  
+  <!-- PWA & Mobile App Settings -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Finanças RN">
+  <meta name="mobile-web-app-capable" content="yes">
   
   <!-- Fontes Executivas do Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -316,6 +326,25 @@
              ==================================================================== -->
         <section id="view-meses" class="page-view active">
           
+          <!-- SELETOR EXECUTIVO DE ANO E AÇÕES -->
+          <div class="year-control-bar">
+            <div class="year-nav-group">
+              <button class="btn-year-arrow" onclick="app.prevYear()" title="Ano Anterior">◀</button>
+              <div class="year-current-pill">
+                <span class="year-icon">📅</span>
+                <span class="year-text" id="activeYearLabel">2026</span>
+                <select id="yearSelectDropdown" class="year-dropdown" onchange="app.changeYear(this.value)"></select>
+              </div>
+              <button class="btn-year-arrow" onclick="app.nextYear()" title="Próximo Ano">▶</button>
+            </div>
+
+            <div class="year-quick-actions">
+              <button class="btn-year-action" onclick="app.promptCopyFixedFromPreviousYear()" title="Copiar Despesas Fixas do Ano Anterior para este Ano">
+                <span>📋</span> Copiar Fixas do Ano Anterior
+              </button>
+            </div>
+          </div>
+
           <!-- SELETOR DE MESES -->
           <div id="monthSelectorBar" class="month-selector-bar"></div>
 
@@ -790,14 +819,42 @@
         <div class="modal-body">
           
           <div class="form-group">
-            <label class="form-label">Renda (De onde recebi o valor)</label>
+            <label class="form-label">Renda (De onde recebi o valor) *</label>
             <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Jotur, Bombeiro, Carteira, Cartão ELO, Salário...">
+          </div>
+
+          <!-- Campos Opcionais: podem ser preenchidos agora ou direto na planilha -->
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label class="form-label">Valor (Opcional - R$)</label>
+              <input type="number" id="rev_value" class="form-input" step="0.01" min="0" placeholder="Ex: 2500,00 (ou em branco)">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data do Recebimento (Opcional)</label>
+              <input type="date" id="rev_date" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label class="form-label">BANCO (Opcional)</label>
+              <select id="rev_bank" class="form-select">
+                <option value="">Selecione o banco (ou na planilha)...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status Inicial</label>
+              <select id="rev_status" class="form-select">
+                <option value="Pendente" selected>⏳ Pendente (A Receber)</option>
+                <option value="Pago">✓ Pago (Já Recebido)</option>
+              </select>
+            </div>
           </div>
 
           <!-- Seleção de Meses em que o Rendimento será Recebido -->
           <div class="form-group">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-              <label class="form-label" style="margin:0;">Marcar Meses de Recebimento</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; flex-wrap:wrap; gap:0.4rem;">
+              <label class="form-label" style="margin:0;">Meses de Recebimento</label>
               <div style="display:flex; gap:0.35rem;">
                 <button type="button" class="btn-xs-action" onclick="app.selectAllMonths(true)">Todos (12)</button>
                 <button type="button" class="btn-xs-action" onclick="app.selectCurrentMonthOnly()">Mês Atual</button>
@@ -820,12 +877,8 @@
               <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="12"> Dez</label>
             </div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.4rem;">
-              Marque os meses em que este rendimento será recebido. Ele será lançado na planilha como <strong>Pendente</strong>.
+              💡 <em>Dica: Você pode preencher tudo aqui ou editar diretamente nas células da planilha a qualquer momento!</em>
             </div>
-          </div>
-
-          <div style="padding:0.85rem 1rem; border-radius:var(--radius-md); background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); font-size:0.82rem; color:#bae6fd; line-height:1.45;">
-            💡 <strong>Preenchimento na Planilha:</strong> O <strong>Valor</strong>, a <strong>Data</strong> e o <strong>BANCO</strong> serão adicionados depois, diretamente nas células da planilha em cada mês correspondente.
           </div>
 
         </div>
@@ -1391,6 +1444,66 @@
 
   <!-- Input Oculto para Importar Backup -->
   <input type="file" id="importBackupInput" accept=".json" style="display:none;" onchange="app.handleImportFile(this.files[0])">
+
+  <!-- OVERLAY ESCURO PARA SIDEBAR NO MOBILE -->
+  <div id="sidebarBackdrop" class="sidebar-backdrop" onclick="app.toggleSidebarMobile(false)"></div>
+
+  <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA CELULAR (APP NATIVO) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <button class="mobile-nav-item active" data-tab="meses">
+      <span class="mobile-nav-icon">📅</span>
+      <span class="mobile-nav-label">Meses</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="cartoes">
+      <span class="mobile-nav-icon">💳</span>
+      <span class="mobile-nav-label">Cartões</span>
+    </button>
+    <button class="mobile-nav-item fab-center" onclick="app.toggleMobileQuickMenu()" title="Adicionar Transação">
+      <span class="fab-icon">+</span>
+    </button>
+    <button class="mobile-nav-item" data-tab="resumo">
+      <span class="mobile-nav-icon">📊</span>
+      <span class="mobile-nav-label">Resumo</span>
+    </button>
+    <button class="mobile-nav-item" onclick="app.toggleSidebarMobile()" title="Mais Módulos">
+      <span class="mobile-nav-icon">☰</span>
+      <span class="mobile-nav-label">Menu</span>
+    </button>
+  </nav>
+
+  <!-- QUICK ACTION SHEET MOBILE -->
+  <div id="mobileQuickActionSheet" class="mobile-quick-sheet">
+    <div class="quick-sheet-backdrop" onclick="app.toggleMobileQuickMenu(false)"></div>
+    <div class="quick-sheet-card">
+      <div class="quick-sheet-handle"></div>
+      <div class="quick-sheet-header">
+        <h4 style="margin:0; font-size:1.05rem; font-weight:700; color:#ffffff;">Adicionar Transação</h4>
+        <button class="btn-close-modal" onclick="app.toggleMobileQuickMenu(false)">✕</button>
+      </div>
+      <div class="quick-sheet-grid">
+        <button class="quick-action-card" onclick="app.toggleMobileQuickMenu(false); app.openModalNovaReceita();">
+          <div class="quick-card-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🏦</div>
+          <div class="quick-card-title">+ Inserir Rendimento</div>
+          <div class="quick-card-sub">Lançar no BANCO</div>
+        </button>
+        <button class="quick-action-card" onclick="app.toggleMobileQuickMenu(false); app.openModal('modalNovaDespesaFixa');">
+          <div class="quick-card-icon" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">📌</div>
+          <div class="quick-card-title">+ Despesa Fixa</div>
+          <div class="quick-card-sub">Aluguel, Luz, etc.</div>
+        </button>
+        <button class="quick-action-card" onclick="app.toggleMobileQuickMenu(false); app.openModal('modalNovaDespesaVariavel');">
+          <div class="quick-card-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">🛒</div>
+          <div class="quick-card-title">+ Desp. Variável</div>
+          <div class="quick-card-sub">Mercado, Lazer...</div>
+        </button>
+        <button class="quick-action-card" onclick="app.toggleMobileQuickMenu(false); app.openModal('modalNovaCompraCartao');">
+          <div class="quick-card-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">💳</div>
+          <div class="quick-card-title">+ Compra no Cartão</div>
+          <div class="quick-card-sub">Parcelado ou à vista</div>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Container de Notificações Toast -->
   <div id="toastContainer" class="toast-container"></div>
