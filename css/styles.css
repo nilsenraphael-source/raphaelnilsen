@@ -584,6 +584,17 @@ textarea.form-input {
 .header-title-wrap {
   display: flex;
   flex-direction: column;
+  gap: 0.15rem;
+}
+
+.header-greeting {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #38bdf8;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .header-page-title {
@@ -591,14 +602,45 @@ textarea.form-input {
   font-weight: 800;
   color: var(--text-white);
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.header-date-badge {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  display: flex;
+.header-datetime-pill {
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  background-color: var(--bg-surface-alt);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  user-select: none;
+}
+
+.header-datetime-icon {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.header-date-text {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.header-datetime-separator {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.header-clock-text {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 700;
+  color: #38bdf8;
+  font-size: 0.88rem;
+  letter-spacing: 0.05em;
+  min-width: 65px;
 }
 
 .header-right {

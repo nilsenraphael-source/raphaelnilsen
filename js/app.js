@@ -45,7 +45,7 @@ function getRendaIcon(sourceName) {
 
 // Elementos Globais
 const app = {
-  currentTab: 'resumo',
+  currentTab: 'meses',
   activeMonth: new Date().getMonth() + 1, // 1 a 12
   activeSubtabMes: 'receitas',
   receitasViewMode: 'mes', // 'mes' ou 'anual'
@@ -59,7 +59,7 @@ const app = {
   init() {
     this.bindEvents();
     this.checkSession();
-    this.updateHeaderDate();
+    this.startRealtimeHeader();
   },
 
   showToast(message, type = 'info') {
@@ -147,14 +147,43 @@ const app = {
     this.showToast('Sessão encerrada com segurança.', 'info');
   },
 
-  updateHeaderDate() {
-    const el = document.getElementById('headerDate');
-    if (el) {
+  startRealtimeHeader() {
+    const update = () => {
       const now = new Date();
-      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      const formatted = now.toLocaleDateString('pt-BR', options);
-      el.textContent = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-    }
+
+      // Saudação personalizada inteligente
+      const hour = now.getHours();
+      let greeting = 'Bom dia';
+      if (hour >= 12 && hour < 18) {
+        greeting = 'Boa tarde';
+      } else if (hour >= 18 || hour < 5) {
+        greeting = 'Boa noite';
+      }
+      const greetingEl = document.getElementById('headerGreeting');
+      if (greetingEl) {
+        greetingEl.textContent = `${greeting}, Raphael Natayan Nilsen`;
+      }
+
+      // Data Completa (Ex: Domingo, 4 de outubro de 2026)
+      const dateEl = document.getElementById('headerFullDate');
+      if (dateEl) {
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateFormatted = now.toLocaleDateString('pt-BR', options);
+        dateEl.textContent = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
+      }
+
+      // Hora em Tempo Real com Segundos (Ex: 14:55:35)
+      const timeEl = document.getElementById('headerLiveTime');
+      if (timeEl) {
+        const h = String(now.getHours()).padStart(2, '0');
+        const m = String(now.getMinutes()).padStart(2, '0');
+        const s = String(now.getSeconds()).padStart(2, '0');
+        timeEl.textContent = `${h}:${m}:${s}`;
+      }
+    };
+
+    update();
+    setInterval(update, 1000);
   },
 
   // Roteamento de Abas
