@@ -559,19 +559,18 @@ textarea.form-input {
   background-color: var(--bg-body);
 }
 
-/* CABEÇALHO SUPERIOR */
+/* CABEÇALHO SUPERIOR UNIFICADO */
 .app-header {
   height: var(--header-height);
-  background-color: var(--bg-surface);
+  background-color: var(--bg-sidebar);
   border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
+  padding: 0 1.75rem;
   position: sticky;
   top: 0;
   z-index: 90;
-  box-shadow: var(--shadow-sm);
   box-sizing: border-box;
 }
 
