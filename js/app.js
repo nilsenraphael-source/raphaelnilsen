@@ -1224,25 +1224,8 @@ const app = {
     const form = document.getElementById('formNovaReceita');
     if (form) form.reset();
 
-    // Popula dropdown de contas/bancos dinamicamente
-    const bankSelect = document.getElementById('rev_bank');
-    if (bankSelect) {
-      bankSelect.innerHTML = `<option value="">Selecione o banco (ou na planilha)...</option>` +
-        store.data.accounts.map(acc => `<option value="${acc.name}">${acc.name}</option>`).join('');
-    }
-
     // Marca o mês atual por padrão
     this.selectCurrentMonthOnly();
-
-    // Preenche data padrão sugerida (dia de hoje no ano e mês ativo)
-    const dateInput = document.getElementById('rev_date');
-    if (dateInput) {
-      const today = new Date();
-      const y = store.activeYear || today.getFullYear();
-      const m = String(this.activeMonth).padStart(2, '0');
-      const d = String(today.getDate()).padStart(2, '0');
-      dateInput.value = `${y}-${m}-${d}`;
-    }
 
     this.openModal('modalNovaReceita');
 
@@ -2125,8 +2108,7 @@ const app = {
         this.renderResumo();
         this.renderContas();
         
-        const feedbackValue = value > 0 ? ` (+${formatBRL(value)})` : '';
-        this.showToast(`Rendimento "${source}" inserido com sucesso em ${checkedMonths.length} mês(es)${feedbackValue}!`, 'success');
+        this.showToast(`✓ Rendimento "${source}" inserido em ${checkedMonths.length} mês(es)! Preencha na planilha ao receber.`, 'success');
       });
     }
 

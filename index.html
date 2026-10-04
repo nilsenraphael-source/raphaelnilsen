@@ -824,7 +824,7 @@
 
   <!-- Modal: Nova Receita (Mês a Mês ou Anual) -->
   <div id="modalNovaReceita" class="modal-overlay">
-    <div class="modal-dialog">
+    <div class="modal-dialog" style="max-width: 540px;">
       <div class="modal-header">
         <h3 class="modal-title" id="modalNovaReceitaTitle">+ Inserir Rendimento</h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalNovaReceita')">✕</button>
@@ -834,40 +834,12 @@
           
           <div class="form-group">
             <label class="form-label">Renda (De onde recebi o valor) *</label>
-            <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Jotur, Bombeiro, Carteira, Cartão ELO, Salário...">
-          </div>
-
-          <!-- Campos Opcionais: podem ser preenchidos agora ou direto na planilha -->
-          <div class="form-row-2col">
-            <div class="form-group">
-              <label class="form-label">Valor (Opcional - R$)</label>
-              <input type="text" id="rev_value" class="form-input" placeholder="Ex: R$ 200,00 (ou em branco)" onblur="app.formatMoneyInputElement(this)">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Data do Recebimento (Opcional)</label>
-              <input type="date" id="rev_date" class="form-input">
-            </div>
-          </div>
-
-          <div class="form-row-2col">
-            <div class="form-group">
-              <label class="form-label">BANCO (Opcional)</label>
-              <select id="rev_bank" class="form-select">
-                <option value="">Selecione o banco (ou na planilha)...</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Status Inicial</label>
-              <select id="rev_status" class="form-select">
-                <option value="Pendente" selected>⏳ Pendente (A Receber)</option>
-                <option value="Pago">✓ Pago (Já Recebido)</option>
-              </select>
-            </div>
+            <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Jotur, Bombeiro, Salário, Carteira, Cartão ELO...">
           </div>
 
           <!-- Seleção de Meses em que o Rendimento será Recebido -->
-          <div class="form-group">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem; flex-wrap:wrap; gap:0.4rem;">
+          <div class="form-group" style="margin-top: 1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; flex-wrap:wrap; gap:0.4rem;">
               <label class="form-label" style="margin:0;">Meses de Recebimento</label>
               <div style="display:flex; gap:0.35rem;">
                 <button type="button" class="btn-xs-action" onclick="app.selectAllMonths(true)">Todos (12)</button>
@@ -890,15 +862,18 @@
               <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="11"> Nov</label>
               <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="12"> Dez</label>
             </div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.4rem;">
-              💡 <em>Dica: Você pode preencher tudo aqui ou editar diretamente nas células da planilha a qualquer momento!</em>
+          </div>
+
+          <div style="background: rgba(56, 189, 248, 0.06); border: 1px dashed rgba(56, 189, 248, 0.25); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-top: 1.25rem;">
+            <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.5;">
+              💡 <strong>Lançamento Direto:</strong> O valor, a data e o banco ficam em branco e serão inseridos diretamente na planilha <strong>BANCO</strong> no momento em que receber.
             </div>
           </div>
 
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalNovaReceita')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Rendimento</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.75rem;">Salvar Rendimento</button>
         </div>
       </form>
     </div>

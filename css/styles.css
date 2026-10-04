@@ -1865,6 +1865,99 @@ textarea.form-input {
   gap: 1rem;
 }
 
+/* BOTÕES DE AÇÃO RÁPIDA DE FORMULÁRIO */
+.btn-xs-action {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-xs-action:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+/* GRADE EXECUTIVA DE SELEÇÃO DE MESES */
+.months-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .months-checkbox-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.month-check-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 0.4rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-alt);
+  border: 1.5px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-fast);
+}
+
+.month-check-pill:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.month-check-pill input[type="checkbox"] {
+  accent-color: #38bdf8;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.month-check-pill:has(input[type="checkbox"]:checked) {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+/* PADRONIZAÇÃO DARK MODE PARA TODOS OS SELECTS E OPTIONS */
+select, select.form-input, select.form-select {
+  background-color: var(--bg-surface-alt) !important;
+  color: #ffffff !important;
+  border: 1.5px solid var(--border-light) !important;
+  border-radius: var(--radius-md) !important;
+  height: 48px !important;
+  padding: 0 1rem !important;
+  font-size: 0.95rem !important;
+  outline: none;
+  cursor: pointer;
+}
+
+select option {
+  background-color: #141518 !important;
+  color: #ffffff !important;
+  padding: 10px 14px !important;
+}
+
+select:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+}
+
 /* TOAST FEEDBACK NOTIFICATIONS */
 .toast-container {
   position: fixed;
