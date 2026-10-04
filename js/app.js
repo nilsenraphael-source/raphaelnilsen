@@ -9,6 +9,28 @@ function formatBRL(val) {
   return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+// Formatador Monetário Brasileiro para Inputs e Planilha (ex: 200 -> "200,00", 1500.5 -> "1.500,50")
+function formatMoneyDisplay(val) {
+  if (val === undefined || val === null || val === '') return '';
+  const num = typeof val === 'number' ? val : parseMoney(val);
+  if (!num || num === 0) return '';
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Parser inteligente de dinheiro brasileiro (aceita "200", "200,00", "200.00", "R$ 200,00", etc)
+function parseMoney(val) {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  let str = val.toString().trim().replace(/^R\$\s?/, '');
+  if (str.includes('.') && str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  } else if (str.includes(',')) {
+    str = str.replace(',', '.');
+  }
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : Number(parsed.toFixed(2));
+}
+
 // Formatador de Data Brasileira
 function formatDateBR(dateStr) {
   if (!dateStr) return '-';
@@ -632,22 +654,6 @@ const app = {
 
       if (this.receitasViewMode === 'mes') {
         container.innerHTML = `
-          <!-- CARDS DE MÉTRICAS DO MÊS (MINIMALISTA) -->
-          <div class="receitas-metrics-bar">
-            <div class="receitas-metric-card">
-              <span class="label">💰 Total Previsto (${m.name})</span>
-              <span class="value" style="color:var(--text-primary);">${formatBRL(summary.revenues)}</span>
-            </div>
-            <div class="receitas-metric-card">
-              <span class="label">✓ Pago / Recebido</span>
-              <span class="value" style="color:var(--success);">${formatBRL(summary.revenuesPaid)}</span>
-            </div>
-            <div class="receitas-metric-card">
-              <span class="label">⏳ Pendente a Receber</span>
-              <span class="value" style="color:#fbbf24;">${formatBRL(summary.revenuesPending)}</span>
-            </div>
-          </div>
-
           <!-- TABELA MINIMALISTA ESTILO NOTION (BANCO) -->
           <div class="notion-table-card">
             <div class="notion-header-bar">
@@ -692,7 +698,7 @@ const app = {
                   ` : m.revenues.map(r => {
                     const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
                     return `
-                      <tr>
+                      <tr class="${isPaid ? 'row-paid' : ''}">
                         <td>
                           <div class="renda-row-content">
                             <span class="renda-item-icon">${getRendaIcon(r.source)}</span>
@@ -702,13 +708,15 @@ const app = {
                         </td>
                         <td>
                           <div style="display:flex; align-items:center; gap:0.35rem;">
-                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">R$</span>
-                            <input type="number" step="0.01" 
+                            <span class="currency-symbol" style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">R$</span>
+                            <input type="text" inputmode="decimal" 
                                    class="sheet-inline-input sheet-value-input ${r.value > 0 ? 'has-value' : ''}" 
-                                   value="${r.value > 0 ? r.value : ''}" 
+                                   value="${r.value > 0 ? formatMoneyDisplay(r.value) : ''}" 
                                    placeholder="0,00" 
-                                   title="Digite o valor diretamente aqui na planilha"
-                                   onchange="app.updateRevenueField(${this.activeMonth}, '${r.id}', 'value', this.value)">
+                                   title="Digite o valor (ex: 200,00)"
+                                   onfocus="this.select()"
+                                   onblur="app.handleInlineValueBlur(this, ${this.activeMonth}, '${r.id}')"
+                                   onkeydown="if(event.key==='Enter') this.blur()">
                           </div>
                         </td>
                         <td>
@@ -796,22 +804,6 @@ const app = {
         const filteredPending = filteredRevs.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
 
         container.innerHTML = `
-          <!-- CARDS DE MÉTRICAS ANUAIS -->
-          <div class="receitas-metrics-bar">
-            <div class="receitas-metric-card">
-              <span class="label">📅 Total Anual Previsto</span>
-              <span class="value" style="color:var(--text-primary);">${formatBRL(totalAnnualExpected)}</span>
-            </div>
-            <div class="receitas-metric-card">
-              <span class="label">✓ Já Recebido no Ano</span>
-              <span class="value" style="color:var(--success);">${formatBRL(totalAnnualPaid)}</span>
-            </div>
-            <div class="receitas-metric-card">
-              <span class="label">⏳ Pendente a Receber no Ano</span>
-              <span class="value" style="color:#fbbf24;">${formatBRL(totalAnnualPending)}</span>
-            </div>
-          </div>
-
           <div class="notion-table-card">
             <div class="notion-header-bar">
               <div class="notion-title-group">
@@ -885,7 +877,7 @@ const app = {
                   ` : filteredRevs.map(r => {
                     const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
                     return `
-                      <tr>
+                      <tr class="${isPaid ? 'row-paid' : ''}">
                         <td><strong style="color:#38bdf8;">${r.monthName}</strong></td>
                         <td>
                           <div class="renda-row-content">
@@ -895,13 +887,15 @@ const app = {
                         </td>
                         <td>
                           <div style="display:flex; align-items:center; gap:0.35rem;">
-                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">R$</span>
-                            <input type="number" step="0.01" 
+                            <span class="currency-symbol" style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">R$</span>
+                            <input type="text" inputmode="decimal" 
                                    class="sheet-inline-input sheet-value-input ${r.value > 0 ? 'has-value' : ''}" 
-                                   value="${r.value > 0 ? r.value : ''}" 
+                                   value="${r.value > 0 ? formatMoneyDisplay(r.value) : ''}" 
                                    placeholder="0,00" 
-                                   title="Digite o valor diretamente aqui na planilha"
-                                   onchange="app.updateRevenueField(${r.monthNum}, '${r.id}', 'value', this.value)">
+                                   title="Digite o valor (ex: 200,00)"
+                                   onfocus="this.select()"
+                                   onblur="app.handleInlineValueBlur(this, ${r.monthNum}, '${r.id}')"
+                                   onkeydown="if(event.key==='Enter') this.blur()">
                           </div>
                         </td>
                         <td>
@@ -1233,6 +1227,21 @@ const app = {
     }, 150);
   },
 
+  formatMoneyInputElement(inputEl) {
+    if (!inputEl) return;
+    const num = parseMoney(inputEl.value);
+    inputEl.value = num > 0 ? ('R$ ' + formatMoneyDisplay(num)) : '';
+  },
+
+  handleInlineValueBlur(inputEl, monthNum, id) {
+    if (!inputEl) return;
+    const num = parseMoney(inputEl.value);
+    inputEl.value = num > 0 ? formatMoneyDisplay(num) : '';
+    if (num > 0) inputEl.classList.add('has-value');
+    else inputEl.classList.remove('has-value');
+    this.updateRevenueField(monthNum, id, 'value', num);
+  },
+
   updateRevenueField(monthNum, id, field, value) {
     const m = store.data.months[monthNum];
     if (!m) return;
@@ -1241,7 +1250,7 @@ const app = {
 
     if (field === 'value') {
       const oldVal = Number(item.value) || 0;
-      const newVal = Number(value) || 0;
+      const newVal = typeof value === 'number' ? value : parseMoney(value);
       item.value = newVal;
 
       // Se já estava Pago com banco selecionado, ajusta a diferença no saldo do banco
@@ -1280,9 +1289,9 @@ const app = {
       item.status = 'Pago';
       if (item.value > 0 && item.bank) {
         store.creditToBank(item.bank, item.value);
-        this.showToast(`✓ "${item.source}" marcado como Pago! (${formatBRL(item.value)} em ${item.bank})`, 'success');
+        this.showToast(`✓ "${item.source}" marcado como PAGO! Linha destacada em verde (+${formatBRL(item.value)})`, 'success');
       } else {
-        this.showToast(`"${item.source}" marcado como Pago! Preencha o valor, data e banco na planilha.`, 'info');
+        this.showToast(`✓ "${item.source}" marcado como PAGO! Linha destacada em verde.`, 'success');
       }
     } else {
       item.status = 'Pendente';
@@ -1293,9 +1302,9 @@ const app = {
     }
 
     store.save();
-    this.renderActiveMonthSubtab();
-    this.renderMonthSummariesOnly();
+    this.renderMeses();
     this.renderResumo();
+    this.renderContas();
   },
 
   openEditRevenueModal(monthNum, id) {
@@ -2057,7 +2066,7 @@ const app = {
           return;
         }
 
-        const value = Number(document.getElementById('rev_value')?.value) || 0;
+        const value = parseMoney(document.getElementById('rev_value')?.value);
         const date = document.getElementById('rev_date')?.value || '';
         const bank = document.getElementById('rev_bank')?.value || '';
         const status = document.getElementById('rev_status')?.value || 'Pendente';
@@ -2103,7 +2112,7 @@ const app = {
         e.preventDefault();
         const monthNum = Number(document.getElementById('pay_rev_month').value);
         const id = document.getElementById('pay_rev_id').value;
-        const value = Number(document.getElementById('pay_rev_value').value) || 0;
+        const value = parseMoney(document.getElementById('pay_rev_value').value);
         const date = document.getElementById('pay_rev_date').value;
         const bank = document.getElementById('pay_rev_bank').value;
         const updateBalance = document.getElementById('pay_rev_update_bank_balance')?.checked;

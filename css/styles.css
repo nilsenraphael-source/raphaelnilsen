@@ -1307,6 +1307,52 @@ textarea.form-input {
   background-color: rgba(255, 255, 255, 0.02);
 }
 
+/* LINHA INTEIRA VERDE QUANDO O STATUS FOR PAGO */
+.notion-data-table tbody tr.row-paid,
+.data-table tbody tr.row-paid {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  border-left: 4px solid #10b981 !important;
+  box-shadow: inset 0 0 14px rgba(16, 185, 129, 0.08);
+  transition: all var(--transition-fast);
+}
+
+.notion-data-table tbody tr.row-paid:hover,
+.data-table tbody tr.row-paid:hover {
+  background-color: rgba(16, 185, 129, 0.22) !important;
+}
+
+.notion-data-table tbody tr.row-paid td,
+.data-table tbody tr.row-paid td {
+  color: #ecfdf5 !important;
+}
+
+.notion-data-table tbody tr.row-paid .renda-row-content strong {
+  color: #34d399 !important;
+}
+
+.notion-data-table tbody tr.row-paid .currency-symbol {
+  color: #34d399 !important;
+}
+
+.notion-data-table tbody tr.row-paid .sheet-inline-input,
+.notion-data-table tbody tr.row-paid .sheet-inline-select {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #ffffff !important;
+}
+
+.notion-data-table tbody tr.row-paid .sheet-value-input {
+  color: #34d399 !important;
+  font-weight: 800 !important;
+}
+
+.notion-data-table tbody tr.row-paid .status-pill.paid {
+  background-color: rgba(16, 185, 129, 0.3) !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
 .notion-data-table tfoot td {
   background-color: rgba(255, 255, 255, 0.02);
   border-top: 1px solid var(--border-light);

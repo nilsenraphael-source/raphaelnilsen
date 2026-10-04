@@ -827,7 +827,7 @@
           <div class="form-row-2col">
             <div class="form-group">
               <label class="form-label">Valor (Opcional - R$)</label>
-              <input type="number" id="rev_value" class="form-input" step="0.01" min="0" placeholder="Ex: 2500,00 (ou em branco)">
+              <input type="text" id="rev_value" class="form-input" placeholder="Ex: R$ 200,00 (ou em branco)" onblur="app.formatMoneyInputElement(this)">
             </div>
             <div class="form-group">
               <label class="form-label">Data do Recebimento (Opcional)</label>
@@ -911,7 +911,7 @@
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label">Valor Recebido (R$)</label>
-              <input type="number" step="0.01" id="pay_rev_value" class="form-input" required placeholder="0,00" style="font-weight: 700; font-size: 1.05rem; color: #34d399;">
+              <input type="text" inputmode="decimal" id="pay_rev_value" class="form-input" required placeholder="Ex: R$ 200,00" onblur="app.formatMoneyInputElement(this)" style="font-weight: 700; font-size: 1.05rem; color: #34d399;">
             </div>
 
             <div class="form-group">
