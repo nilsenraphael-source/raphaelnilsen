@@ -399,6 +399,7 @@ class DataStore {
   getCardInstallmentsForMonth(monthNum) {
     const list = [];
     const targetMonth = Number(monthNum);
+    const m = this.data.months[targetMonth];
 
     this.data.cardPurchases.forEach(purchase => {
       const installmentsCount = Number(purchase.installments) || 1;
@@ -409,7 +410,10 @@ class DataStore {
         // Mês da parcela (ajuste cíclico 1 a 12)
         const dueMonth = ((startMonth - 1 + i) % 12) + 1;
         if (dueMonth === targetMonth) {
+          const key = `${purchase.id}_${i + 1}`;
+          const status = (m && m.cardInstallmentStatus && m.cardInstallmentStatus[key]) || 'Pendente';
           list.push({
+            key: key,
             purchaseId: purchase.id,
             description: purchase.description,
             place: purchase.place,
@@ -417,7 +421,8 @@ class DataStore {
             installmentIndex: i + 1,
             installmentsTotal: installmentsCount,
             value: installmentValue,
-            date: purchase.date
+            date: purchase.date,
+            status: status
           });
         }
       }
@@ -426,20 +431,68 @@ class DataStore {
     return list;
   }
 
+  toggleCardInstallmentStatus(monthNum, key) {
+    const m = this.data.months[monthNum];
+    if (!m) return 'Pendente';
+    if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
+    const current = m.cardInstallmentStatus[key] || 'Pendente';
+    const next = current === 'Pago' ? 'Pendente' : 'Pago';
+    m.cardInstallmentStatus[key] = next;
+    this.save();
+    return next;
+  }
+
+  setAllCardInstallmentsStatus(monthNum, status = 'Pago') {
+    const m = this.data.months[monthNum];
+    if (!m) return;
+    if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
+    const installments = this.getCardInstallmentsForMonth(monthNum);
+    installments.forEach(inst => {
+      m.cardInstallmentStatus[inst.key] = status;
+    });
+    this.save();
+  }
+
+  setAllFixedExpensesStatus(monthNum, status = 'Pago') {
+    const m = this.data.months[monthNum];
+    if (!m || !m.fixedExpenses) return;
+    m.fixedExpenses.forEach(e => {
+      e.status = status;
+    });
+    this.save();
+  }
+
   // Totais do mês
   getMonthSummary(monthNum) {
     const m = this.data.months[monthNum];
-    if (!m) return { revenues: 0, revenuesPaid: 0, revenuesPending: 0, fixed: 0, variable: 0, card: 0, balance: 0 };
+    if (!m) return {
+      revenues: 0, revenuesPaid: 0, revenuesPending: 0,
+      fixed: 0, fixedPaid: 0, fixedPending: 0, fixedCount: 0, fixedPaidCount: 0, fixedPct: 100,
+      variable: 0,
+      card: 0, cardPaid: 0, cardPending: 0, cardCount: 0, cardPaidCount: 0, cardPct: 100,
+      expenses: 0, balance: 0
+    };
 
     const totalRevenues = m.revenues.reduce((acc, r) => acc + (Number(r.value) || 0), 0);
     const totalRevenuesPaid = m.revenues.filter(r => r.status === 'Pago' || r.status === 'Recebido').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
     const totalRevenuesPending = m.revenues.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
 
     const totalFixed = m.fixedExpenses.reduce((acc, e) => acc + (e.status === 'Pago' ? (Number(e.valuePaid) || Number(e.valueExpected) || 0) : (Number(e.valueExpected) || 0)), 0);
+    const fixedPaid = m.fixedExpenses.filter(e => e.status === 'Pago').reduce((acc, e) => acc + (Number(e.valuePaid) || Number(e.valueExpected) || 0), 0);
+    const fixedPending = m.fixedExpenses.filter(e => e.status !== 'Pago').reduce((acc, e) => acc + (Number(e.valueExpected) || 0), 0);
+    const fixedCount = m.fixedExpenses.length;
+    const fixedPaidCount = m.fixedExpenses.filter(e => e.status === 'Pago').length;
+    const fixedPct = fixedCount === 0 ? 100 : (totalFixed > 0 ? Math.min(100, Math.round((fixedPaid / totalFixed) * 100)) : (fixedPaidCount === fixedCount ? 100 : 0));
+
     const totalVariable = m.variableExpenses.reduce((acc, e) => acc + (Number(e.value) || 0), 0);
     
     const cardInstallments = this.getCardInstallmentsForMonth(monthNum);
     const totalCard = cardInstallments.reduce((acc, c) => acc + c.value, 0);
+    const cardPaid = cardInstallments.filter(c => c.status === 'Pago').reduce((acc, c) => acc + c.value, 0);
+    const cardPending = cardInstallments.filter(c => c.status !== 'Pago').reduce((acc, c) => acc + c.value, 0);
+    const cardCount = cardInstallments.length;
+    const cardPaidCount = cardInstallments.filter(c => c.status === 'Pago').length;
+    const cardPct = cardCount === 0 ? 100 : (totalCard > 0 ? Math.min(100, Math.round((cardPaid / totalCard) * 100)) : (cardPaidCount === cardCount ? 100 : 0));
 
     const totalExpenses = totalFixed + totalVariable + totalCard;
     const balance = totalRevenues - totalExpenses;
@@ -449,8 +502,18 @@ class DataStore {
       revenuesPaid: totalRevenuesPaid,
       revenuesPending: totalRevenuesPending,
       fixed: totalFixed,
+      fixedPaid: fixedPaid,
+      fixedPending: fixedPending,
+      fixedCount: fixedCount,
+      fixedPaidCount: fixedPaidCount,
+      fixedPct: fixedPct,
       variable: totalVariable,
       card: totalCard,
+      cardPaid: cardPaid,
+      cardPending: cardPending,
+      cardCount: cardCount,
+      cardPaidCount: cardPaidCount,
+      cardPct: cardPct,
       expenses: totalExpenses,
       balance: balance
     };

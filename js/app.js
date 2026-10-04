@@ -368,7 +368,113 @@ const app = {
       elBal.style.color = summary.balance >= 0 ? 'var(--success)' : 'var(--danger)';
     }
 
-    // 3. Renderiza a Sub-aba ativa
+    // 3. Renderiza as Barras de Progresso: Despesas Fixas e Cartões
+    const elProgress = document.getElementById('monthProgressContainer');
+    if (elProgress) {
+      // Despesas Fixas
+      const fixHasItems = summary.fixedCount > 0;
+      const fixIsComplete = fixHasItems && summary.fixedPct === 100;
+      const fixCardClass = fixIsComplete ? 'month-progress-card all-paid' : 'month-progress-card';
+      const fixBadge = !fixHasItems
+        ? `<span class="progress-badge empty">Sem despesas fixas</span>`
+        : (fixIsComplete
+          ? `<span class="progress-badge paid">✓ Tudo Pago (${summary.fixedPaidCount}/${summary.fixedCount})</span>`
+          : `<span class="progress-badge pending">⏳ ${summary.fixedPaidCount} de ${summary.fixedCount} pagas</span>`);
+      const fixBarClass = !fixHasItems
+        ? 'empty'
+        : (fixIsComplete ? 'complete' : (summary.fixedPct > 0 ? 'fixed-partial' : 'fixed-pending'));
+
+      // Cartões de Crédito
+      const cardHasItems = summary.cardCount > 0;
+      const cardIsComplete = cardHasItems && summary.cardPct === 100;
+      const cardCardClass = cardIsComplete ? 'month-progress-card all-paid' : 'month-progress-card';
+      const cardBadge = !cardHasItems
+        ? `<span class="progress-badge empty">Sem faturas</span>`
+        : (cardIsComplete
+          ? `<span class="progress-badge paid">✓ Fatura Quitada (${summary.cardPaidCount}/${summary.cardCount})</span>`
+          : `<span class="progress-badge pending">⏳ ${summary.cardPaidCount} de ${summary.cardCount} pagas</span>`);
+      const cardBarClass = !cardHasItems
+        ? 'empty'
+        : (cardIsComplete ? 'complete' : (summary.cardPct > 0 ? 'card-partial' : 'card-pending'));
+
+      elProgress.innerHTML = `
+        <!-- CARD PROGRESSO: DESPESAS FIXAS -->
+        <div class="${fixCardClass}">
+          <div class="progress-card-top">
+            <div class="progress-card-title-group">
+              <div class="progress-card-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">📌</div>
+              <div>
+                <div class="progress-card-name">Despesas Fixas</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">Contas recorrentes do mês</div>
+              </div>
+            </div>
+            <div class="progress-card-right">
+              ${fixBadge}
+              <span class="progress-card-pct" style="color: ${fixIsComplete ? '#34d399' : (fixHasItems ? 'var(--text-primary)' : 'var(--text-muted)')};">${fixHasItems ? summary.fixedPct + '%' : '-'}</span>
+            </div>
+          </div>
+          
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill ${fixBarClass}" style="width: ${fixHasItems ? summary.fixedPct : 0}%;"></div>
+          </div>
+
+          <div class="progress-card-bottom">
+            <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
+              <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.fixedPaid)}</span>
+              <span class="progress-stat-pill pending"><span class="dot"></span> Restante: ${formatBRL(summary.fixedPending)}</span>
+            </div>
+            <div>
+              ${fixHasItems ? `
+                <button class="progress-quick-btn" onclick="app.togglePayAllFixed(${this.activeMonth})">
+                  ${fixIsComplete ? '↩ Desmarcar' : '✓ Marcar Tudo Pago'}
+                </button>
+              ` : `
+                <button class="progress-quick-btn" onclick="app.selectMonthSubtab('fixas')">Gerenciar</button>
+              `}
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD PROGRESSO: CARTÕES DE CRÉDITO -->
+        <div class="${cardCardClass}">
+          <div class="progress-card-top">
+            <div class="progress-card-title-group">
+              <div class="progress-card-icon" style="background: rgba(244, 63, 94, 0.12); color: #f43f5e;">💳</div>
+              <div>
+                <div class="progress-card-name">Fatura de Cartões</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">Parcelamentos de ${mName}</div>
+              </div>
+            </div>
+            <div class="progress-card-right">
+              ${cardBadge}
+              <span class="progress-card-pct" style="color: ${cardIsComplete ? '#34d399' : (cardHasItems ? 'var(--text-primary)' : 'var(--text-muted)')};">${cardHasItems ? summary.cardPct + '%' : '-'}</span>
+            </div>
+          </div>
+          
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill ${cardBarClass}" style="width: ${cardHasItems ? summary.cardPct : 0}%;"></div>
+          </div>
+
+          <div class="progress-card-bottom">
+            <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
+              <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.cardPaid)}</span>
+              <span class="progress-stat-pill pending"><span class="dot"></span> Pendente: ${formatBRL(summary.cardPending)}</span>
+            </div>
+            <div>
+              ${cardHasItems ? `
+                <button class="progress-quick-btn" onclick="app.togglePayAllCards(${this.activeMonth})">
+                  ${cardIsComplete ? '↩ Desmarcar' : '✓ Quitar Fatura'}
+                </button>
+              ` : `
+                <button class="progress-quick-btn" onclick="app.selectMonthSubtab('cartao_mes')">Ver Parcelas</button>
+              `}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 4. Renderiza a Sub-aba ativa
     this.renderActiveMonthSubtab();
   },
 
@@ -687,13 +793,46 @@ const app = {
         `;
       }
     } else if (this.activeSubtabMes === 'fixas') {
+      const summary = store.getMonthSummary(this.activeMonth);
+      const fixHasItems = summary.fixedCount > 0;
+      const fixIsComplete = fixHasItems && summary.fixedPct === 100;
+      const fixBarClass = !fixHasItems ? 'empty' : (fixIsComplete ? 'complete' : (summary.fixedPct > 0 ? 'fixed-partial' : 'fixed-pending'));
+
       container.innerHTML = `
         <div class="card-header">
           <div class="card-title-group">
             <h3 class="card-title">Despesas Fixas de ${m.name}</h3>
+            <span class="card-subtitle">${summary.fixedPaidCount} de ${summary.fixedCount} contas pagas (${summary.fixedPct}%)</span>
           </div>
-          <button class="btn-header primary" onclick="app.openModal('modalNovaDespesaFixa')">+ Nova Despesa Fixa</button>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            ${fixHasItems ? `
+              <button class="btn-header" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" onclick="app.togglePayAllFixed(${this.activeMonth})">
+                ${fixIsComplete ? '↩ Desmarcar Todas' : '✓ Marcar Todas como Pagas'}
+              </button>
+            ` : ''}
+            <button class="btn-header primary" onclick="app.openModal('modalNovaDespesaFixa')">+ Nova Despesa Fixa</button>
+          </div>
         </div>
+
+        <!-- BANNER DE PROGRESSO DE DESPESAS FIXAS -->
+        <div class="subtab-progress-banner">
+          <div class="subtab-progress-banner-left">
+            <div style="font-weight:700; font-size:0.85rem; color:var(--text-primary); min-width:140px;">
+              Progresso Fixas:
+            </div>
+            <div style="flex:1;">
+              <div class="progress-bar-track" style="margin-bottom:0;">
+                <div class="progress-bar-fill ${fixBarClass}" style="width: ${fixHasItems ? summary.fixedPct : 0}%;"></div>
+              </div>
+            </div>
+            <span style="font-weight:800; font-family:monospace; font-size:0.95rem; color:${fixIsComplete ? '#34d399' : 'var(--text-primary)'};">${fixHasItems ? summary.fixedPct + '%' : '-'}</span>
+          </div>
+          <div class="subtab-progress-banner-stats">
+            <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.fixedPaid)}</span>
+            <span class="progress-stat-pill pending"><span class="dot"></span> Pendente: ${formatBRL(summary.fixedPending)}</span>
+          </div>
+        </div>
+
         <div class="table-responsive">
           <table class="data-table">
             <thead>
@@ -717,8 +856,8 @@ const app = {
                   <td>${formatBRL(e.valueExpected)}</td>
                   <td style="color: var(--danger); font-weight: 700;">${formatBRL(e.valuePaid || e.valueExpected)}</td>
                   <td>
-                    <button class="status-badge ${e.status === 'Pago' ? 'paid' : 'pending'}" style="cursor:pointer; border:none;" onclick="app.toggleFixedExpenseStatus(${this.activeMonth}, '${e.id}')">
-                      ${e.status || 'Pendente'}
+                    <button class="status-badge ${e.status === 'Pago' ? 'paid' : 'pending'}" style="cursor:pointer; border:none;" onclick="app.toggleFixedExpenseStatus(${this.activeMonth}, '${e.id}')" title="Clique para alterar status">
+                      ${e.status === 'Pago' ? '✓ Pago' : '⏳ Pendente'}
                     </button>
                   </td>
                   <td>${e.bank || '-'}</td>
@@ -777,8 +916,11 @@ const app = {
         </div>
       `;
     } else if (this.activeSubtabMes === 'cartao_mes') {
+      const summary = store.getMonthSummary(this.activeMonth);
       const cardInstallments = store.getCardInstallmentsForMonth(this.activeMonth);
-      const totalCardThisMonth = cardInstallments.reduce((acc, c) => acc + c.value, 0);
+      const cardHasItems = summary.cardCount > 0;
+      const cardIsComplete = cardHasItems && summary.cardPct === 100;
+      const cardBarClass = !cardHasItems ? 'empty' : (cardIsComplete ? 'complete' : (summary.cardPct > 0 ? 'card-partial' : 'card-pending'));
 
       container.innerHTML = `
         <div class="card-header">
@@ -786,10 +928,37 @@ const app = {
             <h3 class="card-title">Fatura / Parcelas de Cartão para ${m.name}</h3>
             <span class="card-subtitle">Encaminhado automaticamente do Módulo Cartão de Crédito</span>
           </div>
-          <div style="font-size: 1.1rem; font-weight: 800; color: var(--danger);">
-            Total Fatura: ${formatBRL(totalCardThisMonth)}
+          <div style="display:flex; gap:1rem; align-items:center;">
+            ${cardHasItems ? `
+              <button class="btn-header" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" onclick="app.togglePayAllCards(${this.activeMonth})">
+                ${cardIsComplete ? '↩ Desmarcar Fatura' : '✓ Quitar Fatura do Mês'}
+              </button>
+            ` : ''}
+            <div style="font-size: 1.1rem; font-weight: 800; color: var(--danger);">
+              Total: ${formatBRL(summary.card)}
+            </div>
           </div>
         </div>
+
+        <!-- BANNER DE PROGRESSO DE FATURA -->
+        <div class="subtab-progress-banner">
+          <div class="subtab-progress-banner-left">
+            <div style="font-weight:700; font-size:0.85rem; color:var(--text-primary); min-width:140px;">
+              Progresso Fatura:
+            </div>
+            <div style="flex:1;">
+              <div class="progress-bar-track" style="margin-bottom:0;">
+                <div class="progress-bar-fill ${cardBarClass}" style="width: ${cardHasItems ? summary.cardPct : 0}%;"></div>
+              </div>
+            </div>
+            <span style="font-weight:800; font-family:monospace; font-size:0.95rem; color:${cardIsComplete ? '#34d399' : 'var(--text-primary)'};">${cardHasItems ? summary.cardPct + '%' : '-'}</span>
+          </div>
+          <div class="subtab-progress-banner-stats">
+            <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.cardPaid)}</span>
+            <span class="progress-stat-pill pending"><span class="dot"></span> Pendente: ${formatBRL(summary.cardPending)}</span>
+          </div>
+        </div>
+
         <div class="table-responsive">
           <table class="data-table">
             <thead>
@@ -799,12 +968,13 @@ const app = {
                 <th>Cartão</th>
                 <th>Parcela</th>
                 <th>Valor da Parcela</th>
+                <th>Estado</th>
                 <th>Data da Compra</th>
               </tr>
             </thead>
             <tbody>
               ${cardInstallments.length === 0 ? `
-                <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma parcela de cartão caindo neste mês.</td></tr>
+                <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma parcela de cartão caindo neste mês.</td></tr>
               ` : cardInstallments.map(c => `
                 <tr>
                   <td><strong>${c.description}</strong></td>
@@ -812,6 +982,11 @@ const app = {
                   <td><span class="status-badge neutral">${c.card}</span></td>
                   <td><span class="status-badge waiting">${c.installmentIndex} de ${c.installmentsTotal}</span></td>
                   <td style="color: var(--danger); font-weight: 700;">${formatBRL(c.value)}</td>
+                  <td>
+                    <button class="status-badge ${c.status === 'Pago' ? 'paid' : 'pending'}" style="cursor:pointer; border:none;" onclick="app.toggleCardInstallment(${this.activeMonth}, '${c.key}')" title="Clique para alterar status">
+                      ${c.status === 'Pago' ? '✓ Pago' : '⏳ Pendente'}
+                    </button>
+                  </td>
                   <td>${formatDateBR(c.date)}</td>
                 </tr>
               `).join('')}
@@ -1020,6 +1195,31 @@ const app = {
       this.renderResumo();
       this.showToast(`Despesa marcada como ${expense.status}!`, 'success');
     }
+  },
+
+  togglePayAllFixed(monthNum) {
+    const summary = store.getMonthSummary(monthNum);
+    const targetStatus = summary.fixedPct === 100 ? 'Pendente' : 'Pago';
+    store.setAllFixedExpensesStatus(monthNum, targetStatus);
+    this.renderMeses();
+    this.renderResumo();
+    this.showToast(targetStatus === 'Pago' ? 'Todas as despesas fixas marcadas como pagas!' : 'Despesas fixas marcadas como pendentes.', 'info');
+  },
+
+  toggleCardInstallment(monthNum, key) {
+    const newStatus = store.toggleCardInstallmentStatus(monthNum, key);
+    this.renderMeses();
+    this.renderResumo();
+    this.showToast(`Parcela marcada como ${newStatus}!`, 'info');
+  },
+
+  togglePayAllCards(monthNum) {
+    const summary = store.getMonthSummary(monthNum);
+    const targetStatus = summary.cardPct === 100 ? 'Pendente' : 'Pago';
+    store.setAllCardInstallmentsStatus(monthNum, targetStatus);
+    this.renderMeses();
+    this.renderResumo();
+    this.showToast(targetStatus === 'Pago' ? 'Fatura do mês marcada como paga!' : 'Fatura do mês marcada como pendente.', 'success');
   },
 
   deleteVariableExpense(monthNum, id) {
