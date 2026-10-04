@@ -621,14 +621,12 @@ const app = {
 
     this.renderProgressBars(summary, mName);
 
-    // Se estiver na visão mensal de receitas, atualiza a barra de métricas do topo
+    // Se estiver na visão mensal de receitas, atualiza os cards de métricas (Pago e Pendente)
     if (this.receitasViewMode === 'mes') {
-      const recVals = document.querySelectorAll('.receitas-metrics-bar .receitas-metric-card .value');
-      if (recVals && recVals.length >= 3) {
-        recVals[0].textContent = formatBRL(summary.revenues);
-        recVals[1].textContent = formatBRL(summary.revenuesPaid);
-        recVals[2].textContent = formatBRL(summary.revenuesPending);
-      }
+      const elPaid = document.getElementById('metricRevenuePaid');
+      const elPending = document.getElementById('metricRevenuePending');
+      if (elPaid) elPaid.textContent = formatBRL(summary.revenuesPaid);
+      if (elPending) elPending.textContent = formatBRL(summary.revenuesPending);
     }
   },
 
@@ -657,6 +655,18 @@ const app = {
 
       if (this.receitasViewMode === 'mes') {
         container.innerHTML = `
+          <!-- CARDS DE MÉTRICAS DO MÊS (PAGO / RECEBIDO E PENDENTE) -->
+          <div class="receitas-metrics-bar">
+            <div class="receitas-metric-card">
+              <span class="label">✓ Pago / Recebido</span>
+              <span class="value" id="metricRevenuePaid" style="color:var(--success);">${formatBRL(summary.revenuesPaid)}</span>
+            </div>
+            <div class="receitas-metric-card">
+              <span class="label">⏳ Pendente a Receber</span>
+              <span class="value" id="metricRevenuePending" style="color:#fbbf24;">${formatBRL(summary.revenuesPending)}</span>
+            </div>
+          </div>
+
           <!-- TABELA MINIMALISTA ESTILO NOTION (BANCO) -->
           <div class="notion-table-card">
             <div class="notion-header-bar">
@@ -807,6 +817,18 @@ const app = {
         const filteredPending = filteredRevs.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
 
         container.innerHTML = `
+          <!-- CARDS DE MÉTRICAS ANUAIS (PAGO / RECEBIDO E PENDENTE) -->
+          <div class="receitas-metrics-bar">
+            <div class="receitas-metric-card">
+              <span class="label">✓ Já Recebido no Ano</span>
+              <span class="value" style="color:var(--success);">${formatBRL(totalAnnualPaid)}</span>
+            </div>
+            <div class="receitas-metric-card">
+              <span class="label">⏳ Pendente a Receber no Ano</span>
+              <span class="value" style="color:#fbbf24;">${formatBRL(totalAnnualPending)}</span>
+            </div>
+          </div>
+
           <div class="notion-table-card">
             <div class="notion-header-bar">
               <div class="notion-title-group">
