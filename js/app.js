@@ -24,6 +24,11 @@ const app = {
   currentTab: 'resumo',
   activeMonth: new Date().getMonth() + 1, // 1 a 12
   activeSubtabMes: 'receitas',
+  receitasViewMode: 'mes', // 'mes' ou 'anual'
+  receitasFilterStatus: 'todos',
+  receitasFilterMonth: 'todos',
+  receitasFilterBank: 'todos',
+  receitasSearch: '',
   activeTabCartao: 'todos',
   activeTabInvest: 'bolsa',
 
@@ -335,48 +340,299 @@ const app = {
     const m = store.data.months[this.activeMonth];
 
     if (this.activeSubtabMes === 'receitas') {
-      container.innerHTML = `
-        <div class="card-header">
-          <div class="card-title-group">
-            <h3 class="card-title">Receitas de ${m.name}</h3>
+      const summary = store.getMonthSummary(this.activeMonth);
+
+      if (this.receitasViewMode === 'mes') {
+        container.innerHTML = `
+          <div class="card-header" style="flex-wrap: wrap; gap: 1rem; align-items: center;">
+            <div class="card-title-group">
+              <h3 class="card-title">Receitas de ${m.name}</h3>
+              <p class="card-subtitle">Controle de rendas, recebimentos, status e contas bancárias</p>
+            </div>
+            <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
+              <div class="receitas-view-switcher">
+                <button class="receitas-view-btn active" onclick="app.setReceitasViewMode('mes')">
+                  📌 Mês a Mês (${m.name})
+                </button>
+                <button class="receitas-view-btn" onclick="app.setReceitasViewMode('anual')">
+                  📅 Visão Anual (12 Meses)
+                </button>
+              </div>
+              <div style="display:flex; gap:0.4rem;">
+                <button class="btn-header" onclick="app.openModalNovaReceita('mensal')">+ No Mês</button>
+                <button class="btn-header primary" onclick="app.openModalNovaReceita('anual')">+ Anual (12 Meses)</button>
+              </div>
+            </div>
           </div>
-          <button class="btn-header primary" onclick="app.openModal('modalNovaReceita')">+ Nova Receita</button>
-        </div>
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Fonte de Renda</th>
-                <th>Valor</th>
-                <th>Data</th>
-                <th>Estado</th>
-                <th>Banco / Conta</th>
-                <th style="width: 80px;">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${m.revenues.length === 0 ? `
-                <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma receita registrada neste mês.</td></tr>
-              ` : m.revenues.map(r => `
+
+          <!-- CARDS DE MÉTRICAS DO MÊS -->
+          <div class="receitas-metrics-bar">
+            <div class="receitas-metric-card">
+              <span class="label">💰 Total Previsto (${m.name})</span>
+              <span class="value" style="color:var(--text-primary);">${formatBRL(summary.revenues)}</span>
+            </div>
+            <div class="receitas-metric-card">
+              <span class="label">✓ Pago / Recebido</span>
+              <span class="value" style="color:var(--success);">${formatBRL(summary.revenuesPaid)}</span>
+            </div>
+            <div class="receitas-metric-card">
+              <span class="label">⏳ Pendente a Receber</span>
+              <span class="value" style="color:#fbbf24;">${formatBRL(summary.revenuesPending)}</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td><strong>${r.source}</strong></td>
-                  <td style="color: var(--success); font-weight: 700;">${formatBRL(r.value)}</td>
-                  <td>${formatDateBR(r.date)}</td>
-                  <td><span class="status-badge ${r.status === 'Recebido' ? 'received' : 'pending'}">${r.status || 'Pendente'}</span></td>
-                  <td>${r.bank || '-'}</td>
-                  <td>
-                    <div class="table-actions">
-                      <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteRevenue(${this.activeMonth}, '${r.id}')">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                      </button>
-                    </div>
-                  </td>
+                  <th>Renda (Origem)</th>
+                  <th>Valor</th>
+                  <th>Data do Recebimento</th>
+                  <th>Status</th>
+                  <th>Banco</th>
+                  <th style="width: 110px; text-align: right;">Ações</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
+              </thead>
+              <tbody>
+                ${m.revenues.length === 0 ? `
+                  <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2.5rem 1rem;">
+                    <div style="font-size: 1.1rem; font-weight:700; color:var(--text-primary); margin-bottom:0.25rem;">Nenhuma receita registrada em ${m.name}</div>
+                    <p style="font-size:0.85rem; margin-bottom:1.25rem;">Cadastre uma receita avulsa para este mês ou crie uma receita anual para todos os 12 meses do ano.</p>
+                    <div style="display:flex; gap:0.5rem; justify-content:center;">
+                      <button class="btn-header" onclick="app.openModalNovaReceita('mensal')">+ Inserir Receita no Mês</button>
+                      <button class="btn-header primary" onclick="app.openModalNovaReceita('anual')">+ Inserir Receita Anual (12 Meses)</button>
+                    </div>
+                  </td></tr>
+                ` : m.revenues.map(r => {
+                  const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
+                  return `
+                    <tr>
+                      <td>
+                        <div style="display:flex; align-items:center; gap:0.5rem;">
+                          <strong>${r.source}</strong>
+                          <span class="badge-recurrence ${r.type === 'anual' || r.annualGroupId ? 'annual' : 'monthly'}">
+                            ${r.type === 'anual' || r.annualGroupId ? '📅 Anual' : '📌 Mensal'}
+                          </span>
+                        </div>
+                      </td>
+                      <td style="color: var(--success); font-weight: 700; font-size:0.95rem;">${formatBRL(r.value)}</td>
+                      <td>${formatDateBR(r.date)}</td>
+                      <td>
+                        <span class="status-badge ${isPaid ? 'paid' : 'pending'} clickable" 
+                              title="Clique para alternar entre Pago e Pendente"
+                              onclick="app.toggleRevenueStatus(${this.activeMonth}, '${r.id}')">
+                          ${isPaid ? '✓ Pago' : '⏳ Pendente'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style="font-weight:600; color:var(--text-secondary);">${r.bank || '-'}</span>
+                      </td>
+                      <td style="text-align: right;">
+                        <div class="table-actions" style="justify-content: flex-end;">
+                          <button class="btn-table-icon" title="Alternar Status (Pago/Pendente)" onclick="app.toggleRevenueStatus(${this.activeMonth}, '${r.id}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          </button>
+                          <button class="btn-table-icon" title="Editar Receita" onclick="app.openEditRevenueModal(${this.activeMonth}, '${r.id}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                          </button>
+                          <button class="btn-table-icon delete" title="Excluir Receita" onclick="app.deleteRevenuePrompt(${this.activeMonth}, '${r.id}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+              ${m.revenues.length > 0 ? `
+                <tfoot>
+                  <tr>
+                    <td><strong>Total do Mês (${m.revenues.length} ${m.revenues.length === 1 ? 'item' : 'itens'})</strong></td>
+                    <td style="color: var(--success); font-weight: 800; font-size:1rem;">${formatBRL(summary.revenues)}</td>
+                    <td colspan="4" style="font-size: 0.85rem; color: var(--text-secondary);">
+                      <span style="color: var(--success); font-weight: 700;">Pago: ${formatBRL(summary.revenuesPaid)}</span>
+                      &nbsp;&nbsp;•&nbsp;&nbsp;
+                      <span style="color: #fbbf24; font-weight: 700;">Pendente: ${formatBRL(summary.revenuesPending)}</span>
+                    </td>
+                  </tr>
+                </tfoot>
+              ` : ''}
+            </table>
+          </div>
+        `;
+      } else {
+        // MODO VISÃO ANUAL (12 MESES)
+        const allRevs = store.getAllRevenuesOfYear();
+        const totalAnnualExpected = allRevs.reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+        const totalAnnualPaid = allRevs.filter(r => r.status === 'Pago' || r.status === 'Recebido').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+        const totalAnnualPending = allRevs.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+
+        const filteredRevs = allRevs.filter(r => {
+          if (this.receitasFilterMonth !== 'todos' && Number(this.receitasFilterMonth) !== r.monthNum) return false;
+          if (this.receitasFilterStatus !== 'todos') {
+            const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
+            if (this.receitasFilterStatus === 'Pago' && !isPaid) return false;
+            if (this.receitasFilterStatus === 'Pendente' && isPaid) return false;
+          }
+          if (this.receitasFilterBank !== 'todos' && r.bank !== this.receitasFilterBank) return false;
+          if (this.receitasSearch && !r.source.toLowerCase().includes(this.receitasSearch.toLowerCase())) return false;
+          return true;
+        });
+
+        const filteredTotal = filteredRevs.reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+        const filteredPaid = filteredRevs.filter(r => r.status === 'Pago' || r.status === 'Recebido').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+        const filteredPending = filteredRevs.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+
+        container.innerHTML = `
+          <div class="card-header" style="flex-wrap: wrap; gap: 1rem; align-items: center;">
+            <div class="card-title-group">
+              <h3 class="card-title">Tabela Anual de Receitas (Janeiro a Dezembro)</h3>
+              <p class="card-subtitle">Visão consolidada de todas as rendas e recebimentos do ano inteiro</p>
+            </div>
+            <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
+              <div class="receitas-view-switcher">
+                <button class="receitas-view-btn" onclick="app.setReceitasViewMode('mes')">
+                  📌 Mês a Mês (${m.name})
+                </button>
+                <button class="receitas-view-btn active" onclick="app.setReceitasViewMode('anual')">
+                  📅 Visão Anual (12 Meses)
+                </button>
+              </div>
+              <div style="display:flex; gap:0.4rem;">
+                <button class="btn-header" onclick="app.openModalNovaReceita('mensal')">+ No Mês</button>
+                <button class="btn-header primary" onclick="app.openModalNovaReceita('anual')">+ Anual (12 Meses)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARDS DE MÉTRICAS ANUAIS -->
+          <div class="receitas-metrics-bar">
+            <div class="receitas-metric-card">
+              <span class="label">📅 Total Anual Previsto</span>
+              <span class="value" style="color:var(--text-primary);">${formatBRL(totalAnnualExpected)}</span>
+            </div>
+            <div class="receitas-metric-card">
+              <span class="label">✓ Já Recebido no Ano</span>
+              <span class="value" style="color:var(--success);">${formatBRL(totalAnnualPaid)}</span>
+            </div>
+            <div class="receitas-metric-card">
+              <span class="label">⏳ Pendente a Receber no Ano</span>
+              <span class="value" style="color:#fbbf24;">${formatBRL(totalAnnualPending)}</span>
+            </div>
+          </div>
+
+          <!-- BARRA DE FILTROS DA TABELA ANUAL -->
+          <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin-bottom:1.25rem; padding:0.85rem 1rem; background:var(--bg-surface-alt); border:1px solid var(--border-light); border-radius:var(--radius-md);">
+            <div style="flex:1; min-width:180px;">
+              <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Buscar Renda</label>
+              <input type="text" class="form-input" style="padding:0.4rem 0.65rem; font-size:0.85rem;" placeholder="Ex: Salário, Aluguel..." value="${this.receitasSearch}" oninput="app.filterReceitas('search', this.value)">
+            </div>
+            <div style="min-width:140px;">
+              <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Filtrar Mês</label>
+              <select class="form-input" style="padding:0.4rem 0.65rem; font-size:0.85rem;" onchange="app.filterReceitas('month', this.value)">
+                <option value="todos" ${this.receitasFilterMonth === 'todos' ? 'selected' : ''}>Todos os Meses</option>
+                ${Object.keys(store.data.months).map(mNum => `
+                  <option value="${mNum}" ${this.receitasFilterMonth === String(mNum) ? 'selected' : ''}>${store.data.months[mNum].name}</option>
+                `).join('')}
+              </select>
+            </div>
+            <div style="min-width:130px;">
+              <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Status</label>
+              <select class="form-input" style="padding:0.4rem 0.65rem; font-size:0.85rem;" onchange="app.filterReceitas('status', this.value)">
+                <option value="todos" ${this.receitasFilterStatus === 'todos' ? 'selected' : ''}>Todos</option>
+                <option value="Pago" ${this.receitasFilterStatus === 'Pago' ? 'selected' : ''}>Pago</option>
+                <option value="Pendente" ${this.receitasFilterStatus === 'Pendente' ? 'selected' : ''}>Pendente</option>
+              </select>
+            </div>
+            <div style="min-width:140px;">
+              <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Banco</label>
+              <select class="form-input" style="padding:0.4rem 0.65rem; font-size:0.85rem;" onchange="app.filterReceitas('bank', this.value)">
+                <option value="todos" ${this.receitasFilterBank === 'todos' ? 'selected' : ''}>Todos</option>
+                <option value="Bradesco" ${this.receitasFilterBank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
+                <option value="Nubank (Nu)" ${this.receitasFilterBank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
+                <option value="Banco do Brasil" ${this.receitasFilterBank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
+                <option value="Caixa Poupança" ${this.receitasFilterBank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Poupança</option>
+                <option value="Caixa CP" ${this.receitasFilterBank === 'Caixa CP' ? 'selected' : ''}>Caixa CP</option>
+                <option value="Seven" ${this.receitasFilterBank === 'Seven' ? 'selected' : ''}>Seven</option>
+                <option value="Carteira" ${this.receitasFilterBank === 'Carteira' ? 'selected' : ''}>Carteira</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th>Renda (Origem)</th>
+                  <th>Valor</th>
+                  <th>Data do Recebimento</th>
+                  <th>Status</th>
+                  <th>Banco</th>
+                  <th>Frequência</th>
+                  <th style="width: 110px; text-align: right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filteredRevs.length === 0 ? `
+                  <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2.5rem 1rem;">Nenhuma receita encontrada com os filtros selecionados.</td></tr>
+                ` : filteredRevs.map(r => {
+                  const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
+                  return `
+                    <tr>
+                      <td><strong style="color:#38bdf8;">${r.monthName}</strong></td>
+                      <td><strong>${r.source}</strong></td>
+                      <td style="color: var(--success); font-weight: 700;">${formatBRL(r.value)}</td>
+                      <td>${formatDateBR(r.date)}</td>
+                      <td>
+                        <span class="status-badge ${isPaid ? 'paid' : 'pending'} clickable" 
+                              title="Clique para alternar entre Pago e Pendente"
+                              onclick="app.toggleRevenueStatus(${r.monthNum}, '${r.id}')">
+                          ${isPaid ? '✓ Pago' : '⏳ Pendente'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style="font-weight:600; color:var(--text-secondary);">${r.bank || '-'}</span>
+                      </td>
+                      <td>
+                        <span class="badge-recurrence ${r.type === 'anual' || r.annualGroupId ? 'annual' : 'monthly'}">
+                          ${r.type === 'anual' || r.annualGroupId ? '📅 Anual' : '📌 Mensal'}
+                        </span>
+                      </td>
+                      <td style="text-align: right;">
+                        <div class="table-actions" style="justify-content: flex-end;">
+                          <button class="btn-table-icon" title="Alternar Status (Pago/Pendente)" onclick="app.toggleRevenueStatus(${r.monthNum}, '${r.id}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          </button>
+                          <button class="btn-table-icon" title="Editar Receita" onclick="app.openEditRevenueModal(${r.monthNum}, '${r.id}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                          </button>
+                          <button class="btn-table-icon delete" title="Excluir Receita" onclick="app.deleteRevenuePrompt(${r.monthNum}, '${r.id}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+              ${filteredRevs.length > 0 ? `
+                <tfoot>
+                  <tr>
+                    <td colspan="2"><strong>Total Filtrado (${filteredRevs.length} ${filteredRevs.length === 1 ? 'lançamento' : 'lançamentos'})</strong></td>
+                    <td style="color: var(--success); font-weight: 800; font-size:1rem;">${formatBRL(filteredTotal)}</td>
+                    <td colspan="5" style="font-size: 0.85rem; color: var(--text-secondary);">
+                      <span style="color: var(--success); font-weight: 700;">Pago: ${formatBRL(filteredPaid)}</span>
+                      &nbsp;&nbsp;•&nbsp;&nbsp;
+                      <span style="color: #fbbf24; font-weight: 700;">Pendente: ${formatBRL(filteredPending)}</span>
+                    </td>
+                  </tr>
+                </tfoot>
+              ` : ''}
+            </table>
+          </div>
+        `;
+      }
     } else if (this.activeSubtabMes === 'fixas') {
       container.innerHTML = `
         <div class="card-header">
@@ -513,13 +769,135 @@ const app = {
     }
   },
 
-  deleteRevenue(monthNum, id) {
-    if (confirm('Deseja excluir esta receita?')) {
-      store.deleteRevenue(monthNum, id);
+  setReceitasViewMode(mode) {
+    this.receitasViewMode = mode;
+    this.renderActiveMonthSubtab();
+  },
+
+  filterReceitas(key, value) {
+    if (key === 'month') this.receitasFilterMonth = value;
+    if (key === 'status') this.receitasFilterStatus = value;
+    if (key === 'bank') this.receitasFilterBank = value;
+    if (key === 'search') this.receitasSearch = value;
+    this.renderActiveMonthSubtab();
+  },
+
+  toggleRevenueFrequencyFields(mode) {
+    const isAnual = mode === 'anual';
+    const groupDateMensal = document.getElementById('revGroupDateMensal');
+    const groupDayAnual = document.getElementById('revGroupDayAnual');
+    const groupMonthSelect = document.getElementById('revGroupMonthSelect');
+    const alertAnual = document.getElementById('revAnnualAlert');
+    const radioMensal = document.getElementById('rev_freq_mensal');
+    const radioAnual = document.getElementById('rev_freq_anual');
+
+    if (radioMensal) radioMensal.checked = !isAnual;
+    if (radioAnual) radioAnual.checked = isAnual;
+
+    if (groupDateMensal) groupDateMensal.style.display = isAnual ? 'none' : 'block';
+    if (groupDayAnual) groupDayAnual.style.display = isAnual ? 'block' : 'none';
+    if (groupMonthSelect) groupMonthSelect.style.display = isAnual ? 'none' : 'block';
+    if (alertAnual) alertAnual.style.display = isAnual ? 'block' : 'none';
+  },
+
+  openModalNovaReceita(defaultType = 'mensal') {
+    const form = document.getElementById('formNovaReceita');
+    if (form) form.reset();
+
+    this.toggleRevenueFrequencyFields(defaultType);
+
+    const monthSelect = document.getElementById('rev_month_select');
+    if (monthSelect) monthSelect.value = String(this.activeMonth);
+
+    const dateInput = document.getElementById('rev_date');
+    if (dateInput) {
+      const now = new Date();
+      const yr = now.getFullYear();
+      const mStr = String(this.activeMonth).padStart(2, '0');
+      const dStr = String(now.getDate()).padStart(2, '0');
+      dateInput.value = `${yr}-${mStr}-${dStr}`;
+    }
+
+    const dayInput = document.getElementById('rev_annual_day');
+    if (dayInput) dayInput.value = 5;
+
+    const statusSelect = document.getElementById('rev_status');
+    if (statusSelect) statusSelect.value = 'Pago';
+
+    this.openModal('modalNovaReceita');
+  },
+
+  openEditRevenueModal(monthNum, id) {
+    const m = store.data.months[monthNum];
+    if (!m) return;
+    const r = m.revenues.find(item => item.id === id);
+    if (!r) return;
+
+    document.getElementById('edit_rev_id').value = r.id;
+    document.getElementById('edit_rev_month').value = monthNum;
+    document.getElementById('edit_rev_annual_group').value = r.annualGroupId || '';
+    document.getElementById('edit_rev_source').value = r.source || '';
+    document.getElementById('edit_rev_value').value = r.value || '';
+    document.getElementById('edit_rev_date').value = r.date || '';
+    document.getElementById('edit_rev_status').value = (r.status === 'Recebido' || r.status === 'Pago') ? 'Pago' : 'Pendente';
+    document.getElementById('edit_rev_bank').value = r.bank || 'Nubank (Nu)';
+
+    const groupContainer = document.getElementById('editRevAnnualGroupContainer');
+    const syncCheckbox = document.getElementById('edit_rev_sync_all');
+    if (groupContainer) {
+      if (r.annualGroupId) {
+        groupContainer.style.display = 'block';
+        if (syncCheckbox) syncCheckbox.checked = false;
+      } else {
+        groupContainer.style.display = 'none';
+      }
+    }
+
+    this.openModal('modalEditarReceita');
+  },
+
+  toggleRevenueStatus(monthNum, id) {
+    const item = store.toggleRevenueStatus(monthNum, id);
+    if (item) {
       this.renderMeses();
       this.renderResumo();
-      this.showToast('Receita removida com sucesso.', 'info');
+      this.showToast(`Status da receita "${item.source}" alterado para ${item.status}!`, 'success');
     }
+  },
+
+  deleteRevenuePrompt(monthNum, id) {
+    const m = store.data.months[monthNum];
+    if (!m) return;
+    const item = m.revenues.find(r => r.id === id);
+    if (!item) return;
+
+    if (item.annualGroupId) {
+      const resp = confirm(`Esta receita "${item.source}" faz parte de um lançamento ANUAL (12 meses).\n\n• Clique em [OK] para excluir APENAS deste mês (${m.name}).\n• Clique em [CANCELAR] para ver opção de excluir todos os meses.`);
+      if (resp) {
+        store.deleteRevenue(monthNum, id, false);
+        this.renderMeses();
+        this.renderResumo();
+        this.showToast(`Receita removida de ${m.name}.`, 'info');
+      } else {
+        if (confirm(`Deseja excluir a receita "${item.source}" de TODOS os 12 meses do ano?`)) {
+          store.deleteRevenue(monthNum, id, true);
+          this.renderMeses();
+          this.renderResumo();
+          this.showToast('Receita anual excluída de todos os 12 meses!', 'info');
+        }
+      }
+    } else {
+      if (confirm(`Deseja excluir a receita "${item.source}" (${formatBRL(item.value)})?`)) {
+        store.deleteRevenue(monthNum, id, false);
+        this.renderMeses();
+        this.renderResumo();
+        this.showToast('Receita removida com sucesso.', 'info');
+      }
+    }
+  },
+
+  deleteRevenue(monthNum, id) {
+    this.deleteRevenuePrompt(monthNum, id);
   },
 
   deleteFixedExpense(monthNum, id) {
@@ -1046,6 +1424,10 @@ const app = {
   openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+      if (modalId === 'modalNovaReceita') {
+        const isAnual = document.getElementById('rev_freq_anual')?.checked;
+        this.toggleRevenueFrequencyFields(isAnual ? 'anual' : 'mensal');
+      }
       modal.classList.add('active');
     }
   },
@@ -1173,24 +1555,73 @@ const app = {
       pwdSearch.addEventListener('input', () => this.renderSenhas());
     }
 
-    // Formulário Nova Receita
+    // Formulário Nova Receita (Mês a Mês ou Anual)
     const formRev = document.getElementById('formNovaReceita');
     if (formRev) {
       formRev.addEventListener('submit', (e) => {
         e.preventDefault();
-        const rev = {
-          source: document.getElementById('rev_source').value,
-          value: document.getElementById('rev_value').value,
-          date: document.getElementById('rev_date').value,
-          status: document.getElementById('rev_status').value,
-          bank: document.getElementById('rev_bank').value
-        };
-        store.addRevenue(this.activeMonth, rev);
+        const isAnual = document.getElementById('rev_freq_anual')?.checked;
+        const source = document.getElementById('rev_source').value.trim();
+        const value = document.getElementById('rev_value').value;
+        const status = document.getElementById('rev_status').value;
+        const bank = document.getElementById('rev_bank').value;
+
+        if (isAnual) {
+          const day = document.getElementById('rev_annual_day').value || 5;
+          const year = new Date().getFullYear();
+          store.addAnnualRevenue({
+            source,
+            value,
+            day,
+            year,
+            status,
+            bank
+          });
+          this.showToast('Receita anual inserida com sucesso nos 12 meses!', 'success');
+        } else {
+          const monthNum = Number(document.getElementById('rev_month_select').value) || this.activeMonth;
+          const date = document.getElementById('rev_date').value;
+          store.addRevenue(monthNum, {
+            source,
+            value,
+            date,
+            status,
+            bank,
+            type: 'mensal'
+          });
+          this.showToast('Receita adicionada com sucesso!', 'success');
+        }
+
         this.closeModal('modalNovaReceita');
         formRev.reset();
         this.renderMeses();
         this.renderResumo();
-        this.showToast('Receita adicionada!', 'success');
+      });
+    }
+
+    // Formulário Editar Receita
+    const formEditRev = document.getElementById('formEditarReceita');
+    if (formEditRev) {
+      formEditRev.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const monthNum = Number(document.getElementById('edit_rev_month').value);
+        const id = document.getElementById('edit_rev_id').value;
+        const syncAll = document.getElementById('edit_rev_sync_all')?.checked || false;
+
+        const updated = {
+          source: document.getElementById('edit_rev_source').value.trim(),
+          value: document.getElementById('edit_rev_value').value,
+          date: document.getElementById('edit_rev_date').value,
+          status: document.getElementById('edit_rev_status').value,
+          bank: document.getElementById('edit_rev_bank').value
+        };
+
+        store.updateRevenue(monthNum, id, updated, syncAll);
+        this.closeModal('modalEditarReceita');
+        formEditRev.reset();
+        this.renderMeses();
+        this.renderResumo();
+        this.showToast(syncAll ? 'Receita anual atualizada em todos os meses!' : 'Receita atualizada com sucesso!', 'success');
       });
     }
 

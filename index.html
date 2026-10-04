@@ -778,40 +778,154 @@
        MODAIS EXECUTIVOS (FORMULÁRIOS DE CADASTRO)
        ======================================================================== -->
 
-  <!-- Modal: Nova Receita -->
+  <!-- Modal: Nova Receita (Mês a Mês ou Anual) -->
   <div id="modalNovaReceita" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">Cadastrar Nova Receita</h3>
+        <h3 class="modal-title" id="modalNovaReceitaTitle">Cadastrar Nova Receita</h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalNovaReceita')">✕</button>
       </div>
       <form id="formNovaReceita">
         <div class="modal-body">
+          
+          <!-- Tipo de Lançamento / Frequência -->
           <div class="form-group">
-            <label class="form-label">Fonte de Renda / Descrição</label>
-            <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Salário, Honorários, Extra">
+            <label class="form-label">Tipo de Lançamento / Frequência</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.6rem;">
+              <label style="display:flex; align-items:center; gap:0.6rem; padding:0.65rem 0.85rem; border:1px solid var(--border-light); border-radius:var(--radius-md); background:var(--bg-surface-alt); cursor:pointer;">
+                <input type="radio" name="rev_frequency_type" id="rev_freq_mensal" value="mensal" checked onchange="app.toggleRevenueFrequencyFields('mensal')">
+                <div>
+                  <div style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">📌 Mês a Mês</div>
+                  <div style="font-size:0.75rem; color:var(--text-muted);">Lançar em um mês específico</div>
+                </div>
+              </label>
+              <label style="display:flex; align-items:center; gap:0.6rem; padding:0.65rem 0.85rem; border:1px solid var(--border-light); border-radius:var(--radius-md); background:var(--bg-surface-alt); cursor:pointer;">
+                <input type="radio" name="rev_frequency_type" id="rev_freq_anual" value="anual" onchange="app.toggleRevenueFrequencyFields('anual')">
+                <div>
+                  <div style="font-weight:700; font-size:0.85rem; color:#38bdf8;">📅 Anualmente</div>
+                  <div style="font-size:0.75rem; color:var(--text-muted);">Lançar nos 12 meses do ano</div>
+                </div>
+              </label>
+            </div>
           </div>
+
+          <div class="form-group">
+            <label class="form-label">Renda (De onde recebi o valor)</label>
+            <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Salário, Honorários, Aluguel, Extra">
+          </div>
+
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label">Valor (R$)</label>
               <input type="number" step="0.01" id="rev_value" class="form-input" required placeholder="0,00">
             </div>
+
+            <!-- Campo se for Mês a Mês: Data de Recebimento -->
+            <div class="form-group" id="revGroupDateMensal">
+              <label class="form-label">Data do Recebimento</label>
+              <input type="date" id="rev_date" class="form-input">
+            </div>
+
+            <!-- Campo se for Anual: Dia do Recebimento -->
+            <div class="form-group" id="revGroupDayAnual" style="display:none;">
+              <label class="form-label">Dia do Recebimento (em cada mês)</label>
+              <input type="number" id="rev_annual_day" class="form-input" min="1" max="31" value="5" placeholder="Ex: 5">
+            </div>
+          </div>
+
+          <!-- Se for Mês a Mês, pode escolher o Mês de Destino -->
+          <div class="form-group" id="revGroupMonthSelect">
+            <label class="form-label">Mês de Destino</label>
+            <select id="rev_month_select" class="form-input">
+              <option value="1">Janeiro</option>
+              <option value="2">Fevereiro</option>
+              <option value="3">Março</option>
+              <option value="4">Abril</option>
+              <option value="5">Maio</option>
+              <option value="6">Junho</option>
+              <option value="7">Julho</option>
+              <option value="8">Agosto</option>
+              <option value="9">Setembro</option>
+              <option value="10">Outubro</option>
+              <option value="11">Novembro</option>
+              <option value="12">Dezembro</option>
+            </select>
+          </div>
+
+          <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Data</label>
-              <input type="date" id="rev_date" class="form-input" required>
+              <label class="form-label">Status (Situação)</label>
+              <select id="rev_status" class="form-input">
+                <option value="Pago">Pago</option>
+                <option value="Pendente" selected>Pendente</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Banco (Qual banco foi recebido)</label>
+              <select id="rev_bank" class="form-input">
+                <option value="Bradesco">Bradesco</option>
+                <option value="Nubank (Nu)" selected>Nubank (Nu)</option>
+                <option value="Banco do Brasil">Banco do Brasil (BB)</option>
+                <option value="Caixa Poupança">Caixa Econômica (Poupança)</option>
+                <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
+                <option value="Seven">Seven</option>
+                <option value="Carteira">Carteira (Dinheiro)</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Banner Informativo para Lançamento Anual -->
+          <div id="revAnnualAlert" style="display:none; padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); font-size:0.8rem; color:#bae6fd;">
+            ℹ️ <strong>Lançamento Anual:</strong> Esta receita será cadastrada automaticamente em todos os 12 meses (Janeiro a Dezembro) com a data correspondente.
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaReceita')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Receita</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Editar Receita -->
+  <div id="modalEditarReceita" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Editar Receita</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalEditarReceita')">✕</button>
+      </div>
+      <form id="formEditarReceita">
+        <input type="hidden" id="edit_rev_id">
+        <input type="hidden" id="edit_rev_month">
+        <input type="hidden" id="edit_rev_annual_group">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Renda (De onde recebi o valor)</label>
+            <input type="text" id="edit_rev_source" class="form-input" required placeholder="Ex: Salário, Honorários, Extra">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Valor (R$)</label>
+              <input type="number" step="0.01" id="edit_rev_value" class="form-input" required placeholder="0,00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data do Recebimento</label>
+              <input type="date" id="edit_rev_date" class="form-input" required>
             </div>
           </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Estado</label>
-              <select id="rev_status" class="form-input">
-                <option value="Recebido">Recebido</option>
+              <label class="form-label">Status (Situação)</label>
+              <select id="edit_rev_status" class="form-input">
+                <option value="Pago">Pago</option>
                 <option value="Pendente">Pendente</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Banco / Conta</label>
-              <select id="rev_bank" class="form-input">
+              <label class="form-label">Banco (Qual banco foi recebido)</label>
+              <select id="edit_rev_bank" class="form-input">
                 <option value="Bradesco">Bradesco</option>
                 <option value="Nubank (Nu)">Nubank (Nu)</option>
                 <option value="Banco do Brasil">Banco do Brasil (BB)</option>
@@ -819,13 +933,20 @@
                 <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
                 <option value="Seven">Seven</option>
                 <option value="Carteira">Carteira (Dinheiro)</option>
+                <option value="Outro">Outro</option>
               </select>
             </div>
           </div>
+          <div id="editRevAnnualGroupContainer" style="display:none; margin-top:0.75rem; padding:0.75rem; background:rgba(255,255,255,0.03); border:1px dashed var(--border-light); border-radius:var(--radius-md);">
+            <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; cursor:pointer;">
+              <input type="checkbox" id="edit_rev_sync_all" style="accent-color:var(--primary);">
+              <span><strong>Atualizar em todos os 12 meses</strong> desta série anual (Renda, Valor e Banco)</span>
+            </label>
+          </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaReceita')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Receita</button>
+          <button type="button" class="btn-header" onclick="app.closeModal('modalEditarReceita')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Alterações</button>
         </div>
       </form>
     </div>

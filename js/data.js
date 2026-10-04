@@ -152,17 +152,140 @@ class DataStore {
   // --- MÓDULO MESES & RECEITAS / DESPESAS ---
   addRevenue(monthNum, revenue) {
     if (!this.data.months[monthNum]) return;
-    revenue.id = 'rev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    revenue.id = revenue.id || ('rev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
     revenue.value = Number(revenue.value) || 0;
+    revenue.status = revenue.status || 'Pendente';
+    revenue.type = revenue.type || 'mensal';
+    if (!this.data.months[monthNum].revenues) this.data.months[monthNum].revenues = [];
     this.data.months[monthNum].revenues.push(revenue);
     this.save();
     return revenue;
   }
 
-  deleteRevenue(monthNum, id) {
-    if (!this.data.months[monthNum]) return;
-    this.data.months[monthNum].revenues = this.data.months[monthNum].revenues.filter(r => r.id !== id);
+  addAnnualRevenue(revenueConfig) {
+    const annualGroupId = 'ann_rev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    const results = [];
+    const day = Math.min(Math.max(parseInt(revenueConfig.day, 10) || 5, 1), 31);
+    const year = parseInt(revenueConfig.year, 10) || new Date().getFullYear();
+    const source = revenueConfig.source || 'Receita Anual';
+    const value = Number(revenueConfig.value) || 0;
+    const bank = revenueConfig.bank || 'Nubank (Nu)';
+    const baseStatus = revenueConfig.status || 'Pendente';
+
+    for (let m = 1; m <= 12; m++) {
+      if (!this.data.months[m]) continue;
+      if (!this.data.months[m].revenues) this.data.months[m].revenues = [];
+
+      // Ajusta o dia para meses com menos dias (ex: Fevereiro tem 28 ou 29)
+      const daysInMonth = new Date(year, m, 0).getDate();
+      const actualDay = Math.min(day, daysInMonth);
+      const dayStr = String(actualDay).padStart(2, '0');
+      const monthStr = String(m).padStart(2, '0');
+      const dateFormatted = `${year}-${monthStr}-${dayStr}`;
+
+      const revItem = {
+        id: 'rev_' + Date.now() + '_' + m + '_' + Math.random().toString(36).substr(2, 4),
+        source: source,
+        value: value,
+        date: dateFormatted,
+        status: baseStatus,
+        bank: bank,
+        type: 'anual',
+        annualGroupId: annualGroupId
+      };
+
+      this.data.months[m].revenues.push(revItem);
+      results.push(revItem);
+    }
+
     this.save();
+    return { annualGroupId, items: results };
+  }
+
+  updateRevenue(monthNum, id, updatedData, updateAllInAnnualGroup = false) {
+    if (!this.data.months[monthNum]) return null;
+    const index = this.data.months[monthNum].revenues.findIndex(r => r.id === id);
+    if (index === -1) return null;
+
+    const currentItem = this.data.months[monthNum].revenues[index];
+    const annualGroupId = currentItem.annualGroupId;
+
+    if (updateAllInAnnualGroup && annualGroupId) {
+      for (let m = 1; m <= 12; m++) {
+        if (!this.data.months[m] || !this.data.months[m].revenues) continue;
+        this.data.months[m].revenues.forEach(r => {
+          if (r.annualGroupId === annualGroupId) {
+            if (updatedData.source !== undefined) r.source = updatedData.source;
+            if (updatedData.value !== undefined) r.value = Number(updatedData.value) || 0;
+            if (updatedData.bank !== undefined) r.bank = updatedData.bank;
+            if (updatedData.status !== undefined) r.status = updatedData.status;
+            // Preserva o mês, apenas ajusta o dia se alterado
+            if (updatedData.day !== undefined) {
+              const currentYear = r.date ? r.date.split('-')[0] : new Date().getFullYear();
+              const daysInMonth = new Date(currentYear, m, 0).getDate();
+              const actualDay = Math.min(parseInt(updatedData.day, 10) || 5, daysInMonth);
+              r.date = `${currentYear}-${String(m).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+            }
+          }
+        });
+      }
+    } else {
+      this.data.months[monthNum].revenues[index] = {
+        ...currentItem,
+        ...updatedData,
+        value: updatedData.value !== undefined ? (Number(updatedData.value) || 0) : currentItem.value
+      };
+    }
+
+    this.save();
+    return this.data.months[monthNum].revenues[index];
+  }
+
+  toggleRevenueStatus(monthNum, id) {
+    if (!this.data.months[monthNum]) return null;
+    const item = this.data.months[monthNum].revenues.find(r => r.id === id);
+    if (item) {
+      item.status = (item.status === 'Pago' || item.status === 'Recebido') ? 'Pendente' : 'Pago';
+      this.save();
+      return item;
+    }
+    return null;
+  }
+
+  deleteRevenue(monthNum, id, deleteAllAnnual = false) {
+    if (!this.data.months[monthNum]) return;
+    const item = this.data.months[monthNum].revenues.find(r => r.id === id);
+
+    if (deleteAllAnnual && item && item.annualGroupId) {
+      const gid = item.annualGroupId;
+      for (let m = 1; m <= 12; m++) {
+        if (this.data.months[m] && this.data.months[m].revenues) {
+          this.data.months[m].revenues = this.data.months[m].revenues.filter(r => r.annualGroupId !== gid);
+        }
+      }
+    } else {
+      this.data.months[monthNum].revenues = this.data.months[monthNum].revenues.filter(r => r.id !== id);
+    }
+    this.save();
+  }
+
+  getAllRevenuesOfYear(year = null) {
+    const list = [];
+    for (let m = 1; m <= 12; m++) {
+      const monthObj = this.data.months[m];
+      if (monthObj && monthObj.revenues) {
+        monthObj.revenues.forEach(r => {
+          if (!year || (r.date && r.date.startsWith(String(year)))) {
+            list.push({
+              ...r,
+              monthNum: m,
+              monthName: monthObj.name
+            });
+          }
+        });
+      }
+    }
+    return list;
   }
 
   addFixedExpense(monthNum, expense) {
@@ -230,9 +353,12 @@ class DataStore {
   // Totais do mês
   getMonthSummary(monthNum) {
     const m = this.data.months[monthNum];
-    if (!m) return { revenues: 0, fixed: 0, variable: 0, card: 0, balance: 0 };
+    if (!m) return { revenues: 0, revenuesPaid: 0, revenuesPending: 0, fixed: 0, variable: 0, card: 0, balance: 0 };
 
     const totalRevenues = m.revenues.reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+    const totalRevenuesPaid = m.revenues.filter(r => r.status === 'Pago' || r.status === 'Recebido').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+    const totalRevenuesPending = m.revenues.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
+
     const totalFixed = m.fixedExpenses.reduce((acc, e) => acc + (e.status === 'Pago' ? (Number(e.valuePaid) || Number(e.valueExpected) || 0) : (Number(e.valueExpected) || 0)), 0);
     const totalVariable = m.variableExpenses.reduce((acc, e) => acc + (Number(e.value) || 0), 0);
     
@@ -244,6 +370,8 @@ class DataStore {
 
     return {
       revenues: totalRevenues,
+      revenuesPaid: totalRevenuesPaid,
+      revenuesPending: totalRevenuesPending,
       fixed: totalFixed,
       variable: totalVariable,
       card: totalCard,
