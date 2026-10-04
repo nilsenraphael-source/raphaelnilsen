@@ -4,61 +4,61 @@
    ========================================================================== */
 
 :root {
-  /* Cores Base do Sistema Executivo - ULTRA DARK */
-  --bg-body: #0d1117;             /* Fundo ultra-dark principal */
-  --bg-surface: #151b26;          /* Cartões, painéis e janelas */
-  --bg-surface-alt: #0e131d;      /* Fundo de cabeçalhos internos e inputs */
-  --bg-surface-elevated: #1a2233; /* Elementos elevados */
-  --bg-sidebar: #090d14;          /* Barra lateral ultra-dark */
-  --bg-sidebar-hover: #161e2e;
-  --bg-sidebar-active: #2563eb;
+  /* Cores Base do Sistema - MINIMALIST DARK (Linear / Notion) */
+  --bg-body: #0c0d0e;             /* Fundo charcoal ultra-dark */
+  --bg-surface: #141518;          /* Painéis e cartões */
+  --bg-surface-alt: #1a1b1f;      /* Fundo de cabeçalhos internos e inputs */
+  --bg-surface-elevated: #212227; /* Elementos elevados */
+  --bg-sidebar: #0f1012;          /* Barra lateral minimalista */
+  --bg-sidebar-hover: rgba(255, 255, 255, 0.04);
+  --bg-sidebar-active: rgba(255, 255, 255, 0.08);
   
   /* Cores Corporativas */
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
-  --primary-subtle: rgba(37, 99, 235, 0.15);
-  --primary-border: #1e3a8a;
+  --primary-subtle: rgba(37, 99, 235, 0.12);
+  --primary-border: rgba(37, 99, 235, 0.3);
   
-  --navy: #f8fafc;                /* Títulos principais claros no tema dark */
-  --navy-light: #e2e8f0;
+  --navy: #f4f4f5;                /* Títulos principais claros no tema dark */
+  --navy-light: #e4e4e7;
   
   /* Cores de Feedback & Balanço */
   --success: #10b981;
   --success-hover: #059669;
-  --success-subtle: rgba(16, 185, 129, 0.15);
-  --success-border: rgba(16, 185, 129, 0.35);
+  --success-subtle: rgba(16, 185, 129, 0.12);
+  --success-border: rgba(16, 185, 129, 0.28);
   
   --danger: #ef4444;
   --danger-hover: #dc2626;
-  --danger-subtle: rgba(239, 68, 68, 0.15);
-  --danger-border: rgba(239, 68, 68, 0.35);
+  --danger-subtle: rgba(239, 68, 68, 0.12);
+  --danger-border: rgba(239, 68, 68, 0.28);
   
   --warning: #f59e0b;
   --warning-hover: #d97706;
-  --warning-subtle: rgba(245, 158, 11, 0.15);
-  --warning-border: rgba(245, 158, 11, 0.35);
+  --warning-subtle: rgba(245, 158, 11, 0.12);
+  --warning-border: rgba(245, 158, 11, 0.28);
   
-  --purple: #8b5cf6;
-  --purple-subtle: rgba(139, 92, 246, 0.15);
+  --purple: #a855f7;
+  --purple-subtle: rgba(168, 85, 247, 0.12);
   
   /* Tipografia & Contrastes */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
   --text-white: #ffffff;
-  --text-on-sidebar: #e2e8f0;
-  --text-sidebar-muted: #94a3b8;
+  --text-on-sidebar: #d4d4d8;
+  --text-sidebar-muted: #71717a;
 
-  /* Bordas e Linhas Ultra-Dark */
-  --border-light: #222b3d;
-  --border-subtle: #19202e;
-  --border-strong: #334155;
+  /* Bordas e Linhas Minimalistas */
+  --border-light: #242529;
+  --border-subtle: #1c1d21;
+  --border-strong: #33343a;
   
   /* Sombras */
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 20px 30px -5px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.55);
+  --shadow-xl: 0 20px 38px rgba(0, 0, 0, 0.65);
 
   /* Dimensões e Raios Originais do Início */
   --sidebar-width: 270px;
@@ -376,26 +376,28 @@ textarea.form-input {
 }
 
 .sidebar-label {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--text-sidebar-muted);
-  padding: 0.75rem 0.75rem 0.25rem;
+  padding: 0.85rem 0.75rem 0.35rem;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  padding: 0.75rem 0.85rem;
+  gap: 0.75rem;
+  padding: 0.58rem 0.85rem;
   border-radius: var(--radius-md);
-  color: var(--text-on-sidebar);
-  font-weight: 600;
-  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.88rem;
   cursor: pointer;
   transition: all var(--transition-fast);
   border: 1px solid transparent;
+  position: relative;
+  user-select: none;
 }
 
 .nav-item:hover {
@@ -404,32 +406,71 @@ textarea.form-input {
 }
 
 .nav-item.active {
-  background-color: var(--primary);
+  background-color: var(--bg-sidebar-active);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  font-weight: 600;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background-color: #38bdf8;
 }
 
 .nav-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.nav-item:hover .nav-icon {
+  color: #e4e4e7;
+}
+
+.nav-item.active .nav-icon {
+  color: #38bdf8;
 }
 
 .nav-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
 }
 
-.nav-badge {
+.nav-kbd {
   margin-left: auto;
-  font-size: 0.7rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-pill);
-  background-color: rgba(255, 255, 255, 0.15);
-  font-weight: 700;
+  font-size: 0.65rem;
+  font-family: monospace;
+  color: #52525b;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  transition: all var(--transition-fast);
+}
+
+.nav-item:hover .nav-kbd {
+  color: #a1a1aa;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.nav-item.active .nav-kbd {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.25);
 }
 
 .sidebar-footer {
@@ -1066,6 +1107,251 @@ textarea.form-input {
 .receitas-metric-card .value {
   font-size: 1.35rem;
   font-weight: 800;
+}
+
+/* ==========================================================================
+   TABELA NOTION / LINEAR - RENDIMENTOS & MINIMALISMO
+   ========================================================================== */
+.notion-table-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  margin-bottom: 1.5rem;
+}
+
+.notion-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-surface);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.notion-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.notion-title-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: -0.01em;
+}
+
+.notion-title-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.notion-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.notion-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a1a1aa;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.notion-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.notion-btn-pill {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all var(--transition-fast);
+}
+.notion-btn-pill:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.notion-btn-blue {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.38rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+.notion-btn-blue:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+/* Tabela com linhas e colunas Notion */
+.notion-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.notion-data-table th {
+  background-color: rgba(255, 255, 255, 0.015);
+  color: #a1a1aa;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+}
+.notion-data-table th:last-child {
+  border-right: none;
+}
+.notion-data-table th .th-icon {
+  opacity: 0.75;
+  margin-right: 0.35rem;
+  font-size: 0.82rem;
+}
+
+.notion-data-table td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+  color: var(--text-primary);
+}
+.notion-data-table td:last-child {
+  border-right: none;
+}
+
+.notion-data-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.notion-data-table tfoot td {
+  background-color: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid var(--border-light);
+  font-weight: 600;
+}
+
+/* Status Pill com bolinha (Design Idêntico ao Print do Usuário) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-fast);
+  line-height: 1;
+}
+.status-pill:hover {
+  filter: brightness(1.25);
+  transform: translateY(-1px);
+}
+.status-pill .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-pill.pending {
+  background-color: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+.status-pill.pending .dot {
+  background-color: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+.status-pill.paid {
+  background-color: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+.status-pill.paid .dot {
+  background-color: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+/* Ícones de identificação de Renda */
+.renda-row-content {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.renda-item-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+/* Chips de modelo rápido */
+.preset-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  border-radius: var(--radius-pill);
+  padding: 0.22rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.preset-chip:hover {
+  background: var(--primary-subtle);
+  border-color: var(--primary);
+  color: #38bdf8;
+  transform: translateY(-1px);
 }
 
 /* BOTÕES DE AÇÃO NA TABELA */

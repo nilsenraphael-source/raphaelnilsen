@@ -19,6 +19,30 @@ function formatDateBR(dateStr) {
   return dateStr;
 }
 
+// Identificador de Ícone por Fonte de Renda (Notion Style)
+function getRendaIcon(sourceName) {
+  const s = (sourceName || '').toLowerCase();
+  if (s.includes('jotur') || s.includes('ônibus') || s.includes('onibus')) {
+    return '🚌';
+  }
+  if (s.includes('bombeiro') || s.includes('cbmesc') || s.includes('fogo')) {
+    return '🚒';
+  }
+  if (s.includes('carteira') || s.includes('dinheiro') || s.includes('físico') || s.includes('fisico')) {
+    return '👛';
+  }
+  if (s.includes('cartão') || s.includes('cartao') || s.includes('elo') || s.includes('master') || s.includes('nu')) {
+    return '💳';
+  }
+  if (s.includes('invest') || s.includes('dividend') || s.includes('fii') || s.includes('ação') || s.includes('bolsa')) {
+    return '📈';
+  }
+  if (s.includes('salário') || s.includes('salario') || s.includes('renda')) {
+    return '💵';
+  }
+  return '📄';
+}
+
 // Elementos Globais
 const app = {
   currentTab: 'resumo',
@@ -344,28 +368,7 @@ const app = {
 
       if (this.receitasViewMode === 'mes') {
         container.innerHTML = `
-          <div class="card-header" style="flex-wrap: wrap; gap: 1rem; align-items: center;">
-            <div class="card-title-group">
-              <h3 class="card-title">Receitas de ${m.name}</h3>
-              <p class="card-subtitle">Controle de rendas, recebimentos, status e contas bancárias</p>
-            </div>
-            <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
-              <div class="receitas-view-switcher">
-                <button class="receitas-view-btn active" onclick="app.setReceitasViewMode('mes')">
-                  📌 Mês a Mês (${m.name})
-                </button>
-                <button class="receitas-view-btn" onclick="app.setReceitasViewMode('anual')">
-                  📅 Visão Anual (12 Meses)
-                </button>
-              </div>
-              <div style="display:flex; gap:0.4rem;">
-                <button class="btn-header" onclick="app.openModalNovaReceita('mensal')">+ No Mês</button>
-                <button class="btn-header primary" onclick="app.openModalNovaReceita('anual')">+ Anual (12 Meses)</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- CARDS DE MÉTRICAS DO MÊS -->
+          <!-- CARDS DE MÉTRICAS DO MÊS (MINIMALISTA) -->
           <div class="receitas-metrics-bar">
             <div class="receitas-metric-card">
               <span class="label">💰 Total Previsto (${m.name})</span>
@@ -381,83 +384,110 @@ const app = {
             </div>
           </div>
 
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Renda (Origem)</th>
-                  <th>Valor</th>
-                  <th>Data do Recebimento</th>
-                  <th>Status</th>
-                  <th>Banco</th>
-                  <th style="width: 110px; text-align: right;">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${m.revenues.length === 0 ? `
-                  <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2.5rem 1rem;">
-                    <div style="font-size: 1.1rem; font-weight:700; color:var(--text-primary); margin-bottom:0.25rem;">Nenhuma receita registrada em ${m.name}</div>
-                    <p style="font-size:0.85rem; margin-bottom:1.25rem;">Cadastre uma receita avulsa para este mês ou crie uma receita anual para todos os 12 meses do ano.</p>
-                    <div style="display:flex; gap:0.5rem; justify-content:center;">
-                      <button class="btn-header" onclick="app.openModalNovaReceita('mensal')">+ Inserir Receita no Mês</button>
-                      <button class="btn-header primary" onclick="app.openModalNovaReceita('anual')">+ Inserir Receita Anual (12 Meses)</button>
-                    </div>
-                  </td></tr>
-                ` : m.revenues.map(r => {
-                  const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
-                  return `
+          <!-- TABELA MINIMALISTA ESTILO NOTION (RENDIMENTOS) -->
+          <div class="notion-table-card">
+            <div class="notion-header-bar">
+              <div class="notion-title-group">
+                <div class="notion-title-text">
+                  <span>💰</span>
+                  <span>Rendimentos</span>
+                </div>
+                <span class="notion-title-badge">${m.name}</span>
+              </div>
+              <div class="notion-toolbar">
+                <button class="notion-btn-pill" title="Inserir Modelos Rápidos (Jotur, Bombeiro, Carteira, Cartão ELO)" onclick="app.seedMonthPresets()">
+                  <span>⚡</span> Modelos Rápidos
+                </button>
+                <button class="notion-btn-pill" onclick="app.setReceitasViewMode('anual')">
+                  <span>📅</span> Visão Anual (12 Meses)
+                </button>
+                <button class="notion-btn-blue" onclick="app.openModalNovaReceita('mensal')">
+                  + Nova <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="notion-data-table">
+                <thead>
+                  <tr>
+                    <th><span class="th-icon">Aa</span> Renda</th>
+                    <th><span class="th-icon">#</span> Valor</th>
+                    <th><span class="th-icon">📅</span> Data Recebida</th>
+                    <th><span class="th-icon">☼</span> Status</th>
+                    <th><span class="th-icon">↗</span> Saldo Inicial Banco</th>
+                    <th style="width: 80px; text-align: right;"><span class="th-icon">⋯</span> Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${m.revenues.length === 0 ? `
                     <tr>
-                      <td>
-                        <div style="display:flex; align-items:center; gap:0.5rem;">
-                          <strong>${r.source}</strong>
-                          <span class="badge-recurrence ${r.type === 'anual' || r.annualGroupId ? 'annual' : 'monthly'}">
-                            ${r.type === 'anual' || r.annualGroupId ? '📅 Anual' : '📌 Mensal'}
-                          </span>
-                        </div>
-                      </td>
-                      <td style="color: var(--success); font-weight: 700; font-size:0.95rem;">${formatBRL(r.value)}</td>
-                      <td>${formatDateBR(r.date)}</td>
-                      <td>
-                        <span class="status-badge ${isPaid ? 'paid' : 'pending'} clickable" 
-                              title="Clique para alternar entre Pago e Pendente"
-                              onclick="app.toggleRevenueStatus(${this.activeMonth}, '${r.id}')">
-                          ${isPaid ? '✓ Pago' : '⏳ Pendente'}
-                        </span>
-                      </td>
-                      <td>
-                        <span style="font-weight:600; color:var(--text-secondary);">${r.bank || '-'}</span>
-                      </td>
-                      <td style="text-align: right;">
-                        <div class="table-actions" style="justify-content: flex-end;">
-                          <button class="btn-table-icon" title="Alternar Status (Pago/Pendente)" onclick="app.toggleRevenueStatus(${this.activeMonth}, '${r.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                          </button>
-                          <button class="btn-table-icon" title="Editar Receita" onclick="app.openEditRevenueModal(${this.activeMonth}, '${r.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                          </button>
-                          <button class="btn-table-icon delete" title="Excluir Receita" onclick="app.deleteRevenuePrompt(${this.activeMonth}, '${r.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                          </button>
+                      <td colspan="6" style="text-align: center; padding: 2.75rem 1.5rem; color: var(--text-muted);">
+                        <div style="font-size: 1.05rem; font-weight: 600; color: #ffffff; margin-bottom: 0.35rem;">Nenhum rendimento lançado em ${m.name}</div>
+                        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Você pode carregar seus 4 modelos frequentes (Jotur, Bombeiro, Carteira, Cartão ELO) com 1 clique:</p>
+                        <div style="display:flex; gap:0.6rem; justify-content:center; flex-wrap:wrap;">
+                          <button class="notion-btn-pill" onclick="app.seedMonthPresets()">⚡ Carregar Modelos Padrão</button>
+                          <button class="notion-btn-blue" onclick="app.openModalNovaReceita('mensal')">+ Nova Renda</button>
                         </div>
                       </td>
                     </tr>
-                  `;
-                }).join('')}
-              </tbody>
-              ${m.revenues.length > 0 ? `
-                <tfoot>
-                  <tr>
-                    <td><strong>Total do Mês (${m.revenues.length} ${m.revenues.length === 1 ? 'item' : 'itens'})</strong></td>
-                    <td style="color: var(--success); font-weight: 800; font-size:1rem;">${formatBRL(summary.revenues)}</td>
-                    <td colspan="4" style="font-size: 0.85rem; color: var(--text-secondary);">
-                      <span style="color: var(--success); font-weight: 700;">Pago: ${formatBRL(summary.revenuesPaid)}</span>
-                      &nbsp;&nbsp;•&nbsp;&nbsp;
-                      <span style="color: #fbbf24; font-weight: 700;">Pendente: ${formatBRL(summary.revenuesPending)}</span>
-                    </td>
-                  </tr>
-                </tfoot>
-              ` : ''}
-            </table>
+                  ` : m.revenues.map(r => {
+                    const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
+                    return `
+                      <tr>
+                        <td>
+                          <div class="renda-row-content">
+                            <span class="renda-item-icon">${getRendaIcon(r.source)}</span>
+                            <strong>${r.source}</strong>
+                            ${(r.type === 'anual' || r.annualGroupId) ? '<span class="badge-recurrence annual">Anual</span>' : ''}
+                          </div>
+                        </td>
+                        <td style="font-weight: 700; color: var(--text-primary);">
+                          ${r.value > 0 ? formatBRL(r.value) : '<span style="color:var(--text-muted); font-weight:normal;">-</span>'}
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                          ${r.date ? formatDateBR(r.date) : '-'}
+                        </td>
+                        <td>
+                          <span class="status-pill ${isPaid ? 'paid' : 'pending'}" 
+                                title="Clique para alternar: ${isPaid ? 'Marcar como Pendente' : 'Marcar como Pago'}"
+                                onclick="app.toggleRevenueStatus(${this.activeMonth}, '${r.id}')">
+                            <span class="dot"></span>
+                            <span>${isPaid ? 'Pago' : 'Pendente'}</span>
+                          </span>
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                          ${r.bank || '-'}
+                        </td>
+                        <td style="text-align: right;">
+                          <div class="table-actions" style="justify-content: flex-end;">
+                            <button class="btn-table-icon" title="Editar" onclick="app.openEditRevenueModal(${this.activeMonth}, '${r.id}')">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteRevenuePrompt(${this.activeMonth}, '${r.id}')">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+                ${m.revenues.length > 0 ? `
+                  <tfoot>
+                    <tr>
+                      <td><strong>Total (${m.revenues.length} itens)</strong></td>
+                      <td style="color: var(--success); font-weight: 800;">${formatBRL(summary.revenues)}</td>
+                      <td colspan="4" style="font-size: 0.82rem; color: var(--text-secondary);">
+                        <span style="color: var(--success); font-weight: 600;">Pago: ${formatBRL(summary.revenuesPaid)}</span>
+                        &nbsp;&nbsp;•&nbsp;&nbsp;
+                        <span style="color: #f59e0b; font-weight: 600;">Pendente: ${formatBRL(summary.revenuesPending)}</span>
+                      </td>
+                    </tr>
+                  </tfoot>
+                ` : ''}
+              </table>
+            </div>
           </div>
         `;
       } else {
@@ -484,27 +514,6 @@ const app = {
         const filteredPending = filteredRevs.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
 
         container.innerHTML = `
-          <div class="card-header" style="flex-wrap: wrap; gap: 1rem; align-items: center;">
-            <div class="card-title-group">
-              <h3 class="card-title">Tabela Anual de Receitas (Janeiro a Dezembro)</h3>
-              <p class="card-subtitle">Visão consolidada de todas as rendas e recebimentos do ano inteiro</p>
-            </div>
-            <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
-              <div class="receitas-view-switcher">
-                <button class="receitas-view-btn" onclick="app.setReceitasViewMode('mes')">
-                  📌 Mês a Mês (${m.name})
-                </button>
-                <button class="receitas-view-btn active" onclick="app.setReceitasViewMode('anual')">
-                  📅 Visão Anual (12 Meses)
-                </button>
-              </div>
-              <div style="display:flex; gap:0.4rem;">
-                <button class="btn-header" onclick="app.openModalNovaReceita('mensal')">+ No Mês</button>
-                <button class="btn-header primary" onclick="app.openModalNovaReceita('anual')">+ Anual (12 Meses)</button>
-              </div>
-            </div>
-          </div>
-
           <!-- CARDS DE MÉTRICAS ANUAIS -->
           <div class="receitas-metrics-bar">
             <div class="receitas-metric-card">
@@ -521,115 +530,132 @@ const app = {
             </div>
           </div>
 
-          <!-- BARRA DE FILTROS DA TABELA ANUAL -->
-          <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin-bottom:1.25rem; padding:0.85rem 1rem; background:var(--bg-surface-alt); border:1px solid var(--border-light); border-radius:var(--radius-md);">
-            <div style="flex:1; min-width:180px;">
-              <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Buscar Renda</label>
-              <input type="text" class="form-input" style="padding:0.4rem 0.65rem; font-size:0.85rem;" placeholder="Ex: Salário, Aluguel..." value="${this.receitasSearch}" oninput="app.filterReceitas('search', this.value)">
+          <div class="notion-table-card">
+            <div class="notion-header-bar">
+              <div class="notion-title-group">
+                <div class="notion-title-text">
+                  <span>💰</span>
+                  <span>Rendimentos Anuais (12 Meses)</span>
+                </div>
+                <span class="notion-title-badge">${filteredRevs.length} lançamentos</span>
+              </div>
+              <div class="notion-toolbar">
+                <button class="notion-btn-pill" onclick="app.setReceitasViewMode('mes')">
+                  <span>📌</span> Mês a Mês (${m.name})
+                </button>
+                <button class="notion-btn-blue" onclick="app.openModalNovaReceita('anual')">
+                  + Nova Anual (12 Meses)
+                </button>
+              </div>
             </div>
-            <div style="min-width:140px;">
-              <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Filtrar Mês</label>
-              <select class="form-input" style="padding:0.4rem 0.65rem; font-size:0.85rem;" onchange="app.filterReceitas('month', this.value)">
-                <option value="todos" ${this.receitasFilterMonth === 'todos' ? 'selected' : ''}>Todos os Meses</option>
-                ${Object.keys(store.data.months).map(mNum => `
-                  <option value="${mNum}" ${this.receitasFilterMonth === String(mNum) ? 'selected' : ''}>${store.data.months[mNum].name}</option>
-                `).join('')}
-              </select>
-            </div>
-            <div style="min-width:130px;">
-              <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Status</label>
-              <select class="form-input" style="padding:0.4rem 0.65rem; font-size:0.85rem;" onchange="app.filterReceitas('status', this.value)">
-                <option value="todos" ${this.receitasFilterStatus === 'todos' ? 'selected' : ''}>Todos</option>
-                <option value="Pago" ${this.receitasFilterStatus === 'Pago' ? 'selected' : ''}>Pago</option>
-                <option value="Pendente" ${this.receitasFilterStatus === 'Pendente' ? 'selected' : ''}>Pendente</option>
-              </select>
-            </div>
-            <div style="min-width:140px;">
-              <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Banco</label>
-              <select class="form-input" style="padding:0.4rem 0.65rem; font-size:0.85rem;" onchange="app.filterReceitas('bank', this.value)">
-                <option value="todos" ${this.receitasFilterBank === 'todos' ? 'selected' : ''}>Todos</option>
-                <option value="Bradesco" ${this.receitasFilterBank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
-                <option value="Nubank (Nu)" ${this.receitasFilterBank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
-                <option value="Banco do Brasil" ${this.receitasFilterBank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
-                <option value="Caixa Poupança" ${this.receitasFilterBank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Poupança</option>
-                <option value="Caixa CP" ${this.receitasFilterBank === 'Caixa CP' ? 'selected' : ''}>Caixa CP</option>
-                <option value="Seven" ${this.receitasFilterBank === 'Seven' ? 'selected' : ''}>Seven</option>
-                <option value="Carteira" ${this.receitasFilterBank === 'Carteira' ? 'selected' : ''}>Carteira</option>
-              </select>
-            </div>
-          </div>
 
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Mês</th>
-                  <th>Renda (Origem)</th>
-                  <th>Valor</th>
-                  <th>Data do Recebimento</th>
-                  <th>Status</th>
-                  <th>Banco</th>
-                  <th>Frequência</th>
-                  <th style="width: 110px; text-align: right;">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${filteredRevs.length === 0 ? `
-                  <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2.5rem 1rem;">Nenhuma receita encontrada com os filtros selecionados.</td></tr>
-                ` : filteredRevs.map(r => {
-                  const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
-                  return `
+            <!-- BARRA DE FILTROS DA TABELA ANUAL -->
+            <div style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap; padding:0.75rem 1rem; border-bottom:1px solid var(--border-light); background:rgba(255,255,255,0.015);">
+              <div style="flex:1; min-width:180px;">
+                <input type="text" class="form-input" style="padding:0.35rem 0.65rem; height:34px; font-size:0.82rem;" placeholder="🔍 Buscar renda..." value="${this.receitasSearch}" oninput="app.filterReceitas('search', this.value)">
+              </div>
+              <div style="min-width:130px;">
+                <select class="form-input" style="padding:0.35rem 0.65rem; height:34px; font-size:0.82rem;" onchange="app.filterReceitas('month', this.value)">
+                  <option value="todos" ${this.receitasFilterMonth === 'todos' ? 'selected' : ''}>Todos os Meses</option>
+                  ${Object.keys(store.data.months).map(mNum => `
+                    <option value="${mNum}" ${this.receitasFilterMonth === String(mNum) ? 'selected' : ''}>${store.data.months[mNum].name}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div style="min-width:115px;">
+                <select class="form-input" style="padding:0.35rem 0.65rem; height:34px; font-size:0.82rem;" onchange="app.filterReceitas('status', this.value)">
+                  <option value="todos" ${this.receitasFilterStatus === 'todos' ? 'selected' : ''}>Status: Todos</option>
+                  <option value="Pago" ${this.receitasFilterStatus === 'Pago' ? 'selected' : ''}>Pago</option>
+                  <option value="Pendente" ${this.receitasFilterStatus === 'Pendente' ? 'selected' : ''}>Pendente</option>
+                </select>
+              </div>
+              <div style="min-width:130px;">
+                <select class="form-input" style="padding:0.35rem 0.65rem; height:34px; font-size:0.82rem;" onchange="app.filterReceitas('bank', this.value)">
+                  <option value="todos" ${this.receitasFilterBank === 'todos' ? 'selected' : ''}>Banco: Todos</option>
+                  <option value="Bradesco" ${this.receitasFilterBank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
+                  <option value="Nubank (Nu)" ${this.receitasFilterBank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
+                  <option value="Banco do Brasil" ${this.receitasFilterBank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
+                  <option value="Caixa Poupança" ${this.receitasFilterBank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Poupança</option>
+                  <option value="Caixa CP" ${this.receitasFilterBank === 'Caixa CP' ? 'selected' : ''}>Caixa CP</option>
+                  <option value="Seven" ${this.receitasFilterBank === 'Seven' ? 'selected' : ''}>Seven</option>
+                  <option value="Carteira" ${this.receitasFilterBank === 'Carteira' ? 'selected' : ''}>Carteira</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="notion-data-table">
+                <thead>
+                  <tr>
+                    <th>Mês</th>
+                    <th><span class="th-icon">Aa</span> Renda</th>
+                    <th><span class="th-icon">#</span> Valor</th>
+                    <th><span class="th-icon">📅</span> Data Recebida</th>
+                    <th><span class="th-icon">☼</span> Status</th>
+                    <th><span class="th-icon">↗</span> Saldo Inicial Banco</th>
+                    <th>Frequência</th>
+                    <th style="width: 80px; text-align: right;"><span class="th-icon">⋯</span> Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${filteredRevs.length === 0 ? `
+                    <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2.5rem 1rem;">Nenhum rendimento encontrado com os filtros selecionados.</td></tr>
+                  ` : filteredRevs.map(r => {
+                    const isPaid = (r.status === 'Pago' || r.status === 'Recebido');
+                    return `
+                      <tr>
+                        <td><strong style="color:#38bdf8;">${r.monthName}</strong></td>
+                        <td>
+                          <div class="renda-row-content">
+                            <span class="renda-item-icon">${getRendaIcon(r.source)}</span>
+                            <strong>${r.source}</strong>
+                          </div>
+                        </td>
+                        <td style="color: var(--success); font-weight: 700;">${formatBRL(r.value)}</td>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem;">${formatDateBR(r.date)}</td>
+                        <td>
+                          <span class="status-pill ${isPaid ? 'paid' : 'pending'}" 
+                                title="Clique para alternar entre Pago e Pendente"
+                                onclick="app.toggleRevenueStatus(${r.monthNum}, '${r.id}')">
+                            <span class="dot"></span>
+                            <span>${isPaid ? 'Pago' : 'Pendente'}</span>
+                          </span>
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem;">${r.bank || '-'}</td>
+                        <td>
+                          <span class="badge-recurrence ${r.type === 'anual' || r.annualGroupId ? 'annual' : 'monthly'}">
+                            ${r.type === 'anual' || r.annualGroupId ? 'Anual' : 'Mensal'}
+                          </span>
+                        </td>
+                        <td style="text-align: right;">
+                          <div class="table-actions" style="justify-content: flex-end;">
+                            <button class="btn-table-icon" title="Editar" onclick="app.openEditRevenueModal(${r.monthNum}, '${r.id}')">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteRevenuePrompt(${r.monthNum}, '${r.id}')">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+                ${filteredRevs.length > 0 ? `
+                  <tfoot>
                     <tr>
-                      <td><strong style="color:#38bdf8;">${r.monthName}</strong></td>
-                      <td><strong>${r.source}</strong></td>
-                      <td style="color: var(--success); font-weight: 700;">${formatBRL(r.value)}</td>
-                      <td>${formatDateBR(r.date)}</td>
-                      <td>
-                        <span class="status-badge ${isPaid ? 'paid' : 'pending'} clickable" 
-                              title="Clique para alternar entre Pago e Pendente"
-                              onclick="app.toggleRevenueStatus(${r.monthNum}, '${r.id}')">
-                          ${isPaid ? '✓ Pago' : '⏳ Pendente'}
-                        </span>
-                      </td>
-                      <td>
-                        <span style="font-weight:600; color:var(--text-secondary);">${r.bank || '-'}</span>
-                      </td>
-                      <td>
-                        <span class="badge-recurrence ${r.type === 'anual' || r.annualGroupId ? 'annual' : 'monthly'}">
-                          ${r.type === 'anual' || r.annualGroupId ? '📅 Anual' : '📌 Mensal'}
-                        </span>
-                      </td>
-                      <td style="text-align: right;">
-                        <div class="table-actions" style="justify-content: flex-end;">
-                          <button class="btn-table-icon" title="Alternar Status (Pago/Pendente)" onclick="app.toggleRevenueStatus(${r.monthNum}, '${r.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                          </button>
-                          <button class="btn-table-icon" title="Editar Receita" onclick="app.openEditRevenueModal(${r.monthNum}, '${r.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                          </button>
-                          <button class="btn-table-icon delete" title="Excluir Receita" onclick="app.deleteRevenuePrompt(${r.monthNum}, '${r.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                          </button>
-                        </div>
+                      <td colspan="2"><strong>Total Filtrado (${filteredRevs.length} lançamentos)</strong></td>
+                      <td style="color: var(--success); font-weight: 800;">${formatBRL(filteredTotal)}</td>
+                      <td colspan="5" style="font-size: 0.82rem; color: var(--text-secondary);">
+                        <span style="color: var(--success); font-weight: 600;">Pago: ${formatBRL(filteredPaid)}</span>
+                        &nbsp;&nbsp;•&nbsp;&nbsp;
+                        <span style="color: #f59e0b; font-weight: 600;">Pendente: ${formatBRL(filteredPending)}</span>
                       </td>
                     </tr>
-                  `;
-                }).join('')}
-              </tbody>
-              ${filteredRevs.length > 0 ? `
-                <tfoot>
-                  <tr>
-                    <td colspan="2"><strong>Total Filtrado (${filteredRevs.length} ${filteredRevs.length === 1 ? 'lançamento' : 'lançamentos'})</strong></td>
-                    <td style="color: var(--success); font-weight: 800; font-size:1rem;">${formatBRL(filteredTotal)}</td>
-                    <td colspan="5" style="font-size: 0.85rem; color: var(--text-secondary);">
-                      <span style="color: var(--success); font-weight: 700;">Pago: ${formatBRL(filteredPaid)}</span>
-                      &nbsp;&nbsp;•&nbsp;&nbsp;
-                      <span style="color: #fbbf24; font-weight: 700;">Pendente: ${formatBRL(filteredPending)}</span>
-                    </td>
-                  </tr>
-                </tfoot>
-              ` : ''}
-            </table>
+                  </tfoot>
+                ` : ''}
+              </table>
+            </div>
           </div>
         `;
       }
@@ -825,6 +851,24 @@ const app = {
     if (statusSelect) statusSelect.value = 'Pago';
 
     this.openModal('modalNovaReceita');
+  },
+
+  fillRevenuePreset(source, bank) {
+    const srcInput = document.getElementById('rev_source');
+    const bankSelect = document.getElementById('rev_bank');
+    const valInput = document.getElementById('rev_value');
+    if (srcInput) srcInput.value = source;
+    if (bankSelect && bank) bankSelect.value = bank;
+    if (valInput) valInput.focus();
+  },
+
+  seedMonthPresets(monthNum = this.activeMonth) {
+    const m = store.data.months[monthNum];
+    const monthName = m ? m.name : 'este mês';
+    store.seedDefaultRevenues(monthNum, false);
+    this.renderMeses();
+    this.renderResumo();
+    this.showToast(`Modelos padrão (Jotur, Bombeiro, Carteira, Cartão ELO) carregados para ${monthName}!`, 'success');
   },
 
   openEditRevenueModal(monthNum, id) {

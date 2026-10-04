@@ -252,6 +252,24 @@ class DataStore {
     return null;
   }
 
+  seedDefaultRevenues(monthNum, overwrite = false) {
+    if (!this.data.months[monthNum]) return [];
+    if (overwrite) {
+      this.data.months[monthNum].revenues = [];
+    }
+    const year = new Date().getFullYear();
+    const mStr = String(monthNum).padStart(2, '0');
+    const defaults = [
+      { source: 'Jotur', value: 0, date: `${year}-${mStr}-05`, status: 'Pendente', bank: 'Nubank (Nu)', type: 'mensal' },
+      { source: 'Bombeiro', value: 0, date: `${year}-${mStr}-10`, status: 'Pendente', bank: 'Bradesco', type: 'mensal' },
+      { source: 'Carteira', value: 0, date: `${year}-${mStr}-15`, status: 'Pendente', bank: 'Carteira', type: 'mensal' },
+      { source: 'Cartão ELO', value: 0, date: `${year}-${mStr}-20`, status: 'Pendente', bank: 'Banco do Brasil', type: 'mensal' }
+    ];
+    const created = defaults.map(d => this.addRevenue(monthNum, d));
+    this.save();
+    return created;
+  }
+
   deleteRevenue(monthNum, id, deleteAllAnnual = false) {
     if (!this.data.months[monthNum]) return;
     const item = this.data.months[monthNum].revenues.find(r => r.id === id);
