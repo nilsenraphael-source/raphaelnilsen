@@ -186,10 +186,10 @@ const app = {
         greetingEl.textContent = `${greeting}, Raphael Natayan Nilsen`;
       }
 
-      // Data Completa (Ex: Domingo, 4 de outubro de 2026)
+      // Data Completa sem duplicar ano (Ex: Domingo, 4 de outubro)
       const dateEl = document.getElementById('headerFullDate');
       if (dateEl) {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
         const dateFormatted = now.toLocaleDateString('pt-BR', options);
         dateEl.textContent = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
       }
@@ -262,28 +262,30 @@ const app = {
   // GESTÃO DE MÚLTIPLOS ANOS (2025, 2026, 2027...)
   // =========================================================================
   renderYearSelector() {
-    const lbl = document.getElementById('activeYearLabel');
-    if (lbl) lbl.textContent = store.activeYear;
-
-    const select = document.getElementById('yearSelectDropdown');
+    const select = document.getElementById('headerYearSelect');
     if (select) {
       const years = store.getAvailableYears();
       select.innerHTML = years.map(y => `
-        <option value="${y}" ${y === store.activeYear ? 'selected' : ''}>Ano ${y}</option>
+        <option value="${y}" ${y === store.activeYear ? 'selected' : ''}>${y}</option>
       `).join('');
+      select.value = String(store.activeYear);
     }
+    const lbl = document.getElementById('activeYearLabel');
+    if (lbl) lbl.textContent = store.activeYear;
   },
 
   changeYear(year) {
     const y = Number(year);
     if (!y || y === store.activeYear) return;
     store.setYear(y);
+    const select = document.getElementById('headerYearSelect');
+    if (select) select.value = String(y);
     const titleEl = document.getElementById('pageTitle');
     if (titleEl && this.currentTab === 'meses') {
       titleEl.textContent = `Gestão Mensal (${store.activeYear})`;
     }
     this.render();
-    this.showToast(`📅 Navegando no ano ${y}!`, 'info');
+    this.showToast(`📅 Ano do sistema alterado para ${y}!`, 'info');
   },
 
   prevYear() {
@@ -339,6 +341,7 @@ const app = {
 
   // Disparador de Renderização
   render() {
+    this.renderYearSelector();
     switch (this.currentTab) {
       case 'resumo':
         this.renderResumo();

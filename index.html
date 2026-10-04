@@ -31,10 +31,7 @@
   <div id="loginScreen" class="login-screen">
     <div class="login-card">
       <div class="login-brand">
-        <!-- Ícone Executivo SVG -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-        </svg>
+        <img src="icons/icon.svg" class="login-brand-logo-img" alt="Logo Raphael Nilsen">
       </div>
       <h1 class="login-title">Sistema Financeiro</h1>
       <p class="login-subtitle">Raphael Nilsen • Acesso Restrito</p>
@@ -86,7 +83,7 @@
     <aside id="appSidebar" class="app-sidebar">
       <div class="sidebar-brand">
         <div class="sidebar-brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <img src="icons/icon.svg" class="app-brand-logo-img" alt="Logo Raphael Nilsen">
         </div>
         <div class="sidebar-brand-text">
           <div class="sidebar-brand-title">SISTEMA FINANCEIRO</div>
@@ -182,6 +179,9 @@
           <button id="btnMobileToggle" class="btn-mobile-toggle" aria-label="Abrir Menu">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
+          <div class="header-brand-logo-wrap" title="Sistema Financeiro Raphael Nilsen">
+            <img src="icons/icon.svg" class="header-brand-logo-img" alt="Logo Finanças RN">
+          </div>
           <div class="header-title-wrap">
             <div class="header-greeting" id="headerGreeting">Bom dia, Raphael Natayan Nilsen</div>
             <h2 id="pageTitle" class="header-page-title">Gestão Mensal de Entradas e Saídas</h2>
@@ -189,10 +189,24 @@
         </div>
 
         <div class="header-right">
-          <!-- Data Completa e Hora em Tempo Real -->
+          <!-- Data Completa, Alteração Discreta do Ano e Hora em Tempo Real -->
           <div class="header-datetime-pill">
             <span class="header-datetime-icon">📅</span>
             <span id="headerFullDate" class="header-date-text">--</span>
+            
+            <div class="header-year-control" title="Alterar Ano do Sistema">
+              <span class="header-year-label">Ano</span>
+              <select id="headerYearSelect" class="header-year-select" onchange="app.changeYear(this.value)">
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+                <option value="2028">2028</option>
+                <option value="2029">2029</option>
+                <option value="2030">2030</option>
+              </select>
+            </div>
+
             <span class="header-datetime-separator">•</span>
             <span class="header-datetime-icon">⏰</span>
             <span id="headerLiveTime" class="header-clock-text">--:--:--</span>
