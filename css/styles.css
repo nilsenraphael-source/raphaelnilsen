@@ -1396,6 +1396,66 @@ textarea.form-input {
   transform: translateY(-1px);
 }
 
+/* Grid de Checkboxes de Meses (Inserção de Rendimentos) */
+.months-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 600px) {
+  .months-checkbox-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.month-check-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.25rem;
+  background-color: var(--bg-surface-alt);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-fast);
+}
+
+.month-check-pill:hover {
+  background-color: var(--bg-surface-elevated);
+  color: #ffffff;
+  border-color: var(--border-strong);
+}
+
+.month-check-pill:has(input:checked) {
+  background-color: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+.btn-xs-action {
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-xs-action:hover {
+  color: #ffffff;
+  border-color: var(--border-strong);
+}
+
 /* BOTÕES DE AÇÃO NA TABELA */
 .table-actions {
   display: flex;

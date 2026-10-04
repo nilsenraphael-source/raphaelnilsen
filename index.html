@@ -354,7 +354,7 @@
           <!-- SUB-ABAS DO MÊS -->
           <div class="subtabs-nav">
             <button class="subtab-btn active" data-subtab="receitas" onclick="app.selectMonthSubtab('receitas')">
-              💰 Receitas
+              💰 BANCO
             </button>
             <button class="subtab-btn" data-subtab="fixas" onclick="app.selectMonthSubtab('fixas')">
               📌 Despesas Fixas
@@ -780,117 +780,151 @@
   <div id="modalNovaReceita" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title" id="modalNovaReceitaTitle">Cadastrar Nova Receita</h3>
+        <h3 class="modal-title" id="modalNovaReceitaTitle">+ Inserir Rendimento</h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalNovaReceita')">✕</button>
       </div>
       <form id="formNovaReceita">
         <div class="modal-body">
           
-          <!-- Tipo de Lançamento / Frequência -->
           <div class="form-group">
-            <label class="form-label">Tipo de Lançamento / Frequência</label>
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.6rem;">
-              <label style="display:flex; align-items:center; gap:0.6rem; padding:0.65rem 0.85rem; border:1px solid var(--border-light); border-radius:var(--radius-md); background:var(--bg-surface-alt); cursor:pointer;">
-                <input type="radio" name="rev_frequency_type" id="rev_freq_mensal" value="mensal" checked onchange="app.toggleRevenueFrequencyFields('mensal')">
-                <div>
-                  <div style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">📌 Mês a Mês</div>
-                  <div style="font-size:0.75rem; color:var(--text-muted);">Lançar em um mês específico</div>
-                </div>
-              </label>
-              <label style="display:flex; align-items:center; gap:0.6rem; padding:0.65rem 0.85rem; border:1px solid var(--border-light); border-radius:var(--radius-md); background:var(--bg-surface-alt); cursor:pointer;">
-                <input type="radio" name="rev_frequency_type" id="rev_freq_anual" value="anual" onchange="app.toggleRevenueFrequencyFields('anual')">
-                <div>
-                  <div style="font-weight:700; font-size:0.85rem; color:#38bdf8;">📅 Anualmente</div>
-                  <div style="font-size:0.75rem; color:var(--text-muted);">Lançar nos 12 meses do ano</div>
-                </div>
-              </label>
+            <label class="form-label">Renda (De onde recebi o valor)</label>
+            <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Jotur, Bombeiro, Carteira, Cartão ELO, Salário...">
+          </div>
+
+          <!-- Seleção de Meses em que o Rendimento será Recebido -->
+          <div class="form-group">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+              <label class="form-label" style="margin:0;">Marcar Meses de Recebimento</label>
+              <div style="display:flex; gap:0.35rem;">
+                <button type="button" class="btn-xs-action" onclick="app.selectAllMonths(true)">Todos (12)</button>
+                <button type="button" class="btn-xs-action" onclick="app.selectCurrentMonthOnly()">Mês Atual</button>
+                <button type="button" class="btn-xs-action" onclick="app.selectAllMonths(false)">Limpar</button>
+              </div>
+            </div>
+            
+            <div class="months-checkbox-grid">
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="1"> Jan</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="2"> Fev</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="3"> Mar</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="4"> Abr</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="5"> Mai</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="6"> Jun</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="7"> Jul</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="8"> Ago</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="9"> Set</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="10"> Out</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="11"> Nov</label>
+              <label class="month-check-pill"><input type="checkbox" name="rev_month_chk" value="12"> Dez</label>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.4rem;">
+              Marque os meses em que este rendimento será recebido. Ele será lançado como <strong>Pendente</strong>.
             </div>
           </div>
 
           <div class="form-group">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-              <label class="form-label" style="margin:0;">Renda (De onde recebi o valor)</label>
-              <span style="font-size:0.7rem; color:var(--text-muted);">Modelos rápidos:</span>
-            </div>
-            <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Jotur, Bombeiro, Carteira, Cartão ELO...">
-            <div class="preset-chips-container" style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.45rem;">
-              <button type="button" class="preset-chip" onclick="app.fillRevenuePreset('Jotur', 'Nubank (Nu)')">🚌 Jotur</button>
-              <button type="button" class="preset-chip" onclick="app.fillRevenuePreset('Bombeiro', 'Bradesco')">🚒 Bombeiro</button>
-              <button type="button" class="preset-chip" onclick="app.fillRevenuePreset('Carteira', 'Carteira')">👛 Carteira</button>
-              <button type="button" class="preset-chip" onclick="app.fillRevenuePreset('Cartão ELO', 'Banco do Brasil')">💳 Cartão ELO</button>
-            </div>
-          </div>
-
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Valor (R$)</label>
-              <input type="number" step="0.01" id="rev_value" class="form-input" required placeholder="0,00">
-            </div>
-
-            <!-- Campo se for Mês a Mês: Data de Recebimento -->
-            <div class="form-group" id="revGroupDateMensal">
-              <label class="form-label">Data do Recebimento</label>
-              <input type="date" id="rev_date" class="form-input">
-            </div>
-
-            <!-- Campo se for Anual: Dia do Recebimento -->
-            <div class="form-group" id="revGroupDayAnual" style="display:none;">
-              <label class="form-label">Dia do Recebimento (em cada mês)</label>
-              <input type="number" id="rev_annual_day" class="form-input" min="1" max="31" value="5" placeholder="Ex: 5">
-            </div>
-          </div>
-
-          <!-- Se for Mês a Mês, pode escolher o Mês de Destino -->
-          <div class="form-group" id="revGroupMonthSelect">
-            <label class="form-label">Mês de Destino</label>
-            <select id="rev_month_select" class="form-input">
-              <option value="1">Janeiro</option>
-              <option value="2">Fevereiro</option>
-              <option value="3">Março</option>
-              <option value="4">Abril</option>
-              <option value="5">Maio</option>
-              <option value="6">Junho</option>
-              <option value="7">Julho</option>
-              <option value="8">Agosto</option>
-              <option value="9">Setembro</option>
-              <option value="10">Outubro</option>
-              <option value="11">Novembro</option>
-              <option value="12">Dezembro</option>
+            <label class="form-label">Banco Atrelado</label>
+            <select id="rev_bank" class="form-input">
+              <option value="Nubank (Nu)" selected>Nubank (Nu)</option>
+              <option value="Bradesco">Bradesco</option>
+              <option value="Banco do Brasil">Banco do Brasil (BB)</option>
+              <option value="Caixa Poupança">Caixa Econômica (Poupança)</option>
+              <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
+              <option value="Seven">Seven</option>
+              <option value="Carteira">Carteira (Dinheiro Físico)</option>
+              <option value="Outro">Outro</option>
             </select>
           </div>
 
+          <!-- Valor e Data: opcionais para ficarem em branco até o recebimento -->
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Status (Situação)</label>
-              <select id="rev_status" class="form-input">
-                <option value="Pago">Pago</option>
-                <option value="Pendente" selected>Pendente</option>
-              </select>
+              <label class="form-label">Valor (R$) <span style="font-size:0.72rem; color:var(--text-muted); font-weight:normal;">(opcional)</span></label>
+              <input type="number" step="0.01" id="rev_value" class="form-input" placeholder="Em branco">
             </div>
+
             <div class="form-group">
-              <label class="form-label">Banco (Qual banco foi recebido)</label>
-              <select id="rev_bank" class="form-input">
-                <option value="Bradesco">Bradesco</option>
-                <option value="Nubank (Nu)" selected>Nubank (Nu)</option>
-                <option value="Banco do Brasil">Banco do Brasil (BB)</option>
-                <option value="Caixa Poupança">Caixa Econômica (Poupança)</option>
-                <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
-                <option value="Seven">Seven</option>
-                <option value="Carteira">Carteira (Dinheiro)</option>
-                <option value="Outro">Outro</option>
-              </select>
+              <label class="form-label">Data de Recebimento <span style="font-size:0.72rem; color:var(--text-muted); font-weight:normal;">(opcional)</span></label>
+              <input type="date" id="rev_date" class="form-input">
             </div>
           </div>
 
-          <!-- Banner Informativo para Lançamento Anual -->
-          <div id="revAnnualAlert" style="display:none; padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); font-size:0.8rem; color:#bae6fd;">
-            ℹ️ <strong>Lançamento Anual:</strong> Esta receita será cadastrada automaticamente em todos os 12 meses (Janeiro a Dezembro) com a data correspondente.
+          <div class="form-group">
+            <label class="form-label">Status Inicial</label>
+            <select id="rev_status" class="form-input">
+              <option value="Pendente" selected>⏳ Pendente (padrão - preencher valor ao receber)</option>
+              <option value="Pago">✓ Pago (já recebido)</option>
+            </select>
+          </div>
+
+          <div style="padding:0.75rem 1rem; border-radius:var(--radius-md); background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); font-size:0.8rem; color:#bae6fd; line-height:1.4;">
+            💡 <strong>Dica:</strong> O valor e a data podem ficar em branco agora. Ao receber o dinheiro, basta clicar no status <strong>Pendente</strong> para marcá-lo como <strong>Pago</strong> e lançar o valor correspondente, que ficará atrelado ao banco selecionado.
           </div>
 
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalNovaReceita')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Receita</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Rendimento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Confirmar Recebimento (Preencher Valor & Data ao Marcar Pago) -->
+  <div id="modalConfirmarRecebimento" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">✓ Confirmar Recebimento de Renda</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalConfirmarRecebimento')">✕</button>
+      </div>
+      <form id="formConfirmarRecebimento">
+        <input type="hidden" id="pay_rev_month">
+        <input type="hidden" id="pay_rev_id">
+
+        <div class="modal-body">
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-md); padding: 0.85rem 1.15rem; margin-bottom: 1.25rem;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Rendimento a Receber</div>
+            <div id="pay_rev_source_title" style="font-size: 1.2rem; font-weight: 800; color: #ffffff; margin-top: 0.2rem;">-</div>
+            <div id="pay_rev_month_badge" style="font-size: 0.82rem; color: #34d399; font-weight: 600; margin-top: 0.15rem;">-</div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Valor Recebido (R$)</label>
+              <input type="number" step="0.01" id="pay_rev_value" class="form-input" required placeholder="0,00" style="font-weight: 700; font-size: 1.05rem; color: #34d399;">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Data do Recebimento</label>
+              <input type="date" id="pay_rev_date" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Banco Atrelado</label>
+            <select id="pay_rev_bank" class="form-input">
+              <option value="Nubank (Nu)">Nubank (Nu)</option>
+              <option value="Bradesco">Bradesco</option>
+              <option value="Banco do Brasil">Banco do Brasil (BB)</option>
+              <option value="Caixa Poupança">Caixa Econômica (Poupança)</option>
+              <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
+              <option value="Seven">Seven</option>
+              <option value="Carteira">Carteira (Dinheiro Físico)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-top:0.75rem;">
+            <label style="display:flex; align-items:flex-start; gap:0.6rem; cursor:pointer;">
+              <input type="checkbox" id="pay_rev_update_bank_balance" checked style="margin-top:0.25rem;">
+              <span style="font-size:0.83rem; color:var(--text-secondary); line-height:1.4;">
+                <strong style="color:#ffffff;">Atualizar saldo no banco:</strong> Somar automaticamente este valor recebido ao saldo atual de <span id="pay_rev_bank_display" style="color:#38bdf8;">Nubank (Nu)</span>.
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalConfirmarRecebimento')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="background:#10b981; border-color:#10b981; width:auto; padding:0 1.5rem;">✓ Confirmar e Marcar Pago</button>
         </div>
       </form>
     </div>

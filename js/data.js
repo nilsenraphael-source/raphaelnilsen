@@ -252,22 +252,80 @@ class DataStore {
     return null;
   }
 
-  seedDefaultRevenues(monthNum, overwrite = false) {
-    if (!this.data.months[monthNum]) return [];
-    if (overwrite) {
-      this.data.months[monthNum].revenues = [];
-    }
+  addRevenueToMonths(config) {
+    const source = (config.source || 'Rendimento').trim();
+    const months = Array.isArray(config.months) && config.months.length > 0 ? config.months : [new Date().getMonth() + 1];
+    const bank = config.bank || 'Nubank (Nu)';
+    const value = config.value ? Number(config.value) : 0;
+    const date = config.date || '';
+    const status = config.status || 'Pendente';
+    const isMultiMonth = months.length > 1;
+    const groupId = isMultiMonth ? ('series_rev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)) : null;
+    const created = [];
     const year = new Date().getFullYear();
-    const mStr = String(monthNum).padStart(2, '0');
-    const defaults = [
-      { source: 'Jotur', value: 0, date: `${year}-${mStr}-05`, status: 'Pendente', bank: 'Nubank (Nu)', type: 'mensal' },
-      { source: 'Bombeiro', value: 0, date: `${year}-${mStr}-10`, status: 'Pendente', bank: 'Bradesco', type: 'mensal' },
-      { source: 'Carteira', value: 0, date: `${year}-${mStr}-15`, status: 'Pendente', bank: 'Carteira', type: 'mensal' },
-      { source: 'Cartão ELO', value: 0, date: `${year}-${mStr}-20`, status: 'Pendente', bank: 'Banco do Brasil', type: 'mensal' }
-    ];
-    const created = defaults.map(d => this.addRevenue(monthNum, d));
+
+    months.forEach(mNum => {
+      const m = parseInt(mNum, 10);
+      if (!this.data.months[m]) return;
+      if (!this.data.months[m].revenues) this.data.months[m].revenues = [];
+
+      let itemDate = date;
+      if (!itemDate && value > 0) {
+        const mStr = String(m).padStart(2, '0');
+        itemDate = `${year}-${mStr}-05`;
+      }
+
+      const revItem = {
+        id: 'rev_' + Date.now() + '_' + m + '_' + Math.random().toString(36).substr(2, 4),
+        source: source,
+        value: value,
+        date: itemDate,
+        status: status,
+        bank: bank,
+        type: isMultiMonth ? 'multi-mes' : 'mensal',
+        annualGroupId: groupId
+      };
+
+      this.data.months[m].revenues.push(revItem);
+      created.push(revItem);
+    });
+
     this.save();
-    return created;
+    return { groupId, items: created };
+  }
+
+  creditToBank(bankNameOrId, amount) {
+    const val = Number(amount);
+    if (!val || val <= 0) return null;
+    const clean = (bankNameOrId || '').toLowerCase().trim();
+    const account = this.data.accounts.find(a => 
+      a.id.toLowerCase() === clean || 
+      a.name.toLowerCase().includes(clean) || 
+      clean.includes(a.name.toLowerCase())
+    );
+    if (account) {
+      account.balance = Number((account.balance + val).toFixed(2));
+      this.save();
+      return account;
+    }
+    return null;
+  }
+
+  debitFromBank(bankNameOrId, amount) {
+    const val = Number(amount);
+    if (!val || val <= 0) return null;
+    const clean = (bankNameOrId || '').toLowerCase().trim();
+    const account = this.data.accounts.find(a => 
+      a.id.toLowerCase() === clean || 
+      a.name.toLowerCase().includes(clean) || 
+      clean.includes(a.name.toLowerCase())
+    );
+    if (account) {
+      account.balance = Number(Math.max(0, account.balance - val).toFixed(2));
+      this.save();
+      return account;
+    }
+    return null;
   }
 
   deleteRevenue(monthNum, id, deleteAllAnnual = false) {

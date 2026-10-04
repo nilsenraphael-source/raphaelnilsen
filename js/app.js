@@ -413,25 +413,22 @@ const app = {
             </div>
           </div>
 
-          <!-- TABELA MINIMALISTA ESTILO NOTION (RENDIMENTOS) -->
+          <!-- TABELA MINIMALISTA ESTILO NOTION (BANCO) -->
           <div class="notion-table-card">
             <div class="notion-header-bar">
               <div class="notion-title-group">
                 <div class="notion-title-text">
-                  <span>💰</span>
-                  <span>Rendimentos</span>
+                  <span>🏦</span>
+                  <span>BANCO</span>
                 </div>
                 <span class="notion-title-badge">${m.name}</span>
               </div>
               <div class="notion-toolbar">
-                <button class="notion-btn-pill" title="Inserir Modelos Rápidos (Jotur, Bombeiro, Carteira, Cartão ELO)" onclick="app.seedMonthPresets()">
-                  <span>⚡</span> Modelos Rápidos
-                </button>
                 <button class="notion-btn-pill" onclick="app.setReceitasViewMode('anual')">
                   <span>📅</span> Visão Anual (12 Meses)
                 </button>
-                <button class="notion-btn-blue" onclick="app.openModalNovaReceita('mensal')">
-                  + Nova <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                <button class="notion-btn-blue" onclick="app.openModalNovaReceita()">
+                  + Inserir Rendimento
                 </button>
               </div>
             </div>
@@ -444,7 +441,7 @@ const app = {
                     <th><span class="th-icon">#</span> Valor</th>
                     <th><span class="th-icon">📅</span> Data Recebida</th>
                     <th><span class="th-icon">☼</span> Status</th>
-                    <th><span class="th-icon">↗</span> Saldo Inicial Banco</th>
+                    <th><span class="th-icon">↗</span> BANCO</th>
                     <th style="width: 80px; text-align: right;"><span class="th-icon">⋯</span> Ações</th>
                   </tr>
                 </thead>
@@ -452,12 +449,9 @@ const app = {
                   ${m.revenues.length === 0 ? `
                     <tr>
                       <td colspan="6" style="text-align: center; padding: 2.75rem 1.5rem; color: var(--text-muted);">
-                        <div style="font-size: 1.05rem; font-weight: 600; color: #ffffff; margin-bottom: 0.35rem;">Nenhum rendimento lançado em ${m.name}</div>
-                        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Você pode carregar seus 4 modelos frequentes (Jotur, Bombeiro, Carteira, Cartão ELO) com 1 clique:</p>
-                        <div style="display:flex; gap:0.6rem; justify-content:center; flex-wrap:wrap;">
-                          <button class="notion-btn-pill" onclick="app.seedMonthPresets()">⚡ Carregar Modelos Padrão</button>
-                          <button class="notion-btn-blue" onclick="app.openModalNovaReceita('mensal')">+ Nova Renda</button>
-                        </div>
+                        <div style="font-size: 1.05rem; font-weight: 600; color: #ffffff; margin-bottom: 0.35rem;">Nenhum lançamento no BANCO em ${m.name}</div>
+                        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Cadastre suas rendas e marque os meses em que serão recebidas. O valor e data podem ser inseridos quando receber.</p>
+                        <button class="notion-btn-blue" onclick="app.openModalNovaReceita()">+ Inserir Rendimento</button>
                       </td>
                     </tr>
                   ` : m.revenues.map(r => {
@@ -468,24 +462,24 @@ const app = {
                           <div class="renda-row-content">
                             <span class="renda-item-icon">${getRendaIcon(r.source)}</span>
                             <strong>${r.source}</strong>
-                            ${(r.type === 'anual' || r.annualGroupId) ? '<span class="badge-recurrence annual">Anual</span>' : ''}
+                            ${(r.type === 'anual' || r.type === 'multi-mes' || r.annualGroupId) ? '<span class="badge-recurrence annual">Recorrente</span>' : ''}
                           </div>
                         </td>
-                        <td style="font-weight: 700; color: var(--text-primary);">
-                          ${r.value > 0 ? formatBRL(r.value) : '<span style="color:var(--text-muted); font-weight:normal;">-</span>'}
+                        <td style="font-weight: 700; color: ${r.value > 0 ? 'var(--success)' : 'var(--text-muted)'};">
+                          ${r.value > 0 ? formatBRL(r.value) : '-'}
                         </td>
                         <td style="color: var(--text-secondary); font-size: 0.85rem;">
                           ${r.date ? formatDateBR(r.date) : '-'}
                         </td>
                         <td>
                           <span class="status-pill ${isPaid ? 'paid' : 'pending'}" 
-                                title="Clique para alternar: ${isPaid ? 'Marcar como Pendente' : 'Marcar como Pago'}"
-                                onclick="app.toggleRevenueStatus(${this.activeMonth}, '${r.id}')">
+                                title="${isPaid ? 'Clique para retornar a Pendente' : 'Clique para informar valor e marcar como Pago'}"
+                                onclick="app.handleStatusPillClick(${this.activeMonth}, '${r.id}')">
                             <span class="dot"></span>
                             <span>${isPaid ? 'Pago' : 'Pendente'}</span>
                           </span>
                         </td>
-                        <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                        <td style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;">
                           ${r.bank || '-'}
                         </td>
                         <td style="text-align: right;">
@@ -563,8 +557,8 @@ const app = {
             <div class="notion-header-bar">
               <div class="notion-title-group">
                 <div class="notion-title-text">
-                  <span>💰</span>
-                  <span>Rendimentos Anuais (12 Meses)</span>
+                  <span>🏦</span>
+                  <span>BANCO (Visão Anual)</span>
                 </div>
                 <span class="notion-title-badge">${filteredRevs.length} lançamentos</span>
               </div>
@@ -572,8 +566,8 @@ const app = {
                 <button class="notion-btn-pill" onclick="app.setReceitasViewMode('mes')">
                   <span>📌</span> Mês a Mês (${m.name})
                 </button>
-                <button class="notion-btn-blue" onclick="app.openModalNovaReceita('anual')">
-                  + Nova Anual (12 Meses)
+                <button class="notion-btn-blue" onclick="app.openModalNovaReceita()">
+                  + Inserir Rendimento
                 </button>
               </div>
             </div>
@@ -621,7 +615,7 @@ const app = {
                     <th><span class="th-icon">#</span> Valor</th>
                     <th><span class="th-icon">📅</span> Data Recebida</th>
                     <th><span class="th-icon">☼</span> Status</th>
-                    <th><span class="th-icon">↗</span> Saldo Inicial Banco</th>
+                    <th><span class="th-icon">↗</span> BANCO</th>
                     <th>Frequência</th>
                     <th style="width: 80px; text-align: right;"><span class="th-icon">⋯</span> Ações</th>
                   </tr>
@@ -640,20 +634,24 @@ const app = {
                             <strong>${r.source}</strong>
                           </div>
                         </td>
-                        <td style="color: var(--success); font-weight: 700;">${formatBRL(r.value)}</td>
-                        <td style="color: var(--text-secondary); font-size: 0.85rem;">${formatDateBR(r.date)}</td>
+                        <td style="font-weight: 700; color: ${r.value > 0 ? 'var(--success)' : 'var(--text-muted)'};">
+                          ${r.value > 0 ? formatBRL(r.value) : '-'}
+                        </td>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                          ${r.date ? formatDateBR(r.date) : '-'}
+                        </td>
                         <td>
                           <span class="status-pill ${isPaid ? 'paid' : 'pending'}" 
-                                title="Clique para alternar entre Pago e Pendente"
-                                onclick="app.toggleRevenueStatus(${r.monthNum}, '${r.id}')">
+                                title="${isPaid ? 'Clique para retornar a Pendente' : 'Clique para informar valor e marcar como Pago'}"
+                                onclick="app.handleStatusPillClick(${r.monthNum}, '${r.id}')">
                             <span class="dot"></span>
                             <span>${isPaid ? 'Pago' : 'Pendente'}</span>
                           </span>
                         </td>
-                        <td style="color: var(--text-secondary); font-size: 0.85rem;">${r.bank || '-'}</td>
+                        <td style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;">${r.bank || '-'}</td>
                         <td>
-                          <span class="badge-recurrence ${r.type === 'anual' || r.annualGroupId ? 'annual' : 'monthly'}">
-                            ${r.type === 'anual' || r.annualGroupId ? 'Anual' : 'Mensal'}
+                          <span class="badge-recurrence ${r.type === 'anual' || r.type === 'multi-mes' || r.annualGroupId ? 'annual' : 'monthly'}">
+                            ${r.type === 'anual' || r.type === 'multi-mes' || r.annualGroupId ? 'Recorrente' : 'Mensal'}
                           </span>
                         </td>
                         <td style="text-align: right;">
@@ -837,67 +835,98 @@ const app = {
     this.renderActiveMonthSubtab();
   },
 
-  toggleRevenueFrequencyFields(mode) {
-    const isAnual = mode === 'anual';
-    const groupDateMensal = document.getElementById('revGroupDateMensal');
-    const groupDayAnual = document.getElementById('revGroupDayAnual');
-    const groupMonthSelect = document.getElementById('revGroupMonthSelect');
-    const alertAnual = document.getElementById('revAnnualAlert');
-    const radioMensal = document.getElementById('rev_freq_mensal');
-    const radioAnual = document.getElementById('rev_freq_anual');
-
-    if (radioMensal) radioMensal.checked = !isAnual;
-    if (radioAnual) radioAnual.checked = isAnual;
-
-    if (groupDateMensal) groupDateMensal.style.display = isAnual ? 'none' : 'block';
-    if (groupDayAnual) groupDayAnual.style.display = isAnual ? 'block' : 'none';
-    if (groupMonthSelect) groupMonthSelect.style.display = isAnual ? 'none' : 'block';
-    if (alertAnual) alertAnual.style.display = isAnual ? 'block' : 'none';
+  selectAllMonths(checked) {
+    document.querySelectorAll('input[name="rev_month_chk"]').forEach(chk => {
+      chk.checked = checked;
+    });
   },
 
-  openModalNovaReceita(defaultType = 'mensal') {
+  selectCurrentMonthOnly() {
+    document.querySelectorAll('input[name="rev_month_chk"]').forEach(chk => {
+      chk.checked = Number(chk.value) === this.activeMonth;
+    });
+  },
+
+  openModalNovaReceita() {
     const form = document.getElementById('formNovaReceita');
     if (form) form.reset();
 
-    this.toggleRevenueFrequencyFields(defaultType);
+    // Marca o mês atual por padrão
+    this.selectCurrentMonthOnly();
 
-    const monthSelect = document.getElementById('rev_month_select');
-    if (monthSelect) monthSelect.value = String(this.activeMonth);
-
-    const dateInput = document.getElementById('rev_date');
-    if (dateInput) {
-      const now = new Date();
-      const yr = now.getFullYear();
-      const mStr = String(this.activeMonth).padStart(2, '0');
-      const dStr = String(now.getDate()).padStart(2, '0');
-      dateInput.value = `${yr}-${mStr}-${dStr}`;
-    }
-
-    const dayInput = document.getElementById('rev_annual_day');
-    if (dayInput) dayInput.value = 5;
+    const bankSelect = document.getElementById('rev_bank');
+    if (bankSelect) bankSelect.value = 'Nubank (Nu)';
 
     const statusSelect = document.getElementById('rev_status');
-    if (statusSelect) statusSelect.value = 'Pago';
+    if (statusSelect) statusSelect.value = 'Pendente';
 
     this.openModal('modalNovaReceita');
   },
 
-  fillRevenuePreset(source, bank) {
-    const srcInput = document.getElementById('rev_source');
-    const bankSelect = document.getElementById('rev_bank');
-    const valInput = document.getElementById('rev_value');
-    if (srcInput) srcInput.value = source;
-    if (bankSelect && bank) bankSelect.value = bank;
-    if (valInput) valInput.focus();
+  openConfirmPayModal(monthNum, id) {
+    const m = store.data.months[monthNum];
+    if (!m) return;
+    const item = m.revenues.find(r => r.id === id);
+    if (!item) return;
+
+    document.getElementById('pay_rev_month').value = monthNum;
+    document.getElementById('pay_rev_id').value = id;
+    document.getElementById('pay_rev_source_title').textContent = item.source;
+    document.getElementById('pay_rev_month_badge').textContent = `Mês: ${m.name} • Status atual: ${item.status}`;
+
+    const valInput = document.getElementById('pay_rev_value');
+    if (valInput) valInput.value = item.value && item.value > 0 ? item.value : '';
+
+    const dateInput = document.getElementById('pay_rev_date');
+    if (dateInput) {
+      if (item.date) {
+        dateInput.value = item.date;
+      } else {
+        const now = new Date();
+        const yr = now.getFullYear();
+        const mStr = String(monthNum).padStart(2, '0');
+        const dStr = String(now.getDate()).padStart(2, '0');
+        dateInput.value = `${yr}-${mStr}-${dStr}`;
+      }
+    }
+
+    const bankSelect = document.getElementById('pay_rev_bank');
+    if (bankSelect) {
+      bankSelect.value = item.bank || 'Nubank (Nu)';
+      const displaySpan = document.getElementById('pay_rev_bank_display');
+      if (displaySpan) displaySpan.textContent = bankSelect.value;
+      bankSelect.onchange = () => {
+        if (displaySpan) displaySpan.textContent = bankSelect.value;
+      };
+    }
+
+    const chkBalance = document.getElementById('pay_rev_update_bank_balance');
+    if (chkBalance) chkBalance.checked = true;
+
+    this.openModal('modalConfirmarRecebimento');
   },
 
-  seedMonthPresets(monthNum = this.activeMonth) {
+  handleStatusPillClick(monthNum, id) {
     const m = store.data.months[monthNum];
-    const monthName = m ? m.name : 'este mês';
-    store.seedDefaultRevenues(monthNum, false);
-    this.renderMeses();
-    this.renderResumo();
-    this.showToast(`Modelos padrão (Jotur, Bombeiro, Carteira, Cartão ELO) carregados para ${monthName}!`, 'success');
+    if (!m) return;
+    const item = m.revenues.find(r => r.id === id);
+    if (!item) return;
+
+    const isPaid = (item.status === 'Pago' || item.status === 'Recebido');
+
+    if (!isPaid) {
+      // Abre modal de confirmação para informar valor e data
+      this.openConfirmPayModal(monthNum, id);
+    } else {
+      // Já está pago, confirma retorno para Pendente
+      if (confirm(`O rendimento "${item.source}" está marcado como PAGO (${formatBRL(item.value)}).\n\nDeseja alterar o status de volta para PENDENTE?`)) {
+        item.status = 'Pendente';
+        store.save();
+        this.renderMeses();
+        this.renderResumo();
+        this.showToast(`Status de "${item.source}" alterado para Pendente.`, 'info');
+      }
+    }
   },
 
   openEditRevenueModal(monthNum, id) {
@@ -1497,10 +1526,6 @@ const app = {
   openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
-      if (modalId === 'modalNovaReceita') {
-        const isAnual = document.getElementById('rev_freq_anual')?.checked;
-        this.toggleRevenueFrequencyFields(isAnual ? 'anual' : 'mensal');
-      }
       modal.classList.add('active');
     }
   },
@@ -1628,47 +1653,77 @@ const app = {
       pwdSearch.addEventListener('input', () => this.renderSenhas());
     }
 
-    // Formulário Nova Receita (Mês a Mês ou Anual)
+    // Formulário Inserir Rendimento (com seleção de meses e valor/data opcionais)
     const formRev = document.getElementById('formNovaReceita');
     if (formRev) {
       formRev.addEventListener('submit', (e) => {
         e.preventDefault();
-        const isAnual = document.getElementById('rev_freq_anual')?.checked;
         const source = document.getElementById('rev_source').value.trim();
-        const value = document.getElementById('rev_value').value;
-        const status = document.getElementById('rev_status').value;
         const bank = document.getElementById('rev_bank').value;
+        const valRaw = document.getElementById('rev_value').value;
+        const value = valRaw ? Number(valRaw) : 0;
+        const date = document.getElementById('rev_date').value || '';
+        const status = document.getElementById('rev_status').value || 'Pendente';
 
-        if (isAnual) {
-          const day = document.getElementById('rev_annual_day').value || 5;
-          const year = new Date().getFullYear();
-          store.addAnnualRevenue({
-            source,
-            value,
-            day,
-            year,
-            status,
-            bank
-          });
-          this.showToast('Receita anual inserida com sucesso nos 12 meses!', 'success');
-        } else {
-          const monthNum = Number(document.getElementById('rev_month_select').value) || this.activeMonth;
-          const date = document.getElementById('rev_date').value;
-          store.addRevenue(monthNum, {
-            source,
-            value,
-            date,
-            status,
-            bank,
-            type: 'mensal'
-          });
-          this.showToast('Receita adicionada com sucesso!', 'success');
+        // Coleta meses marcados
+        const checkedMonths = Array.from(document.querySelectorAll('input[name="rev_month_chk"]:checked'))
+          .map(chk => Number(chk.value));
+
+        if (checkedMonths.length === 0) {
+          alert('Por favor, marque pelo menos um mês em que esse rendimento será recebido.');
+          return;
         }
+
+        store.addRevenueToMonths({
+          source,
+          months: checkedMonths,
+          bank,
+          value,
+          date,
+          status
+        });
 
         this.closeModal('modalNovaReceita');
         formRev.reset();
         this.renderMeses();
         this.renderResumo();
+        this.showToast(`Rendimento "${source}" lançado em ${checkedMonths.length} mês(es)!`, 'success');
+      });
+    }
+
+    // Formulário Confirmar Recebimento (Preencher Valor & Data ao Marcar Pago)
+    const formConfirmPay = document.getElementById('formConfirmarRecebimento');
+    if (formConfirmPay) {
+      formConfirmPay.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const monthNum = Number(document.getElementById('pay_rev_month').value);
+        const id = document.getElementById('pay_rev_id').value;
+        const value = Number(document.getElementById('pay_rev_value').value) || 0;
+        const date = document.getElementById('pay_rev_date').value;
+        const bank = document.getElementById('pay_rev_bank').value;
+        const updateBalance = document.getElementById('pay_rev_update_bank_balance')?.checked;
+
+        const m = store.data.months[monthNum];
+        if (m) {
+          const item = m.revenues.find(r => r.id === id);
+          if (item) {
+            item.value = value;
+            item.date = date;
+            item.bank = bank;
+            item.status = 'Pago';
+
+            if (updateBalance && value > 0) {
+              store.creditToBank(bank, value);
+            }
+
+            store.save();
+            this.closeModal('modalConfirmarRecebimento');
+            formConfirmPay.reset();
+            this.renderMeses();
+            this.renderResumo();
+            this.showToast(`Recebimento de ${formatBRL(value)} confirmado e atrelado ao ${bank}!`, 'success');
+          }
+        }
       });
     }
 
