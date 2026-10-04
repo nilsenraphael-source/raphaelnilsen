@@ -987,24 +987,24 @@
 
   <!-- Modal: Nova Despesa Fixa -->
   <div id="modalNovaDespesaFixa" class="modal-overlay">
-    <div class="modal-dialog">
+    <div class="modal-dialog" style="max-width: 540px;">
       <div class="modal-header">
-        <h3 class="modal-title">Cadastrar Despesa Fixa</h3>
+        <h3 class="modal-title">+ Cadastrar Despesa Fixa</h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalNovaDespesaFixa')">✕</button>
       </div>
       <form id="formNovaDespesaFixa">
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">Conta / Descrição</label>
+            <label class="form-label">Conta / Descrição *</label>
             <input type="text" id="fix_desc" class="form-input" required placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
           </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Data de Vencimento</label>
-              <input type="date" id="fix_date" class="form-input" required>
+              <label class="form-label">Dia do Vencimento *</label>
+              <input type="number" id="fix_due_day" min="1" max="31" class="form-input" required placeholder="Ex: 10" style="font-weight: 700; font-size: 1.05rem;">
             </div>
             <div class="form-group">
-              <label class="form-label">Valor Previsto (R$)</label>
+              <label class="form-label">Valor Previsto (R$) *</label>
               <input type="text" inputmode="decimal" id="fix_val_exp" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
           </div>
@@ -1014,25 +1014,45 @@
               <input type="text" inputmode="decimal" id="fix_val_paid" class="form-input" placeholder="0,00 (se já realizado)" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
             <div class="form-group">
-              <label class="form-label">Estado</label>
+              <label class="form-label">Status</label>
               <select id="fix_status" class="form-input">
                 <option value="Pendente">Pendente</option>
                 <option value="Pago">Pago</option>
               </select>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Banco / Conta para Pagamento</label>
-            <select id="fix_bank" class="form-input">
-              <option value="Bradesco">Bradesco</option>
-              <option value="Nubank (Nu)">Nubank (Nu)</option>
-              <option value="Banco do Brasil">Banco do Brasil (BB)</option>
-              <option value="Caixa Poupança">Caixa Econômica (Poupança)</option>
-              <option value="Caixa CP">Caixa Econômica (Caixa CP)</option>
-              <option value="Seven">Seven</option>
-              <option value="Carteira">Carteira (Dinheiro)</option>
-              <option value="Outro">Outro</option>
-            </select>
+
+          <!-- Seleção de Meses em que a Despesa Fixa Ocorre (Igual às Receitas) -->
+          <div class="form-group" style="margin-top: 1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; flex-wrap:wrap; gap:0.4rem;">
+              <label class="form-label" style="margin:0;">Meses de Cobrança</label>
+              <div style="display:flex; gap:0.35rem;">
+                <button type="button" class="btn-xs-action" onclick="app.selectAllFixedMonths(true)">Todos (12)</button>
+                <button type="button" class="btn-xs-action" onclick="app.selectCurrentFixedMonthOnly()">Mês Atual</button>
+                <button type="button" class="btn-xs-action" onclick="app.selectAllFixedMonths(false)">Limpar</button>
+              </div>
+            </div>
+            
+            <div class="months-checkbox-grid">
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="1"> Jan</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="2"> Fev</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="3"> Mar</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="4"> Abr</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="5"> Mai</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="6"> Jun</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="7"> Jul</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="8"> Ago</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="9"> Set</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="10"> Out</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="11"> Nov</label>
+              <label class="month-check-pill"><input type="checkbox" name="fix_month_chk" value="12"> Dez</label>
+            </div>
+          </div>
+
+          <div style="background: rgba(56, 189, 248, 0.06); border: 1px dashed rgba(56, 189, 248, 0.25); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-top: 1.25rem;">
+            <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.5;">
+              💡 <strong>Banco para Pagamento:</strong> O banco permanece em branco e será selecionado diretamente na tabela no momento em que for efetuado o pagamento.
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -1060,8 +1080,8 @@
           </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Data de Vencimento</label>
-              <input type="date" id="edit_fix_date" class="form-input" required>
+              <label class="form-label">Dia do Vencimento</label>
+              <input type="number" id="edit_fix_due_day" min="1" max="31" class="form-input" required placeholder="Ex: 10" style="font-weight: 700;">
             </div>
             <div class="form-group">
               <label class="form-label">Valor Previsto (R$)</label>
@@ -1074,7 +1094,7 @@
               <input type="text" inputmode="decimal" id="edit_fix_val_paid" class="form-input" placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
             <div class="form-group">
-              <label class="form-label">Estado</label>
+              <label class="form-label">Status</label>
               <select id="edit_fix_status" class="form-input">
                 <option value="Pendente">Pendente</option>
                 <option value="Pago">Pago</option>
@@ -1084,6 +1104,7 @@
           <div class="form-group">
             <label class="form-label">Banco / Conta para Pagamento</label>
             <select id="edit_fix_bank" class="form-input">
+              <option value="">— Em branco (selecionar no pagamento) —</option>
               <option value="Bradesco">Bradesco</option>
               <option value="Nubank (Nu)">Nubank (Nu)</option>
               <option value="Banco do Brasil">Banco do Brasil (BB)</option>
@@ -1529,7 +1550,7 @@
           <div class="quick-card-title">+ Inserir Rendimento</div>
           <div class="quick-card-sub">Lançar no BANCO</div>
         </button>
-        <button class="quick-action-card" onclick="app.toggleMobileQuickMenu(false); app.openModal('modalNovaDespesaFixa');">
+        <button class="quick-action-card" onclick="app.toggleMobileQuickMenu(false); app.openModalNovaDespesaFixa();">
           <div class="quick-card-icon" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">📌</div>
           <div class="quick-card-title">+ Despesa Fixa</div>
           <div class="quick-card-sub">Aluguel, Luz, etc.</div>
