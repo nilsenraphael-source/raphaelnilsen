@@ -340,25 +340,6 @@
              ==================================================================== -->
         <section id="view-meses" class="page-view active">
           
-          <!-- SELETOR EXECUTIVO DE ANO E AÇÕES -->
-          <div class="year-control-bar">
-            <div class="year-nav-group">
-              <button class="btn-year-arrow" onclick="app.prevYear()" title="Ano Anterior">◀</button>
-              <div class="year-current-pill">
-                <span class="year-icon">📅</span>
-                <span class="year-text" id="activeYearLabel">2026</span>
-                <select id="yearSelectDropdown" class="year-dropdown" onchange="app.changeYear(this.value)"></select>
-              </div>
-              <button class="btn-year-arrow" onclick="app.nextYear()" title="Próximo Ano">▶</button>
-            </div>
-
-            <div class="year-quick-actions">
-              <button class="btn-year-action" onclick="app.promptCopyFixedFromPreviousYear()" title="Copiar Despesas Fixas do Ano Anterior para este Ano">
-                <span>📋</span> Copiar Fixas do Ano Anterior
-              </button>
-            </div>
-          </div>
-
           <!-- SELETOR DE MESES -->
           <div id="monthSelectorBar" class="month-selector-bar"></div>
 
