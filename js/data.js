@@ -49,8 +49,24 @@ const INITIAL_DATABASE = {
     { id: 'master', name: 'Mastercard', limit: 0, closingDay: 1, dueDay: 10 },
     { id: 'nubank_card', name: 'Nubank (Nu)', limit: 0, closingDay: 5, dueDay: 15 }
   ],
-  // Compras no Cartão
-  cardPurchases: [],
+  // Compras no Cartão (Inicializadas com base nas faturas do usuário)
+  cardPurchases: [
+    { id: 'cp_1', description: 'Anuidade', place: 'Outros', card: 'Mastercard', date: '', totalAmount: 178.80, installments: 12, startMonth: 8, startYear: 2026 },
+    { id: 'cp_2', description: 'Seguro Cartao Protegido', place: 'Seguro', card: 'Mastercard', date: '', totalAmount: 178.80, installments: 12, startMonth: 8, startYear: 2026 },
+    { id: 'cp_3', description: 'Peças BMW', place: 'Mercado Livre', card: 'Mastercard', date: '2025-10-15', totalAmount: 340.20, installments: 3, startMonth: 8, startYear: 2026 },
+    { id: 'cp_4', description: 'Iphone', place: 'Amazon', card: 'Mastercard', date: '2026-01-08', totalAmount: 4258.30, installments: 10, startMonth: 8, startYear: 2026 },
+    { id: 'cp_5', description: 'Motor bc 98', place: 'Mercado Livre', card: 'Mastercard', date: '2026-02-04', totalAmount: 276.35, installments: 5, startMonth: 8, startYear: 2026 },
+    { id: 'cp_6', description: 'fluxometro', place: 'Mercado Livre', card: 'Mastercard', date: '2026-02-04', totalAmount: 32.00, installments: 4, startMonth: 8, startYear: 2026 },
+    { id: 'cp_7', description: 'Floricultura', place: 'outros', card: 'Mastercard', date: '2026-06-20', totalAmount: 208.98, installments: 3, startMonth: 8, startYear: 2026 },
+    { id: 'cp_8', description: 'Iphone Yanka', place: 'Amazon', card: 'Mastercard', date: '2026-05-08', totalAmount: 6625.00, installments: 10, startMonth: 8, startYear: 2026 },
+    { id: 'cp_9', description: 'Seguro Crosser', place: 'Seguro', card: 'Mastercard', date: '2026-05-08', totalAmount: 1184.90, installments: 10, startMonth: 8, startYear: 2026 },
+    { id: 'cp_10', description: 'bicos mangueira', place: 'Mercado Livre', card: 'Mastercard', date: '2026-07-16', totalAmount: 116.30, installments: 1, startMonth: 8, startYear: 2026 },
+    { id: 'cp_11', description: 'vacina', place: 'outros', card: 'Mastercard', date: '2026-08-17', totalAmount: 1398.96, installments: 6, startMonth: 9, startYear: 2026 },
+    { id: 'cp_12', description: 'fantasia grinch', place: 'aliexpress', card: 'Mastercard', date: '2026-08-18', totalAmount: 161.52, installments: 6, startMonth: 9, startYear: 2026 },
+    { id: 'cp_13', description: 'Farmacia', place: 'outros', card: 'Mastercard', date: '2026-09-09', totalAmount: 124.35, installments: 1, startMonth: 10, startYear: 2026 },
+    { id: 'cp_14', description: 'ane vanusa quiro', place: 'outros', card: 'Mastercard', date: '2026-09-10', totalAmount: 456.00, installments: 4, startMonth: 10, startYear: 2026 },
+    { id: 'cp_15', description: 'corrida', place: 'outros', card: 'Mastercard', date: '2026-10-01', totalAmount: 25.00, installments: 1, startMonth: 10, startYear: 2026 }
+  ],
 
   // 4. Sonhos / Compras Futuras
   dreams: [],
@@ -103,6 +119,10 @@ class DataStore {
         if (!merged.settings) merged.settings = { ...INITIAL_DATABASE.settings };
         if (!merged.settings.supabase || !merged.settings.supabase.url || !merged.settings.supabase.anonKey) {
           merged.settings.supabase = { ...INITIAL_DATABASE.settings.supabase };
+        }
+
+        if (!merged.cardPurchases || merged.cardPurchases.length === 0) {
+          merged.cardPurchases = JSON.parse(JSON.stringify(INITIAL_DATABASE.cardPurchases));
         }
 
         // Multi-Ano: migração e compatibilidade transparente

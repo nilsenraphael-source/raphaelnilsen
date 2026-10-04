@@ -405,34 +405,32 @@
              ==================================================================== -->
         <section id="view-cartoes" class="page-view">
           
-          <div class="card">
-            <div class="card-header">
+          <!-- RESUMO CALENDÁRIO MATRIZ ESTILO NOTION (COMPRAS & MESES) -->
+          <div id="cardCalendarMatrixContainer"></div>
+
+          <!-- LISTA DETALHADA DE COMPRAS REGISTRADAS -->
+          <div class="card" style="margin-top: 1.5rem;">
+            <div class="card-header" style="cursor: pointer;" onclick="app.toggleCardPurchasesList()">
               <div class="card-title-group">
                 <div class="card-icon" style="background:var(--danger-subtle); color:var(--danger);">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                 </div>
                 <div>
-                  <h3 class="card-title">Gestão de Cartões de Crédito & Parcelamentos</h3>
-                  <span class="card-subtitle">As parcelas caem automaticamente nos meses de destino</span>
+                  <h3 class="card-title">Todas as Compras Cadastradas (Gerenciamento)</h3>
+                  <span class="card-subtitle">Exclusão, detalhes de parcelamento e total em aberto</span>
                 </div>
               </div>
-              <button class="btn-header primary" onclick="app.openModal('modalNovaCompraCartao')">
-                + Nova Compra Parcelada
-              </button>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
-              <div style="display:flex; gap:0.5rem;">
-                <button class="month-tab card-filter-btn active" data-card="todos" onclick="app.filterCard('todos')">Todos os Cartões</button>
-                <button class="month-tab card-filter-btn" data-card="master" onclick="app.filterCard('master')">Mastercard</button>
-                <button class="month-tab card-filter-btn" data-card="nubank" onclick="app.filterCard('nubank')">Nubank (Nu)</button>
-              </div>
-              <div style="font-size:0.95rem; font-weight:700; color:var(--text-secondary);">
-                Total de Compras em Aberto: <span id="totalOpenCardPurchases" style="color:var(--danger); font-size:1.2rem;">R$ 0,00</span>
+              <div style="display:flex; align-items:center; gap:0.75rem;">
+                <div style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">
+                  Total Aberto: <span id="totalOpenCardPurchases" style="color:var(--danger); font-size:1.05rem;">R$ 0,00</span>
+                </div>
+                <button class="btn-header primary" onclick="event.stopPropagation(); app.openModal('modalNovaCompraCartao')">
+                  + Nova Compra
+                </button>
               </div>
             </div>
 
-            <div class="table-responsive">
+            <div id="cardPurchasesListCollapsible" class="table-responsive">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -442,7 +440,7 @@
                     <th>Data</th>
                     <th>Parcelamento</th>
                     <th>Valor Total</th>
-                    <th style="width: 80px;">Ações</th>
+                    <th style="width: 80px; text-align: center;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="cardPurchasesTableBody"></tbody>
@@ -1189,7 +1187,7 @@
             <div class="form-group">
               <label class="form-label">Cartão Utilizado</label>
               <select id="card_type" class="form-input">
-                <option value="Master">Mastercard</option>
+                <option value="Mastercard">Mastercard</option>
                 <option value="Nubank (Nu)">Nubank (Nu)</option>
               </select>
             </div>
@@ -1261,6 +1259,25 @@
           <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Cadastrar Compra</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Detalhes da Compra no Cartão (Abrir) -->
+  <div id="modalDetalhesCompraCartao" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Detalhes da Compra no Cartão</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalDetalhesCompraCartao')">✕</button>
+      </div>
+      <div class="modal-body" id="modalDetalhesCompraBody">
+        <!-- Renderizado dinamicamente via app.openCardPurchaseDetails -->
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button type="button" class="btn-header" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);" id="btnDeleteCardPurchaseDetail">
+          🗑 Excluir Compra
+        </button>
+        <button type="button" class="btn-primary" style="width: auto; padding: 0 1.5rem;" onclick="app.closeModal('modalDetalhesCompraCartao')">Fechar</button>
+      </div>
     </div>
   </div>
 

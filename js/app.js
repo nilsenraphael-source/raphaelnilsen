@@ -41,6 +41,17 @@ function formatDateBR(dateStr) {
   return dateStr;
 }
 
+// Sanitizador simples para inserção segura em HTML
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Identificador de Ícone por Fonte de Renda (Notion Style)
 function getRendaIcon(sourceName) {
   const s = (sourceName || '').toLowerCase();
@@ -75,7 +86,9 @@ const app = {
   receitasFilterMonth: 'todos',
   receitasFilterBank: 'todos',
   receitasSearch: '',
-  activeTabCartao: 'todos',
+  activeTabCartao: 'master', // Padrão Mastercard (estilo Notion do print)
+  cardCalendarOffset: 0,
+  cardSearchQuery: '',
   activeTabInvest: 'bolsa',
 
   init() {
@@ -1596,18 +1609,270 @@ const app = {
   },
 
   // =========================================================================
-  // 3. MÓDULO CARTÃO DE CRÉDITO
+  // 3. MÓDULO CARTÃO DE CRÉDITO - NOTION CALENDAR MATRIX & GERENCIAMENTO
   // =========================================================================
   renderCartoes() {
+    this.renderCardCalendarMatrix();
+    this.renderCardPurchasesList();
+  },
+
+  getCardCalendarMonthColumns() {
+    const now = new Date();
+    const baseYear = Number(store.activeYear) || now.getFullYear();
+    const baseMonth = now.getMonth() + 1; // 1 a 12
+
+    // Janela de 6 meses iniciando 2 meses antes do mês atual (ex: se hoje é Outubro, exibe Ago, Set, Out, Nov, Dez, Jan/27)
+    const startAbsMonth = (baseYear * 12) + (baseMonth - 1) - 2 + (this.cardCalendarOffset || 0);
+
+    const cols = [];
+    for (let i = 0; i < 6; i++) {
+      const abs = startAbsMonth + i;
+      const year = Math.floor(abs / 12);
+      const month = (abs % 12) + 1;
+      const isCurrent = (year === now.getFullYear() && month === (now.getMonth() + 1));
+      cols.push({ month, year, isCurrent });
+    }
+    return cols;
+  },
+
+  getPurchaseInstallmentInfo(p, fallbackYear) {
+    let dateYear = fallbackYear || new Date().getFullYear();
+    let dateMonth = 1;
+    if (p.date) {
+      const parts = p.date.split('-');
+      if (parts.length >= 2) {
+        dateYear = parseInt(parts[0], 10) || dateYear;
+        dateMonth = parseInt(parts[1], 10) || 1;
+      }
+    }
+    const sMonth = Number(p.startMonth) || dateMonth || 1;
+    const sYear = Number(p.startYear) || dateYear;
+    const count = Number(p.installments) || 1;
+    const valTotal = Number(p.totalAmount) || 0;
+    const valPerInstallment = count > 0 ? (valTotal / count) : valTotal;
+
+    return {
+      startMonth: sMonth,
+      startYear: sYear,
+      count: count,
+      installmentValue: valPerInstallment
+    };
+  },
+
+  getSiteTagHtml(site) {
+    if (!site || !site.trim()) {
+      return '<span class="notion-tag" style="background: rgba(148, 163, 184, 0.15); color: #94a3b8;">outros</span>';
+    }
+    const s = site.trim();
+    const lower = s.toLowerCase();
+
+    let bg = 'rgba(148, 163, 184, 0.15)';
+    let color = '#cbd5e1';
+
+    if (lower.includes('amazon')) {
+      bg = 'rgba(59, 130, 246, 0.22)';
+      color = '#60a5fa';
+    } else if (lower.includes('mercado') || lower.includes('livre')) {
+      bg = 'rgba(245, 158, 11, 0.22)';
+      color = '#fbbf24';
+    } else if (lower.includes('aliexpress') || lower.includes('shopee') || lower.includes('shein')) {
+      bg = 'rgba(239, 68, 68, 0.22)';
+      color = '#f87171';
+    } else if (lower.includes('seguro')) {
+      bg = 'rgba(217, 119, 6, 0.22)';
+      color = '#f59e0b';
+    } else if (lower.includes('farmacia') || lower.includes('saude') || lower.includes('vacina')) {
+      bg = 'rgba(16, 185, 129, 0.22)';
+      color = '#34d399';
+    } else if (lower.includes('outros') || lower.includes('outro')) {
+      bg = 'rgba(244, 63, 94, 0.22)';
+      color = '#fb7185';
+    } else {
+      const colors = [
+        { bg: 'rgba(139, 92, 246, 0.22)', color: '#a78bfa' },
+        { bg: 'rgba(14, 165, 233, 0.22)', color: '#38bdf8' },
+        { bg: 'rgba(236, 72, 153, 0.22)', color: '#f472b6' },
+        { bg: 'rgba(20, 184, 166, 0.22)', color: '#2dd4bf' },
+        { bg: 'rgba(249, 115, 22, 0.22)', color: '#fb923c' }
+      ];
+      let hash = 0;
+      for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
+      const chosen = colors[Math.abs(hash) % colors.length];
+      bg = chosen.bg;
+      color = chosen.color;
+    }
+
+    return `<span class="notion-tag" style="background: ${bg}; color: ${color};">${escapeHtml(s)}</span>`;
+  },
+
+  formatDateFullPT(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const day = parseInt(parts[2], 10);
+    const month = parseInt(parts[1], 10);
+    const year = parseInt(parts[0], 10);
+    const monthNames = [
+      '', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    return `${day} de ${monthNames[month] || month} de ${year}`;
+  },
+
+  getCardCalendarColTitle(mNum, year, refYear) {
+    const monthNames = [
+      '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    const name = monthNames[mNum] || `Mês ${mNum}`;
+    if (year !== refYear) {
+      return `# ${name}/${String(year).slice(-2)}`;
+    }
+    return `# ${name}`;
+  },
+
+  renderCardCalendarMatrix() {
+    const container = document.getElementById('cardCalendarMatrixContainer');
+    if (!container) return;
+
+    let purchases = store.data.cardPurchases || [];
+    if (this.activeTabCartao !== 'todos') {
+      purchases = purchases.filter(p => (p.card || '').toLowerCase().includes(this.activeTabCartao.toLowerCase()));
+    }
+
+    if (this.cardSearchQuery) {
+      const q = this.cardSearchQuery.toLowerCase().trim();
+      purchases = purchases.filter(p => (p.description || '').toLowerCase().includes(q) || (p.place || '').toLowerCase().includes(q));
+    }
+
+    const cardTitle = (this.activeTabCartao === 'todos') ? 'Todos os Cartões' : ((this.activeTabCartao === 'nubank') ? 'Nubank (Nu)' : 'Mastercard');
+    const cols = this.getCardCalendarMonthColumns();
+    const refYear = cols[0].year;
+    const colTotals = new Array(cols.length).fill(0);
+
+    container.innerHTML = `
+      <div class="notion-card-calendar-container">
+        <!-- CABEÇALHO NOTION -->
+        <div class="notion-card-calendar-header">
+          <div class="notion-card-title-wrap">
+            <h2 class="notion-card-title">${cardTitle}</h2>
+            <div class="notion-card-tabs">
+              <button class="notion-card-tab ${this.activeTabCartao === 'master' ? 'active' : ''}" onclick="app.filterCard('master')">Mastercard</button>
+              <button class="notion-card-tab ${this.activeTabCartao === 'nubank' ? 'active' : ''}" onclick="app.filterCard('nubank')">Nubank (Nu)</button>
+              <button class="notion-card-tab ${this.activeTabCartao === 'todos' ? 'active' : ''}" onclick="app.filterCard('todos')">Todos os Cartões</button>
+            </div>
+          </div>
+
+          <div class="notion-card-toolbar">
+            <div style="display:flex; align-items:center; gap:0.25rem;">
+              <button class="notion-icon-btn" title="Meses Anteriores" onclick="app.shiftCardCalendarMonths(-3)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+              </button>
+              <button class="notion-btn-pill" title="Voltar ao período atual" onclick="app.resetCardCalendarMonths()">Mês Atual</button>
+              <button class="notion-icon-btn" title="Próximos Meses" onclick="app.shiftCardCalendarMonths(3)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+
+            <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.1); margin: 0 0.35rem;"></div>
+
+            <input type="text" 
+                   class="form-input" 
+                   style="height: 32px; font-size: 0.78rem; width: 140px; padding: 0.2rem 0.6rem;" 
+                   placeholder="🔍 Filtrar..." 
+                   value="${escapeHtml(this.cardSearchQuery || '')}" 
+                   oninput="app.filterCardSearch(this.value)">
+
+            <button class="notion-btn-blue" onclick="app.openModal('modalNovaCompraCartao')">
+              Nova <span style="font-size:0.65rem; margin-left:2px;">▾</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TABELA MATRIZ CALENDÁRIO -->
+        <div class="notion-matrix-scroll">
+          <table class="notion-matrix-table">
+            <thead>
+              <tr>
+                <th style="min-width: 220px;"><span class="th-icon">Aa</span> Compra</th>
+                <th style="min-width: 140px;"><span class="th-icon">⊙</span> Site</th>
+                <th style="min-width: 160px;"><span class="th-icon">📅</span> Data Compra</th>
+                ${cols.map(col => `
+                  <th class="col-month ${col.isCurrent ? 'col-current-month' : ''}">
+                    ${this.getCardCalendarColTitle(col.month, col.year, refYear)}
+                  </th>
+                `).join('')}
+                <th style="width: 40px; text-align: center; color: #64748b;">+</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${purchases.length === 0 ? `
+                <tr>
+                  <td colspan="${4 + cols.length}" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+                    Nenhuma compra registrada para ${cardTitle}. Clique em "+ Nova" para cadastrar sua compra.
+                  </td>
+                </tr>
+              ` : purchases.map(p => {
+                const info = this.getPurchaseInstallmentInfo(p, store.activeYear);
+                const siteTag = this.getSiteTagHtml(p.place);
+                const dateText = this.formatDateFullPT(p.date);
+
+                const cellsHtml = cols.map((col, idx) => {
+                  const monthDiff = (col.year - info.startYear) * 12 + (col.month - info.startMonth);
+                  const hasInstallment = (monthDiff >= 0 && monthDiff < info.count);
+                  if (hasInstallment) {
+                    colTotals[idx] += info.installmentValue;
+                    return `<td class="col-month ${col.isCurrent ? 'col-current-month' : ''}">${formatBRL(info.installmentValue)}</td>`;
+                  }
+                  return `<td class="col-month ${col.isCurrent ? 'col-current-month' : ''}"></td>`;
+                }).join('');
+
+                return `
+                  <tr>
+                    <td>
+                      <div class="notion-purchase-title-cell">
+                        <span class="notion-file-icon">📄</span>
+                        <span style="font-weight: 600;">${escapeHtml(p.description)}</span>
+                        <button class="notion-abrir-btn" onclick="app.openCardPurchaseDetails('${p.id}')">Abrir</button>
+                      </div>
+                    </td>
+                    <td>${siteTag}</td>
+                    <td style="color: #94a3b8; font-size: 0.8rem;">${dateText}</td>
+                    ${cellsHtml}
+                    <td style="text-align: center; color: rgba(255,255,255,0.15);"></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="text-align: right; color: #94a3b8; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                  Total da Fatura:
+                </td>
+                ${cols.map((col, idx) => `
+                  <td class="col-month ${col.isCurrent ? 'col-current-month' : ''}" style="color: #60a5fa; font-weight: 800; font-size: 0.9rem;">
+                    ${colTotals[idx] > 0 ? formatBRL(colTotals[idx]) : '—'}
+                  </td>
+                `).join('')}
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  renderCardPurchasesList() {
     const tbody = document.getElementById('cardPurchasesTableBody');
     if (!tbody) return;
 
-    let purchases = store.data.cardPurchases;
+    let purchases = store.data.cardPurchases || [];
     if (this.activeTabCartao !== 'todos') {
-      purchases = purchases.filter(p => p.card.toLowerCase().includes(this.activeTabCartao.toLowerCase()));
+      purchases = purchases.filter(p => (p.card || '').toLowerCase().includes(this.activeTabCartao.toLowerCase()));
     }
 
-    const totalOpen = store.data.cardPurchases.reduce((acc, p) => acc + (Number(p.totalAmount) || 0), 0);
+    const totalOpen = (store.data.cardPurchases || []).reduce((acc, p) => acc + (Number(p.totalAmount) || 0), 0);
     const elTotal = document.getElementById('totalOpenCardPurchases');
     if (elTotal) elTotal.textContent = formatBRL(totalOpen);
 
@@ -1621,8 +1886,13 @@ const app = {
 
       return `
         <tr>
-          <td><strong>${p.description}</strong></td>
-          <td>${p.place || '-'}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.45rem;">
+              <span style="color:#64748b;">📄</span>
+              <strong>${escapeHtml(p.description)}</strong>
+            </div>
+          </td>
+          <td>${this.getSiteTagHtml(p.place)}</td>
           <td><span class="status-badge neutral">${p.card}</span></td>
           <td>${formatDateBR(p.date)}</td>
           <td>
@@ -1631,9 +1901,12 @@ const app = {
               1ª parcela: <strong>${mesInicio}/${anoInicio}</strong>
             </div>
           </td>
-          <td style="font-weight: 800; color: var(--navy);">${formatBRL(p.totalAmount)}</td>
-          <td>
-            <div class="table-actions">
+          <td style="font-weight: 800; color: #ffffff;">${formatBRL(p.totalAmount)}</td>
+          <td style="text-align: center;">
+            <div class="table-actions" style="justify-content: center; gap: 0.35rem;">
+              <button class="btn-table-icon" title="Ver Detalhes" onclick="app.openCardPurchaseDetails('${p.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </button>
               <button class="btn-table-icon delete" title="Excluir Compra" onclick="app.deleteCardPurchase('${p.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
@@ -1642,6 +1915,89 @@ const app = {
         </tr>
       `;
     }).join('');
+  },
+
+  shiftCardCalendarMonths(delta) {
+    this.cardCalendarOffset = (this.cardCalendarOffset || 0) + delta;
+    this.renderCardCalendarMatrix();
+  },
+
+  resetCardCalendarMonths() {
+    this.cardCalendarOffset = 0;
+    this.renderCardCalendarMatrix();
+  },
+
+  filterCardSearch(query) {
+    this.cardSearchQuery = query || '';
+    this.renderCardCalendarMatrix();
+    this.renderCardPurchasesList();
+  },
+
+  toggleCardPurchasesList() {
+    const el = document.getElementById('cardPurchasesListCollapsible');
+    if (el) {
+      el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+    }
+  },
+
+  openCardPurchaseDetails(id) {
+    const p = store.data.cardPurchases?.find(item => item.id === id);
+    if (!p) return;
+
+    const modalBody = document.getElementById('modalDetalhesCompraBody');
+    const btnDelete = document.getElementById('btnDeleteCardPurchaseDetail');
+    if (!modalBody) return;
+
+    const info = this.getPurchaseInstallmentInfo(p, store.activeYear);
+    const mNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const startMonthName = mNames[info.startMonth] || `Mês ${info.startMonth}`;
+
+    modalBody.innerHTML = `
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.05em;">Compra</span>
+            <h3 style="font-size:1.3rem; font-weight:800; color:#ffffff; margin:0.2rem 0 0.4rem 0;">${escapeHtml(p.description)}</h3>
+            ${this.getSiteTagHtml(p.place)}
+          </div>
+          <span class="status-badge neutral" style="font-size:0.85rem; padding:0.3rem 0.75rem;">${p.card}</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.06);">
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Data da Compra</div>
+            <div style="font-weight:700; color:#e2e8f0; font-size:0.92rem;">${this.formatDateFullPT(p.date) || '-'}</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Valor Total</div>
+            <div style="font-weight:800; color:#f87171; font-size:1.15rem;">${formatBRL(p.totalAmount)}</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Parcelamento</div>
+            <div style="font-weight:700; color:#fbbf24; font-size:0.95rem;">${info.count}x de ${formatBRL(info.installmentValue)}</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Início da Cobrança</div>
+            <div style="font-weight:700; color:#34d399; font-size:0.95rem;">${startMonthName}/${info.startYear}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (btnDelete) {
+      btnDelete.onclick = () => {
+        if (confirm(`Excluir a compra "${p.description}" e remover todas as suas parcelas?`)) {
+          store.deleteCardPurchase(id);
+          this.closeModal('modalDetalhesCompraCartao');
+          this.renderCartoes();
+          this.renderMeses();
+          this.renderResumo();
+          this.showToast('Compra removida com sucesso.', 'info');
+        }
+      };
+    }
+
+    this.openModal('modalDetalhesCompraCartao');
   },
 
   deleteCardPurchase(id) {
@@ -1656,10 +2012,6 @@ const app = {
 
   filterCard(type) {
     this.activeTabCartao = type;
-    document.querySelectorAll('.card-filter-btn').forEach(b => {
-      if (b.dataset.card === type) b.classList.add('active');
-      else b.classList.remove('active');
-    });
     this.renderCartoes();
   },
 

@@ -1454,6 +1454,206 @@ textarea.form-input {
   font-weight: 600;
 }
 
+/* =========================================================================
+   NOTION CALENDAR MATRIX - RESUMO DE CARTÕES DE CRÉDITO
+   ========================================================================= */
+.notion-card-calendar-container {
+  background: #11141c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.notion-card-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.notion-card-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.notion-card-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.notion-card-tabs {
+  display: flex;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.notion-card-tab {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.notion-card-tab.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.notion-card-tab:hover:not(.active) {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.notion-card-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.notion-matrix-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notion-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  color: #e2e8f0;
+  text-align: left;
+}
+
+.notion-matrix-table th {
+  background: rgba(255, 255, 255, 0.015);
+  color: #8b949e;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.65rem 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.notion-matrix-table th:last-child {
+  border-right: none;
+}
+
+.notion-matrix-table th.col-month {
+  text-align: right;
+  min-width: 110px;
+}
+
+.notion-matrix-table th.col-current-month {
+  background: rgba(59, 130, 246, 0.08);
+  color: #60a5fa;
+  border-bottom: 2px solid #3b82f6;
+}
+
+.notion-matrix-table td {
+  padding: 0.62rem 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.notion-matrix-table td:last-child {
+  border-right: none;
+}
+
+.notion-matrix-table td.col-month {
+  text-align: right;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.notion-matrix-table td.col-current-month {
+  background: rgba(59, 130, 246, 0.03);
+}
+
+.notion-matrix-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.025);
+}
+
+.notion-purchase-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.notion-file-icon {
+  color: #64748b;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.notion-abrir-btn {
+  opacity: 0;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: all 0.15s ease;
+  margin-left: 0.35rem;
+}
+
+.notion-matrix-table tbody tr:hover .notion-abrir-btn {
+  opacity: 1;
+}
+
+.notion-abrir-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.notion-tag {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.notion-matrix-table tfoot td {
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.8rem 0.95rem;
+  font-weight: 700;
+}
+
 /* Status Pill com bolinha (Design Idêntico ao Print do Usuário) */
 .status-pill {
   display: inline-flex;
