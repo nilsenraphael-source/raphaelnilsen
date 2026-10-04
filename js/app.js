@@ -186,10 +186,10 @@ const app = {
         greetingEl.textContent = `${greeting}, Raphael Natayan Nilsen`;
       }
 
-      // Data Completa sem duplicar ano (Ex: Domingo, 4 de outubro)
+      // Data Completa Original e Intacta (Ex: Domingo, 4 de outubro de 2026)
       const dateEl = document.getElementById('headerFullDate');
       if (dateEl) {
-        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         const dateFormatted = now.toLocaleDateString('pt-BR', options);
         dateEl.textContent = dateFormatted.charAt(0).toUpperCase() + dateFormatted.slice(1);
       }

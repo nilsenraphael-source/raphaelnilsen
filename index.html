@@ -189,24 +189,24 @@
         </div>
 
         <div class="header-right">
-          <!-- Data Completa, Alteração Discreta do Ano e Hora em Tempo Real -->
+          <!-- 1. Alteração Discreta do Ano (Vem ANTES, separado) -->
+          <div class="header-year-pill" title="Alterar Ano de Referência do Sistema">
+            <span class="header-year-label">Ano:</span>
+            <select id="headerYearSelect" class="header-year-select" onchange="app.changeYear(this.value)">
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+              <option value="2029">2029</option>
+              <option value="2030">2030</option>
+            </select>
+          </div>
+
+          <!-- 2. Data Completa Intacta e Hora em Tempo Real (Vem DEPOIS, separado) -->
           <div class="header-datetime-pill">
             <span class="header-datetime-icon">📅</span>
             <span id="headerFullDate" class="header-date-text">--</span>
-            
-            <div class="header-year-control" title="Alterar Ano do Sistema">
-              <span class="header-year-label">Ano</span>
-              <select id="headerYearSelect" class="header-year-select" onchange="app.changeYear(this.value)">
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
-                <option value="2027">2027</option>
-                <option value="2028">2028</option>
-                <option value="2029">2029</option>
-                <option value="2030">2030</option>
-              </select>
-            </div>
-
             <span class="header-datetime-separator">•</span>
             <span class="header-datetime-icon">⏰</span>
             <span id="headerLiveTime" class="header-clock-text">--:--:--</span>
