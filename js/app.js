@@ -369,113 +369,152 @@ const app = {
     }
 
     // 3. Renderiza as Barras de Progresso: Despesas Fixas e Cartões
-    const elProgress = document.getElementById('monthProgressContainer');
-    if (elProgress) {
-      // Despesas Fixas
-      const fixHasItems = summary.fixedCount > 0;
-      const fixIsComplete = fixHasItems && summary.fixedPct === 100;
-      const fixCardClass = fixIsComplete ? 'month-progress-card all-paid' : 'month-progress-card';
-      const fixBadge = !fixHasItems
-        ? `<span class="progress-badge empty">Sem despesas fixas</span>`
-        : (fixIsComplete
-          ? `<span class="progress-badge paid">✓ Tudo Pago (${summary.fixedPaidCount}/${summary.fixedCount})</span>`
-          : `<span class="progress-badge pending">⏳ ${summary.fixedPaidCount} de ${summary.fixedCount} pagas</span>`);
-      const fixBarClass = !fixHasItems
-        ? 'empty'
-        : (fixIsComplete ? 'complete' : (summary.fixedPct > 0 ? 'fixed-partial' : 'fixed-pending'));
-
-      // Cartões de Crédito
-      const cardHasItems = summary.cardCount > 0;
-      const cardIsComplete = cardHasItems && summary.cardPct === 100;
-      const cardCardClass = cardIsComplete ? 'month-progress-card all-paid' : 'month-progress-card';
-      const cardBadge = !cardHasItems
-        ? `<span class="progress-badge empty">Sem faturas</span>`
-        : (cardIsComplete
-          ? `<span class="progress-badge paid">✓ Fatura Quitada (${summary.cardPaidCount}/${summary.cardCount})</span>`
-          : `<span class="progress-badge pending">⏳ ${summary.cardPaidCount} de ${summary.cardCount} pagas</span>`);
-      const cardBarClass = !cardHasItems
-        ? 'empty'
-        : (cardIsComplete ? 'complete' : (summary.cardPct > 0 ? 'card-partial' : 'card-pending'));
-
-      elProgress.innerHTML = `
-        <!-- CARD PROGRESSO: DESPESAS FIXAS -->
-        <div class="${fixCardClass}">
-          <div class="progress-card-top">
-            <div class="progress-card-title-group">
-              <div class="progress-card-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">📌</div>
-              <div>
-                <div class="progress-card-name">Despesas Fixas</div>
-                <div style="font-size:0.75rem; color:var(--text-muted);">Contas recorrentes do mês</div>
-              </div>
-            </div>
-            <div class="progress-card-right">
-              ${fixBadge}
-              <span class="progress-card-pct" style="color: ${fixIsComplete ? '#34d399' : (fixHasItems ? 'var(--text-primary)' : 'var(--text-muted)')};">${fixHasItems ? summary.fixedPct + '%' : '-'}</span>
-            </div>
-          </div>
-          
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill ${fixBarClass}" style="width: ${fixHasItems ? summary.fixedPct : 0}%;"></div>
-          </div>
-
-          <div class="progress-card-bottom">
-            <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
-              <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.fixedPaid)}</span>
-              <span class="progress-stat-pill pending"><span class="dot"></span> Restante: ${formatBRL(summary.fixedPending)}</span>
-            </div>
-            <div>
-              ${fixHasItems ? `
-                <button class="progress-quick-btn" onclick="app.togglePayAllFixed(${this.activeMonth})">
-                  ${fixIsComplete ? '↩ Desmarcar' : '✓ Marcar Tudo Pago'}
-                </button>
-              ` : `
-                <button class="progress-quick-btn" onclick="app.selectMonthSubtab('fixas')">Gerenciar</button>
-              `}
-            </div>
-          </div>
-        </div>
-
-        <!-- CARD PROGRESSO: CARTÕES DE CRÉDITO -->
-        <div class="${cardCardClass}">
-          <div class="progress-card-top">
-            <div class="progress-card-title-group">
-              <div class="progress-card-icon" style="background: rgba(244, 63, 94, 0.12); color: #f43f5e;">💳</div>
-              <div>
-                <div class="progress-card-name">Fatura de Cartões</div>
-                <div style="font-size:0.75rem; color:var(--text-muted);">Parcelamentos de ${mName}</div>
-              </div>
-            </div>
-            <div class="progress-card-right">
-              ${cardBadge}
-              <span class="progress-card-pct" style="color: ${cardIsComplete ? '#34d399' : (cardHasItems ? 'var(--text-primary)' : 'var(--text-muted)')};">${cardHasItems ? summary.cardPct + '%' : '-'}</span>
-            </div>
-          </div>
-          
-          <div class="progress-bar-track">
-            <div class="progress-bar-fill ${cardBarClass}" style="width: ${cardHasItems ? summary.cardPct : 0}%;"></div>
-          </div>
-
-          <div class="progress-card-bottom">
-            <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
-              <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.cardPaid)}</span>
-              <span class="progress-stat-pill pending"><span class="dot"></span> Pendente: ${formatBRL(summary.cardPending)}</span>
-            </div>
-            <div>
-              ${cardHasItems ? `
-                <button class="progress-quick-btn" onclick="app.togglePayAllCards(${this.activeMonth})">
-                  ${cardIsComplete ? '↩ Desmarcar' : '✓ Quitar Fatura'}
-                </button>
-              ` : `
-                <button class="progress-quick-btn" onclick="app.selectMonthSubtab('cartao_mes')">Ver Parcelas</button>
-              `}
-            </div>
-          </div>
-        </div>
-      `;
-    }
+    this.renderProgressBars(summary, mName);
 
     // 4. Renderiza a Sub-aba ativa
     this.renderActiveMonthSubtab();
+  },
+
+  renderProgressBars(summary, mName) {
+    const elProgress = document.getElementById('monthProgressContainer');
+    if (!elProgress) return;
+
+    // Despesas Fixas
+    const fixHasItems = summary.fixedCount > 0;
+    const fixIsComplete = fixHasItems && summary.fixedPct === 100;
+    const fixCardClass = fixIsComplete ? 'month-progress-card all-paid' : 'month-progress-card';
+    const fixBadge = !fixHasItems
+      ? `<span class="progress-badge empty">Sem despesas fixas</span>`
+      : (fixIsComplete
+        ? `<span class="progress-badge paid">✓ Tudo Pago (${summary.fixedPaidCount}/${summary.fixedCount})</span>`
+        : `<span class="progress-badge pending">⏳ ${summary.fixedPaidCount} de ${summary.fixedCount} pagas</span>`);
+    const fixBarClass = !fixHasItems
+      ? 'empty'
+      : (fixIsComplete ? 'complete' : (summary.fixedPct > 0 ? 'fixed-partial' : 'fixed-pending'));
+
+    // Cartões de Crédito
+    const cardHasItems = summary.cardCount > 0;
+    const cardIsComplete = cardHasItems && summary.cardPct === 100;
+    const cardCardClass = cardIsComplete ? 'month-progress-card all-paid' : 'month-progress-card';
+    const cardBadge = !cardHasItems
+      ? `<span class="progress-badge empty">Sem faturas</span>`
+      : (cardIsComplete
+        ? `<span class="progress-badge paid">✓ Fatura Quitada (${summary.cardPaidCount}/${summary.cardCount})</span>`
+        : `<span class="progress-badge pending">⏳ ${summary.cardPaidCount} de ${summary.cardCount} pagas</span>`);
+    const cardBarClass = !cardHasItems
+      ? 'empty'
+      : (cardIsComplete ? 'complete' : (summary.cardPct > 0 ? 'card-partial' : 'card-pending'));
+
+    elProgress.innerHTML = `
+      <!-- CARD PROGRESSO: DESPESAS FIXAS -->
+      <div class="${fixCardClass}">
+        <div class="progress-card-top">
+          <div class="progress-card-title-group">
+            <div class="progress-card-icon" style="background: rgba(56, 189, 248, 0.12); color: #38bdf8;">📌</div>
+            <div>
+              <div class="progress-card-name">Despesas Fixas</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">Contas recorrentes do mês</div>
+            </div>
+          </div>
+          <div class="progress-card-right">
+            ${fixBadge}
+            <span class="progress-card-pct" style="color: ${fixIsComplete ? '#34d399' : (fixHasItems ? 'var(--text-primary)' : 'var(--text-muted)')};">${fixHasItems ? summary.fixedPct + '%' : '-'}</span>
+          </div>
+        </div>
+        
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill ${fixBarClass}" style="width: ${fixHasItems ? summary.fixedPct : 0}%;"></div>
+        </div>
+
+        <div class="progress-card-bottom">
+          <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
+            <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.fixedPaid)}</span>
+            <span class="progress-stat-pill pending"><span class="dot"></span> Restante: ${formatBRL(summary.fixedPending)}</span>
+          </div>
+          <div>
+            ${fixHasItems ? `
+              <button class="progress-quick-btn" onclick="app.togglePayAllFixed(${this.activeMonth})">
+                ${fixIsComplete ? '↩ Desmarcar' : '✓ Marcar Tudo Pago'}
+              </button>
+            ` : `
+              <button class="progress-quick-btn" onclick="app.selectMonthSubtab('fixas')">Gerenciar</button>
+            `}
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD PROGRESSO: CARTÕES DE CRÉDITO -->
+      <div class="${cardCardClass}">
+        <div class="progress-card-top">
+          <div class="progress-card-title-group">
+            <div class="progress-card-icon" style="background: rgba(244, 63, 94, 0.12); color: #f43f5e;">💳</div>
+            <div>
+              <div class="progress-card-name">Fatura de Cartões</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">Parcelamentos de ${mName}</div>
+            </div>
+          </div>
+          <div class="progress-card-right">
+            ${cardBadge}
+            <span class="progress-card-pct" style="color: ${cardIsComplete ? '#34d399' : (cardHasItems ? 'var(--text-primary)' : 'var(--text-muted)')};">${cardHasItems ? summary.cardPct + '%' : '-'}</span>
+          </div>
+        </div>
+        
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill ${cardBarClass}" style="width: ${cardHasItems ? summary.cardPct : 0}%;"></div>
+        </div>
+
+        <div class="progress-card-bottom">
+          <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
+            <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.cardPaid)}</span>
+            <span class="progress-stat-pill pending"><span class="dot"></span> Pendente: ${formatBRL(summary.cardPending)}</span>
+          </div>
+          <div>
+            ${cardHasItems ? `
+              <button class="progress-quick-btn" onclick="app.togglePayAllCards(${this.activeMonth})">
+                ${cardIsComplete ? '↩ Desmarcar' : '✓ Quitar Fatura'}
+              </button>
+            ` : `
+              <button class="progress-quick-btn" onclick="app.selectMonthSubtab('cartao_mes')">Ver Parcelas</button>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  renderMonthSummariesOnly() {
+    const summary = store.getMonthSummary(this.activeMonth);
+    const mName = store.data.months[this.activeMonth]?.name || '';
+
+    const elRev = document.getElementById('monthSumRev');
+    if (elRev) elRev.textContent = formatBRL(summary.revenues);
+
+    const elFix = document.getElementById('monthSumFix');
+    if (elFix) elFix.textContent = formatBRL(summary.fixed);
+
+    const elVar = document.getElementById('monthSumVar');
+    if (elVar) elVar.textContent = formatBRL(summary.variable);
+
+    const elCard = document.getElementById('monthSumCard');
+    if (elCard) elCard.textContent = formatBRL(summary.card);
+
+    const elBal = document.getElementById('monthSumBal');
+    if (elBal) {
+      elBal.textContent = formatBRL(summary.balance);
+      elBal.style.color = summary.balance >= 0 ? 'var(--success)' : 'var(--danger)';
+    }
+
+    this.renderProgressBars(summary, mName);
+
+    // Se estiver na visão mensal de receitas, atualiza a barra de métricas do topo
+    if (this.receitasViewMode === 'mes') {
+      const recVals = document.querySelectorAll('.receitas-metrics-bar .receitas-metric-card .value');
+      if (recVals && recVals.length >= 3) {
+        recVals[0].textContent = formatBRL(summary.revenues);
+        recVals[1].textContent = formatBRL(summary.revenuesPaid);
+        recVals[2].textContent = formatBRL(summary.revenuesPending);
+      }
+    }
   },
 
   selectMonth(num) {
@@ -544,10 +583,10 @@ const app = {
                 <thead>
                   <tr>
                     <th><span class="th-icon">Aa</span> Renda</th>
-                    <th><span class="th-icon">#</span> Valor</th>
-                    <th><span class="th-icon">📅</span> Data Recebida</th>
-                    <th><span class="th-icon">☼</span> Status</th>
-                    <th><span class="th-icon">↗</span> BANCO</th>
+                    <th style="min-width: 140px;"><span class="th-icon">#</span> Valor</th>
+                    <th style="min-width: 150px;"><span class="th-icon">📅</span> Data Recebida</th>
+                    <th style="width: 120px;"><span class="th-icon">☼</span> Status</th>
+                    <th style="min-width: 175px;"><span class="th-icon">↗</span> BANCO</th>
                     <th style="width: 80px; text-align: right;"><span class="th-icon">⋯</span> Ações</th>
                   </tr>
                 </thead>
@@ -556,7 +595,7 @@ const app = {
                     <tr>
                       <td colspan="6" style="text-align: center; padding: 2.75rem 1.5rem; color: var(--text-muted);">
                         <div style="font-size: 1.05rem; font-weight: 600; color: #ffffff; margin-bottom: 0.35rem;">Nenhum lançamento no BANCO em ${m.name}</div>
-                        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Cadastre suas rendas e marque os meses em que serão recebidas. O valor e data podem ser inseridos quando receber.</p>
+                        <p style="font-size: 0.85rem; margin-bottom: 1.25rem;">Cadastre suas rendas e marque os meses em que serão recebidas. O valor, a data e o banco são adicionados diretamente nas células abaixo.</p>
                         <button class="notion-btn-blue" onclick="app.openModalNovaReceita()">+ Inserir Rendimento</button>
                       </td>
                     </tr>
@@ -571,26 +610,50 @@ const app = {
                             ${(r.type === 'anual' || r.type === 'multi-mes' || r.annualGroupId) ? '<span class="badge-recurrence annual">Recorrente</span>' : ''}
                           </div>
                         </td>
-                        <td style="font-weight: 700; color: ${r.value > 0 ? 'var(--success)' : 'var(--text-muted)'};">
-                          ${r.value > 0 ? formatBRL(r.value) : '-'}
+                        <td>
+                          <div style="display:flex; align-items:center; gap:0.35rem;">
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">R$</span>
+                            <input type="number" step="0.01" 
+                                   class="sheet-inline-input sheet-value-input ${r.value > 0 ? 'has-value' : ''}" 
+                                   value="${r.value > 0 ? r.value : ''}" 
+                                   placeholder="0,00" 
+                                   title="Digite o valor diretamente aqui na planilha"
+                                   onchange="app.updateRevenueField(${this.activeMonth}, '${r.id}', 'value', this.value)">
+                          </div>
                         </td>
-                        <td style="color: var(--text-secondary); font-size: 0.85rem;">
-                          ${r.date ? formatDateBR(r.date) : '-'}
+                        <td>
+                          <input type="date" 
+                                 class="sheet-inline-input sheet-date-input" 
+                                 value="${r.date || ''}" 
+                                 title="Defina a data de recebimento diretamente na planilha"
+                                 onchange="app.updateRevenueField(${this.activeMonth}, '${r.id}', 'date', this.value)">
                         </td>
                         <td>
                           <span class="status-pill ${isPaid ? 'paid' : 'pending'}" 
-                                title="${isPaid ? 'Clique para retornar a Pendente' : 'Clique para informar valor e marcar como Pago'}"
+                                title="${isPaid ? 'Clique para retornar a Pendente' : 'Clique para marcar como Pago'}"
                                 onclick="app.handleStatusPillClick(${this.activeMonth}, '${r.id}')">
                             <span class="dot"></span>
                             <span>${isPaid ? 'Pago' : 'Pendente'}</span>
                           </span>
                         </td>
-                        <td style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;">
-                          ${r.bank || '-'}
+                        <td>
+                          <select class="sheet-inline-select" 
+                                  title="Selecione o banco diretamente na planilha"
+                                  onchange="app.updateRevenueField(${this.activeMonth}, '${r.id}', 'bank', this.value)">
+                            <option value="" ${!r.bank ? 'selected' : ''}>— Selecionar Banco —</option>
+                            <option value="Nubank (Nu)" ${r.bank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
+                            <option value="Bradesco" ${r.bank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
+                            <option value="Banco do Brasil" ${r.bank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
+                            <option value="Caixa Poupança" ${r.bank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Poupança</option>
+                            <option value="Caixa CP" ${r.bank === 'Caixa CP' ? 'selected' : ''}>Caixa CP</option>
+                            <option value="Seven" ${r.bank === 'Seven' ? 'selected' : ''}>Seven</option>
+                            <option value="Carteira" ${r.bank === 'Carteira' ? 'selected' : ''}>Carteira (Físico)</option>
+                            <option value="Outro" ${r.bank === 'Outro' ? 'selected' : ''}>Outro</option>
+                          </select>
                         </td>
                         <td style="text-align: right;">
                           <div class="table-actions" style="justify-content: flex-end;">
-                            <button class="btn-table-icon" title="Editar" onclick="app.openEditRevenueModal(${this.activeMonth}, '${r.id}')">
+                            <button class="btn-table-icon" title="Editar Nome" onclick="app.openEditRevenueModal(${this.activeMonth}, '${r.id}')">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                             </button>
                             <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteRevenuePrompt(${this.activeMonth}, '${r.id}')">
@@ -718,10 +781,10 @@ const app = {
                   <tr>
                     <th>Mês</th>
                     <th><span class="th-icon">Aa</span> Renda</th>
-                    <th><span class="th-icon">#</span> Valor</th>
-                    <th><span class="th-icon">📅</span> Data Recebida</th>
-                    <th><span class="th-icon">☼</span> Status</th>
-                    <th><span class="th-icon">↗</span> BANCO</th>
+                    <th style="min-width: 140px;"><span class="th-icon">#</span> Valor</th>
+                    <th style="min-width: 150px;"><span class="th-icon">📅</span> Data Recebida</th>
+                    <th style="width: 120px;"><span class="th-icon">☼</span> Status</th>
+                    <th style="min-width: 175px;"><span class="th-icon">↗</span> BANCO</th>
                     <th>Frequência</th>
                     <th style="width: 80px; text-align: right;"><span class="th-icon">⋯</span> Ações</th>
                   </tr>
@@ -740,21 +803,47 @@ const app = {
                             <strong>${r.source}</strong>
                           </div>
                         </td>
-                        <td style="font-weight: 700; color: ${r.value > 0 ? 'var(--success)' : 'var(--text-muted)'};">
-                          ${r.value > 0 ? formatBRL(r.value) : '-'}
+                        <td>
+                          <div style="display:flex; align-items:center; gap:0.35rem;">
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">R$</span>
+                            <input type="number" step="0.01" 
+                                   class="sheet-inline-input sheet-value-input ${r.value > 0 ? 'has-value' : ''}" 
+                                   value="${r.value > 0 ? r.value : ''}" 
+                                   placeholder="0,00" 
+                                   title="Digite o valor diretamente aqui na planilha"
+                                   onchange="app.updateRevenueField(${r.monthNum}, '${r.id}', 'value', this.value)">
+                          </div>
                         </td>
-                        <td style="color: var(--text-secondary); font-size: 0.85rem;">
-                          ${r.date ? formatDateBR(r.date) : '-'}
+                        <td>
+                          <input type="date" 
+                                 class="sheet-inline-input sheet-date-input" 
+                                 value="${r.date || ''}" 
+                                 title="Defina a data de recebimento diretamente na planilha"
+                                 onchange="app.updateRevenueField(${r.monthNum}, '${r.id}', 'date', this.value)">
                         </td>
                         <td>
                           <span class="status-pill ${isPaid ? 'paid' : 'pending'}" 
-                                title="${isPaid ? 'Clique para retornar a Pendente' : 'Clique para informar valor e marcar como Pago'}"
+                                title="${isPaid ? 'Clique para retornar a Pendente' : 'Clique para marcar como Pago'}"
                                 onclick="app.handleStatusPillClick(${r.monthNum}, '${r.id}')">
                             <span class="dot"></span>
                             <span>${isPaid ? 'Pago' : 'Pendente'}</span>
                           </span>
                         </td>
-                        <td style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 600;">${r.bank || '-'}</td>
+                        <td>
+                          <select class="sheet-inline-select" 
+                                  title="Selecione o banco diretamente na planilha"
+                                  onchange="app.updateRevenueField(${r.monthNum}, '${r.id}', 'bank', this.value)">
+                            <option value="" ${!r.bank ? 'selected' : ''}>— Selecionar Banco —</option>
+                            <option value="Nubank (Nu)" ${r.bank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
+                            <option value="Bradesco" ${r.bank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
+                            <option value="Banco do Brasil" ${r.bank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
+                            <option value="Caixa Poupança" ${r.bank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Poupança</option>
+                            <option value="Caixa CP" ${r.bank === 'Caixa CP' ? 'selected' : ''}>Caixa CP</option>
+                            <option value="Seven" ${r.bank === 'Seven' ? 'selected' : ''}>Seven</option>
+                            <option value="Carteira" ${r.bank === 'Carteira' ? 'selected' : ''}>Carteira (Físico)</option>
+                            <option value="Outro" ${r.bank === 'Outro' ? 'selected' : ''}>Outro</option>
+                          </select>
+                        </td>
                         <td>
                           <span class="badge-recurrence ${r.type === 'anual' || r.type === 'multi-mes' || r.annualGroupId ? 'annual' : 'monthly'}">
                             ${r.type === 'anual' || r.type === 'multi-mes' || r.annualGroupId ? 'Recorrente' : 'Mensal'}
@@ -762,7 +851,7 @@ const app = {
                         </td>
                         <td style="text-align: right;">
                           <div class="table-actions" style="justify-content: flex-end;">
-                            <button class="btn-table-icon" title="Editar" onclick="app.openEditRevenueModal(${r.monthNum}, '${r.id}')">
+                            <button class="btn-table-icon" title="Editar Nome" onclick="app.openEditRevenueModal(${r.monthNum}, '${r.id}')">
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                             </button>
                             <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteRevenuePrompt(${r.monthNum}, '${r.id}')">
@@ -1029,56 +1118,42 @@ const app = {
     // Marca o mês atual por padrão
     this.selectCurrentMonthOnly();
 
-    const bankSelect = document.getElementById('rev_bank');
-    if (bankSelect) bankSelect.value = 'Nubank (Nu)';
-
-    const statusSelect = document.getElementById('rev_status');
-    if (statusSelect) statusSelect.value = 'Pendente';
-
     this.openModal('modalNovaReceita');
   },
 
-  openConfirmPayModal(monthNum, id) {
+  updateRevenueField(monthNum, id, field, value) {
     const m = store.data.months[monthNum];
     if (!m) return;
     const item = m.revenues.find(r => r.id === id);
     if (!item) return;
 
-    document.getElementById('pay_rev_month').value = monthNum;
-    document.getElementById('pay_rev_id').value = id;
-    document.getElementById('pay_rev_source_title').textContent = item.source;
-    document.getElementById('pay_rev_month_badge').textContent = `Mês: ${m.name} • Status atual: ${item.status}`;
+    if (field === 'value') {
+      const oldVal = Number(item.value) || 0;
+      const newVal = Number(value) || 0;
+      item.value = newVal;
 
-    const valInput = document.getElementById('pay_rev_value');
-    if (valInput) valInput.value = item.value && item.value > 0 ? item.value : '';
+      // Se já estava Pago com banco selecionado, ajusta a diferença no saldo do banco
+      if ((item.status === 'Pago' || item.status === 'Recebido') && item.bank && newVal !== oldVal) {
+        const diff = newVal - oldVal;
+        if (diff > 0) store.creditToBank(item.bank, diff);
+        else if (diff < 0) store.debitFromBank(item.bank, Math.abs(diff));
+      }
+    } else if (field === 'date') {
+      item.date = value || '';
+    } else if (field === 'bank') {
+      const oldBank = item.bank;
+      item.bank = value || '';
 
-    const dateInput = document.getElementById('pay_rev_date');
-    if (dateInput) {
-      if (item.date) {
-        dateInput.value = item.date;
-      } else {
-        const now = new Date();
-        const yr = now.getFullYear();
-        const mStr = String(monthNum).padStart(2, '0');
-        const dStr = String(now.getDate()).padStart(2, '0');
-        dateInput.value = `${yr}-${mStr}-${dStr}`;
+      // Se já estava Pago com valor e mudou de banco, transfere o saldo
+      if ((item.status === 'Pago' || item.status === 'Recebido') && item.value > 0 && oldBank && oldBank !== item.bank) {
+        store.debitFromBank(oldBank, item.value);
+        if (item.bank) store.creditToBank(item.bank, item.value);
       }
     }
 
-    const bankSelect = document.getElementById('pay_rev_bank');
-    if (bankSelect) {
-      bankSelect.value = item.bank || 'Nubank (Nu)';
-      const displaySpan = document.getElementById('pay_rev_bank_display');
-      if (displaySpan) displaySpan.textContent = bankSelect.value;
-      bankSelect.onchange = () => {
-        if (displaySpan) displaySpan.textContent = bankSelect.value;
-      };
-    }
-
-    const chkBalance = document.getElementById('pay_rev_update_bank_balance');
-    if (chkBalance) chkBalance.checked = true;
-
-    this.openModal('modalConfirmarRecebimento');
+    store.save();
+    this.renderMonthSummariesOnly();
+    this.renderResumo();
   },
 
   handleStatusPillClick(monthNum, id) {
@@ -1090,18 +1165,25 @@ const app = {
     const isPaid = (item.status === 'Pago' || item.status === 'Recebido');
 
     if (!isPaid) {
-      // Abre modal de confirmação para informar valor e data
-      this.openConfirmPayModal(monthNum, id);
-    } else {
-      // Já está pago, confirma retorno para Pendente
-      if (confirm(`O rendimento "${item.source}" está marcado como PAGO (${formatBRL(item.value)}).\n\nDeseja alterar o status de volta para PENDENTE?`)) {
-        item.status = 'Pendente';
-        store.save();
-        this.renderMeses();
-        this.renderResumo();
-        this.showToast(`Status de "${item.source}" alterado para Pendente.`, 'info');
+      item.status = 'Pago';
+      if (item.value > 0 && item.bank) {
+        store.creditToBank(item.bank, item.value);
+        this.showToast(`✓ "${item.source}" marcado como Pago! (${formatBRL(item.value)} em ${item.bank})`, 'success');
+      } else {
+        this.showToast(`"${item.source}" marcado como Pago! Preencha o valor, data e banco na planilha.`, 'info');
       }
+    } else {
+      item.status = 'Pendente';
+      if (item.value > 0 && item.bank) {
+        store.debitFromBank(item.bank, item.value);
+      }
+      this.showToast(`"${item.source}" alterado para Pendente.`, 'info');
     }
+
+    store.save();
+    this.renderActiveMonthSubtab();
+    this.renderMonthSummariesOnly();
+    this.renderResumo();
   },
 
   openEditRevenueModal(monthNum, id) {
@@ -1853,17 +1935,12 @@ const app = {
       pwdSearch.addEventListener('input', () => this.renderSenhas());
     }
 
-    // Formulário Inserir Rendimento (com seleção de meses e valor/data opcionais)
+    // Formulário Inserir Rendimento (Renda + Meses; Valor, Data e Banco diretamente na planilha)
     const formRev = document.getElementById('formNovaReceita');
     if (formRev) {
       formRev.addEventListener('submit', (e) => {
         e.preventDefault();
         const source = document.getElementById('rev_source').value.trim();
-        const bank = document.getElementById('rev_bank').value;
-        const valRaw = document.getElementById('rev_value').value;
-        const value = valRaw ? Number(valRaw) : 0;
-        const date = document.getElementById('rev_date').value || '';
-        const status = document.getElementById('rev_status').value || 'Pendente';
 
         // Coleta meses marcados
         const checkedMonths = Array.from(document.querySelectorAll('input[name="rev_month_chk"]:checked'))
@@ -1877,17 +1954,17 @@ const app = {
         store.addRevenueToMonths({
           source,
           months: checkedMonths,
-          bank,
-          value,
-          date,
-          status
+          bank: '',
+          value: 0,
+          date: '',
+          status: 'Pendente'
         });
 
         this.closeModal('modalNovaReceita');
         formRev.reset();
         this.renderMeses();
         this.renderResumo();
-        this.showToast(`Rendimento "${source}" lançado em ${checkedMonths.length} mês(es)!`, 'success');
+        this.showToast(`Rendimento "${source}" inserido em ${checkedMonths.length} mês(es)! Preencha o valor, data e banco diretamente na planilha.`, 'success');
       });
     }
 

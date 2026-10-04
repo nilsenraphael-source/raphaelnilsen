@@ -255,7 +255,7 @@ class DataStore {
   addRevenueToMonths(config) {
     const source = (config.source || 'Rendimento').trim();
     const months = Array.isArray(config.months) && config.months.length > 0 ? config.months : [new Date().getMonth() + 1];
-    const bank = config.bank || 'Nubank (Nu)';
+    const bank = config.bank !== undefined ? config.bank : '';
     const value = config.value ? Number(config.value) : 0;
     const date = config.date || '';
     const status = config.status || 'Pendente';

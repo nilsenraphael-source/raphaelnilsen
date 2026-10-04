@@ -2052,3 +2052,90 @@ textarea.form-input {
   gap: 1.25rem;
   font-size: 0.82rem;
 }
+
+/* ==========================================================================
+   PLANILHA: CÉLULAS EDITÁVEIS DIRETAMENTE NA TABELA (VALOR, DATA, BANCO)
+   ========================================================================== */
+.sheet-inline-input {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.86rem;
+  padding: 0.32rem 0.6rem;
+  transition: all var(--transition-fast);
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sheet-inline-input:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.sheet-inline-input:focus {
+  background: #0f172a;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+  color: #ffffff;
+}
+
+.sheet-value-input {
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  max-width: 125px;
+}
+
+.sheet-value-input.has-value {
+  color: #34d399;
+}
+
+.sheet-value-input:placeholder-shown {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.sheet-date-input {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  max-width: 135px;
+}
+
+.sheet-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+.sheet-inline-select {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.32rem 0.6rem;
+  outline: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  max-width: 165px;
+  width: 100%;
+}
+
+.sheet-inline-select:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.sheet-inline-select:focus {
+  border-color: #38bdf8;
+  background: #0f172a;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+}
+
+.sheet-inline-select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
