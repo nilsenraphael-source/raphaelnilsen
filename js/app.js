@@ -134,13 +134,37 @@ const app = {
 
   async autoSyncOnStartup() {
     if (typeof supabaseService !== 'undefined' && supabaseService.isConfigured()) {
+      this.setCloudSyncing(true);
       const res = await supabaseService.loadFromCloud(true);
       if (res.success) {
         this.render();
-        this.showToast('☁️ Dados sincronizados com a Nuvem!', 'success');
+        this.setCloudSyncing(false, true, store.data.settings.lastSync);
+        this.showToast('☁️ Dados carregados da Nuvem!', 'success');
       } else {
         // Se ainda não havia dados na nuvem, sobe o estado inicial
-        supabaseService.syncToCloud(true);
+        const syncRes = await supabaseService.syncToCloud(true);
+        this.setCloudSyncing(false, syncRes.success, syncRes.timestamp);
+      }
+    }
+  },
+
+  setCloudSyncing(isSyncing, success = true, timestamp = null) {
+    const pill = document.getElementById('cloudSyncStatus');
+    const text = document.getElementById('cloudStatusText');
+    if (!pill || !text) return;
+
+    if (isSyncing) {
+      pill.className = 'cloud-status-pill syncing';
+      text.textContent = '☁️ Salvando na Nuvem...';
+    } else {
+      if (success) {
+        pill.className = 'cloud-status-pill';
+        const now = timestamp ? new Date(timestamp) : new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        text.textContent = `☁️ Salvo (${timeStr})`;
+      } else {
+        pill.className = 'cloud-status-pill error';
+        text.textContent = '☁️ Erro na Nuvem';
       }
     }
   },
@@ -151,10 +175,9 @@ const app = {
       this.showToast('Configure as chaves do Supabase para sincronizar.', 'info');
       return;
     }
-    const btn = document.getElementById('btnSyncCloud');
-    if (btn) btn.textContent = '⏳ Sincronizando...';
+    this.setCloudSyncing(true);
     const res = await supabaseService.syncToCloud(false);
-    if (btn) btn.textContent = '☁️ Sincronizar';
+    this.setCloudSyncing(false, res.success, res.timestamp);
     if (res.success) {
       this.showToast('✅ Sincronizado com o Supabase!', 'success');
       this.updateSupabaseModalUI();

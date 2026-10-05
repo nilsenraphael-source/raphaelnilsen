@@ -24,8 +24,8 @@ class SupabaseService {
   }
 
   isConfigured() {
-    const config = typeof store !== 'undefined' ? store.data.settings.supabase : null;
-    return !!(config && config.url && config.anonKey);
+    const config = typeof store !== 'undefined' ? store.data?.settings?.supabase : null;
+    return !!(config && config.url && config.anonKey && !config.url.includes('seu-projeto'));
   }
 
   saveConfig(url, anonKey) {
@@ -45,10 +45,11 @@ class SupabaseService {
     }
 
     try {
+      const nowIso = new Date().toISOString();
       const payload = {
-        user_email: store.data.settings.userEmail,
+        user_email: (store.data.settings.userEmail || 'raphael_nilsen@hotmail.com').trim().toLowerCase(),
         data_json: store.data,
-        updated_at: new Date().toISOString()
+        updated_at: nowIso
       };
 
       const { data, error } = await this.client
@@ -57,10 +58,10 @@ class SupabaseService {
 
       if (error) throw error;
 
-      store.data.settings.lastSync = new Date().toISOString();
+      store.data.settings.lastSync = nowIso;
       store.save(true); // salva lastSync sem disparar novo loop
-      if (!silent) console.log('[Cofre Supabase] Sincronização concluída com sucesso.');
-      return { success: true, message: 'Dados salvos com sucesso no Cofre Supabase!' };
+      if (!silent) console.log('[Cofre Supabase] Sincronização concluída com sucesso às ' + nowIso);
+      return { success: true, message: 'Dados salvos com sucesso no Cofre Supabase!', timestamp: nowIso };
     } catch (e) {
       console.error('[Cofre Supabase] Erro ao sincronizar:', e);
       return { success: false, error: e.message || 'Erro ao sincronizar com o Supabase' };

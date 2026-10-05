@@ -209,13 +209,12 @@
             <span id="headerLiveTime" class="header-clock-text">--:--:--</span>
           </div>
 
-          <!-- Botões Nuvem / Supabase / Backup -->
-          <button id="btnSyncCloud" class="btn-header" title="Sincronizar dados com o Supabase" onclick="app.syncCloud()">
-            ☁️ Sincronizar
-          </button>
-          <button class="btn-header" title="Configurar Conexão do Supabase" onclick="app.openModal('modalConfigSupabase')">
-            ⚙️ Supabase
-          </button>
+          <!-- Status de Sincronização 100% Automática na Nuvem -->
+          <div id="cloudSyncStatus" class="cloud-status-pill" title="Sincronização 100% Automática na Nuvem (Clique para detalhes)" onclick="app.openModal('modalConfigSupabase')">
+            <span class="cloud-status-dot"></span>
+            <span id="cloudStatusText">☁️ Nuvem Ativa</span>
+          </div>
+
           <button class="btn-header" title="Baixar Backup dos Dados" onclick="app.downloadBackup()">
             💾 Backup
           </button>

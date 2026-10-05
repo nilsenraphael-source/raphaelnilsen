@@ -101,7 +101,11 @@ class DataStore {
         const parsed = JSON.parse(stored);
         const merged = { ...INITIAL_DATABASE, ...parsed };
         if (!merged.settings) merged.settings = { ...INITIAL_DATABASE.settings };
-        if (!merged.settings.supabase || !merged.settings.supabase.url || !merged.settings.supabase.anonKey) {
+        if (!merged.settings.supabase || 
+            !merged.settings.supabase.url || 
+            merged.settings.supabase.url.includes('seu-projeto') ||
+            !merged.settings.supabase.anonKey ||
+            merged.settings.supabase.anonKey.includes('sua-chave')) {
           merged.settings.supabase = { ...INITIAL_DATABASE.settings.supabase };
         }
 
@@ -217,10 +221,16 @@ class DataStore {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
       if (!skipCloudSync && typeof window !== 'undefined' && window.supabaseService && window.supabaseService.isConfigured()) {
+        if (typeof app !== 'undefined' && app.setCloudSyncing) {
+          app.setCloudSyncing(true);
+        }
         if (this._syncTimeout) clearTimeout(this._syncTimeout);
-        this._syncTimeout = setTimeout(() => {
-          window.supabaseService.syncToCloud(true);
-        }, 1500);
+        this._syncTimeout = setTimeout(async () => {
+          const res = await window.supabaseService.syncToCloud(true);
+          if (typeof app !== 'undefined' && app.setCloudSyncing) {
+            app.setCloudSyncing(false, res.success, res.timestamp);
+          }
+        }, 500);
       }
     } catch (e) {
       console.error('Erro ao salvar no localStorage', e);
