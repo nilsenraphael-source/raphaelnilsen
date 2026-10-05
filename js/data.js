@@ -462,11 +462,19 @@ class DataStore {
       const gid = item.annualGroupId;
       for (let m = 1; m <= 12; m++) {
         if (this.data.months[m] && this.data.months[m].revenues) {
+          this.data.months[m].revenues.filter(r => r.annualGroupId === gid).forEach(r => {
+            if (typeof window !== 'undefined' && window.supabaseService) {
+              window.supabaseService.deleteRowFromTable('receitas', r.id);
+            }
+          });
           this.data.months[m].revenues = this.data.months[m].revenues.filter(r => r.annualGroupId !== gid);
         }
       }
     } else {
       this.data.months[monthNum].revenues = this.data.months[monthNum].revenues.filter(r => r.id !== id);
+      if (typeof window !== 'undefined' && window.supabaseService) {
+        window.supabaseService.deleteRowFromTable('receitas', id);
+      }
     }
     this.save();
   }
@@ -520,6 +528,9 @@ class DataStore {
   deleteFixedExpense(monthNum, id) {
     if (!this.data.months[monthNum]) return;
     this.data.months[monthNum].fixedExpenses = this.data.months[monthNum].fixedExpenses.filter(e => e.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('despesas_fixas', id);
+    }
     this.save();
   }
 
@@ -535,6 +546,9 @@ class DataStore {
   deleteVariableExpense(monthNum, id) {
     if (!this.data.months[monthNum]) return;
     this.data.months[monthNum].variableExpenses = this.data.months[monthNum].variableExpenses.filter(e => e.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('despesas_variaveis', id);
+    }
     this.save();
   }
 
@@ -756,6 +770,9 @@ class DataStore {
 
   deleteCardPurchase(id) {
     this.data.cardPurchases = this.data.cardPurchases.filter(p => p.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('compras_cartao', id);
+    }
     this.save();
   }
 
@@ -771,6 +788,9 @@ class DataStore {
 
   deleteDream(id) {
     this.data.dreams = this.data.dreams.filter(d => d.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('sonhos_metas', id);
+    }
     this.save();
   }
 
@@ -793,6 +813,9 @@ class DataStore {
 
   deleteFirefighterRecord(id) {
     this.data.firefighterRecords = this.data.firefighterRecords.filter(r => r.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('bombeiro_ressarcimento', id);
+    }
     this.save();
   }
 
@@ -824,6 +847,9 @@ class DataStore {
 
   deleteJoturHistory(id) {
     this.data.jotur.history = this.data.jotur.history.filter(h => h.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('troco_jotur', id);
+    }
     this.save();
   }
 
@@ -840,6 +866,9 @@ class DataStore {
 
   deleteStock(id) {
     this.data.investments.stocks = this.data.investments.stocks.filter(s => s.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('investimentos_bolsa', id);
+    }
     this.save();
   }
 
@@ -853,6 +882,9 @@ class DataStore {
 
   deleteNubankBox(id) {
     this.data.investments.nubankBoxes = this.data.investments.nubankBoxes.filter(b => b.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('investimentos_caixinhas', id);
+    }
     this.save();
   }
 
@@ -876,6 +908,9 @@ class DataStore {
 
   deletePassword(id) {
     this.data.passwords = this.data.passwords.filter(p => p.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('cofre_senhas', id);
+    }
     this.save();
   }
 
