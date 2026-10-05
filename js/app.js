@@ -139,6 +139,8 @@ const app = {
       if (res.success) {
         this.render();
         this.setCloudSyncing(false, true, store.data.settings.lastSync);
+        // Garante que todas as tabelas relacionais estejam sincronizadas com o estado da nuvem
+        supabaseService.syncToRelationalTables(store.data);
         this.showToast('☁️ Dados carregados da Nuvem!', 'success');
       } else {
         // Se ainda não havia dados na nuvem, sobe o estado inicial

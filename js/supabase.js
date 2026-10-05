@@ -59,7 +59,7 @@ class SupabaseService {
       if (error) throw error;
 
       // Sincroniza também as tabelas relacionais individuais no Supabase
-      this.syncToRelationalTables(store.data);
+      await this.syncToRelationalTables(store.data);
 
       store.data.settings.lastSync = nowIso;
       store.save(true); // salva lastSync sem disparar novo loop
