@@ -146,14 +146,40 @@ const app = {
   },
 
   async syncCloud() {
+    if (typeof supabaseService === 'undefined' || !supabaseService.isConfigured()) {
+      this.openModal('modalConfigSupabase');
+      this.showToast('Configure as chaves do Supabase para sincronizar.', 'info');
+      return;
+    }
     const btn = document.getElementById('btnSyncCloud');
     if (btn) btn.textContent = '⏳ Sincronizando...';
     const res = await supabaseService.syncToCloud(false);
-    if (btn) btn.textContent = '☁️ Nuvem';
+    if (btn) btn.textContent = '☁️ Sincronizar';
     if (res.success) {
       this.showToast('✅ Sincronizado com o Supabase!', 'success');
+      this.updateSupabaseModalUI();
     } else {
       this.showToast(res.error || res.reason || 'Erro ao sincronizar', 'warning');
+    }
+  },
+
+  async restoreFromCloud() {
+    if (typeof supabaseService === 'undefined' || !supabaseService.isConfigured()) {
+      this.showToast('Configure as chaves do Supabase primeiro!', 'warning');
+      return;
+    }
+    if (!confirm('Deseja baixar os dados salvos na nuvem? Os dados locais atuais serão substituídos pelo backup do Supabase.')) {
+      return;
+    }
+    this.showToast('Baixando dados da nuvem...', 'info');
+    const res = await supabaseService.loadFromCloud(false);
+    if (res.success) {
+      this.render();
+      this.updateSupabaseModalUI();
+      this.showToast('✅ Dados restaurados do Supabase com sucesso!', 'success');
+      this.closeModal('modalConfigSupabase');
+    } else {
+      this.showToast(res.error || res.reason || 'Erro ao carregar dados da nuvem', 'warning');
     }
   },
 
@@ -2469,7 +2495,42 @@ const app = {
   openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
+      if (modalId === 'modalConfigSupabase') {
+        this.updateSupabaseModalUI();
+      }
       modal.classList.add('active');
+    }
+  },
+
+  updateSupabaseModalUI() {
+    const sbConfig = store.data.settings?.supabase;
+    const isConfigured = typeof supabaseService !== 'undefined' && supabaseService.isConfigured();
+    const urlInput = document.getElementById('sb_url');
+    const keyInput = document.getElementById('sb_key');
+    const badge = document.getElementById('sbStatusBadge');
+    const details = document.getElementById('sbStatusDetails');
+
+    if (urlInput && sbConfig?.url) urlInput.value = sbConfig.url;
+    if (keyInput && sbConfig?.anonKey) keyInput.value = sbConfig.anonKey;
+
+    if (badge) {
+      if (isConfigured) {
+        badge.className = 'badge-pill-counter green';
+        badge.textContent = '● Conectado';
+      } else {
+        badge.className = 'badge-pill-counter orange';
+        badge.textContent = '● Não Configurado';
+      }
+    }
+
+    if (details) {
+      const lastSync = store.data.settings?.lastSync;
+      if (lastSync) {
+        const d = new Date(lastSync);
+        details.textContent = `Última sincronização com sucesso: ${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR')}`;
+      } else {
+        details.textContent = isConfigured ? 'Pronto para sincronizar com a nuvem.' : 'Informe as credenciais do seu projeto Supabase.';
+      }
     }
   },
 
@@ -3050,18 +3111,19 @@ const app = {
     if (formSupabase) {
       formSupabase.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const url = document.getElementById('sb_url').value;
-        const key = document.getElementById('sb_key').value;
+        const url = document.getElementById('sb_url').value.trim();
+        const key = document.getElementById('sb_key').value.trim();
         supabaseService.saveConfig(url, key);
-        this.closeModal('modalConfigSupabase');
-        this.showToast('Chaves do Supabase salvas!', 'success');
+        this.updateSupabaseModalUI();
+        this.showToast('Chaves salvas! Enviando dados para o Supabase...', 'info');
 
         // Tenta sincronizar
-        const res = await supabaseService.syncToCloud();
+        const res = await supabaseService.syncToCloud(false);
         if (res.success) {
-          this.showToast('Sincronizado com o Supabase!', 'success');
+          this.showToast('✅ Conectado e Sincronizado com o Supabase!', 'success');
+          this.closeModal('modalConfigSupabase');
         } else {
-          this.showToast(res.message || res.reason || 'Salvo localmente.', 'info');
+          this.showToast(res.error || res.message || res.reason || 'Salvo localmente.', 'warning');
         }
       });
     }
