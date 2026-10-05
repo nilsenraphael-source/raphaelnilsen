@@ -1387,6 +1387,15 @@ const app = {
     // Marca o mês atual por padrão
     this.selectCurrentMonthOnly();
 
+    const dateInp = document.getElementById('rev_date');
+    if (dateInp) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      dateInp.value = `${yyyy}-${mm}-${dd}`;
+    }
+
     this.openModal('modalNovaReceita');
 
     setTimeout(() => {
@@ -1507,7 +1516,6 @@ const app = {
     store.save();
     this.renderMeses();
     this.renderResumo();
-    this.renderContas();
   },
 
   openEditRevenueModal(monthNum, id) {
@@ -2790,9 +2798,8 @@ const app = {
 
         this.renderMeses();
         this.renderResumo();
-        this.renderContas();
         
-        this.showToast(`✓ Rendimento "${source}" inserido em ${checkedMonths.length} mês(es)! Preencha na planilha ao receber.`, 'success');
+        this.showToast(`✓ Rendimento "${source}" salvo com sucesso!`, 'success');
       });
     }
 
