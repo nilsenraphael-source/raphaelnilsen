@@ -605,6 +605,11 @@ class DataStore {
         if (dueYear === targetYear && dueMonth === targetMonth) {
           const key = `${purchase.id}_${i + 1}`;
           const status = (m && m.cardInstallmentStatus && m.cardInstallmentStatus[key]) || 'Pendente';
+          const valuePaidStored = (m && m.cardInstallmentPaid && m.cardInstallmentPaid[key] !== undefined && m.cardInstallmentPaid[key] !== null)
+            ? Number(m.cardInstallmentPaid[key])
+            : null;
+          const valuePaid = valuePaidStored !== null ? valuePaidStored : (status === 'Pago' ? installmentValue : 0);
+
           list.push({
             key: key,
             purchaseId: purchase.id,
@@ -614,6 +619,9 @@ class DataStore {
             installmentIndex: i + 1,
             installmentsTotal: installmentsCount,
             value: installmentValue,
+            valueExpected: installmentValue,
+            valuePaid: valuePaid,
+            valuePaidStored: valuePaidStored,
             date: purchase.date,
             startMonth: startMonth,
             startYear: startYear,
@@ -633,11 +641,30 @@ class DataStore {
     const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
     if (!m) return 'Pendente';
     if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
+    if (!m.cardInstallmentPaid) m.cardInstallmentPaid = {};
     const current = m.cardInstallmentStatus[key] || 'Pendente';
     const next = current === 'Pago' ? 'Pendente' : 'Pago';
     m.cardInstallmentStatus[key] = next;
+    if (next === 'Pago' && (m.cardInstallmentPaid[key] === undefined || m.cardInstallmentPaid[key] === null)) {
+      const installments = this.getCardInstallmentsForMonth(monthNum, targetYear);
+      const inst = installments.find(c => c.key === key);
+      if (inst) m.cardInstallmentPaid[key] = inst.value;
+    }
     this.save();
     return next;
+  }
+
+  setCardInstallmentPaidValue(monthNum, key, valuePaid, status = null, year = this.activeYear) {
+    const targetYear = Number(year) || this.activeYear;
+    const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
+    if (!m) return;
+    if (!m.cardInstallmentPaid) m.cardInstallmentPaid = {};
+    m.cardInstallmentPaid[key] = Number(valuePaid) || 0;
+    if (status) {
+      if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
+      m.cardInstallmentStatus[key] = status;
+    }
+    this.save();
   }
 
   setAllCardInstallmentsStatus(monthNum, status = 'Pago', year = this.activeYear) {
@@ -645,9 +672,13 @@ class DataStore {
     const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
     if (!m) return;
     if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
+    if (!m.cardInstallmentPaid) m.cardInstallmentPaid = {};
     const installments = this.getCardInstallmentsForMonth(monthNum, targetYear);
     installments.forEach(inst => {
       m.cardInstallmentStatus[inst.key] = status;
+      if (status === 'Pago' && (m.cardInstallmentPaid[inst.key] === undefined || m.cardInstallmentPaid[inst.key] === null)) {
+        m.cardInstallmentPaid[inst.key] = inst.value;
+      }
     });
     this.save();
   }
@@ -668,7 +699,7 @@ class DataStore {
       revenues: 0, revenuesPaid: 0, revenuesPending: 0,
       fixed: 0, fixedPaid: 0, fixedPending: 0, fixedCount: 0, fixedPaidCount: 0, fixedPct: 100,
       variable: 0,
-      card: 0, cardPaid: 0, cardPending: 0, cardCount: 0, cardPaidCount: 0, cardPct: 100,
+      card: 0, cardExpected: 0, cardPaid: 0, cardPending: 0, cardCount: 0, cardPaidCount: 0, cardPct: 100,
       expenses: 0, balance: 0
     };
 
@@ -687,16 +718,17 @@ class DataStore {
     const totalVariable = m.variableExpenses.reduce((acc, e) => acc + (Number(e.value) || 0), 0);
     
     const cardInstallments = this.getCardInstallmentsForMonth(monthNum);
-    const totalCard = cardInstallments.reduce((acc, c) => acc + c.value, 0);
-    const cardPaid = cardInstallments.filter(c => c.status === 'Pago').reduce((acc, c) => acc + c.value, 0);
-    const cardPending = cardInstallments.filter(c => c.status !== 'Pago').reduce((acc, c) => acc + c.value, 0);
+    const totalCard = cardInstallments.reduce((acc, c) => acc + (Number(c.value) || 0), 0);
+    const cardPaid = cardInstallments.filter(c => c.status === 'Pago').reduce((acc, c) => acc + (Number(c.valuePaid) || Number(c.value) || 0), 0);
+    const cardPending = cardInstallments.filter(c => c.status !== 'Pago').reduce((acc, c) => acc + (Number(c.value) || 0), 0);
     const cardCount = cardInstallments.length;
     const cardPaidCount = cardInstallments.filter(c => c.status === 'Pago').length;
     const cardPct = cardCount === 0 ? 100 : (totalCard > 0 ? Math.min(100, Math.round((cardPaid / totalCard) * 100)) : (cardPaidCount === cardCount ? 100 : 0));
 
-    const totalExpenses = totalFixed + totalVariable + totalCard;
-    // O Saldo Líquido do Mês considera apenas as receitas EFETIVAMENTE RECEBIDAS (Pago)
-    const balance = totalRevenuesPaid - totalExpenses;
+    // Saldo Líquido do Mês: subtrai apenas despesas EFETIVAMENTE REALIZADAS / PAGAS
+    const totalExpensesRealized = fixedPaid + totalVariable + cardPaid;
+    const totalExpensesExpected = fixedExpected + totalVariable + totalCard;
+    const balance = totalRevenuesPaid - totalExpensesRealized;
 
     return {
       revenues: totalRevenuesPaid,
@@ -712,12 +744,14 @@ class DataStore {
       fixedPct: fixedPct,
       variable: totalVariable,
       card: totalCard,
+      cardExpected: totalCard,
       cardPaid: cardPaid,
       cardPending: cardPending,
       cardCount: cardCount,
       cardPaidCount: cardPaidCount,
       cardPct: cardPct,
-      expenses: totalExpenses,
+      expenses: totalExpensesRealized,
+      expensesExpected: totalExpensesExpected,
       balance: balance
     };
   }

@@ -544,8 +544,11 @@ const app = {
     const elVar = document.getElementById('monthSumVar');
     if (elVar) elVar.textContent = formatBRL(summary.variable);
 
+    const elCardExp = document.getElementById('monthSumCardExp');
+    if (elCardExp) elCardExp.textContent = formatBRL(summary.cardExpected || summary.card);
+
     const elCard = document.getElementById('monthSumCard');
-    if (elCard) elCard.textContent = formatBRL(summary.card);
+    if (elCard) elCard.textContent = formatBRL(summary.cardPaid || 0);
 
     const elBal = document.getElementById('monthSumBal');
     if (elBal) {
@@ -686,8 +689,11 @@ const app = {
     const elVar = document.getElementById('monthSumVar');
     if (elVar) elVar.textContent = formatBRL(summary.variable);
 
+    const elCardExp = document.getElementById('monthSumCardExp');
+    if (elCardExp) elCardExp.textContent = formatBRL(summary.cardExpected || summary.card);
+
     const elCard = document.getElementById('monthSumCard');
-    if (elCard) elCard.textContent = formatBRL(summary.card);
+    if (elCard) elCard.textContent = formatBRL(summary.cardPaid || 0);
 
     const elBal = document.getElementById('monthSumBal');
     if (elBal) {
@@ -1288,14 +1294,17 @@ const app = {
             <h3 class="card-title">Fatura / Parcelas de Cartão para ${m.name}</h3>
             <span class="card-subtitle">Encaminhado automaticamente do Módulo Cartão de Crédito</span>
           </div>
-          <div style="display:flex; gap:1rem; align-items:center;">
+          <div style="display:flex; gap:1.25rem; align-items:center; flex-wrap:wrap;">
             ${cardHasItems ? `
               <button class="btn-header" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" onclick="app.togglePayAllCards(${this.activeMonth})">
                 ${cardIsComplete ? '↩ Desmarcar Fatura' : '✓ Quitar Fatura do Mês'}
               </button>
             ` : ''}
+            <div style="font-size: 0.95rem; font-weight: 700; color: #fbbf24;">
+              Previsto: ${formatBRL(summary.cardExpected || summary.card)}
+            </div>
             <div style="font-size: 1.1rem; font-weight: 800; color: var(--danger);">
-              Total: ${formatBRL(summary.card)}
+              Pago: ${formatBRL(summary.cardPaid || 0)}
             </div>
           </div>
         </div>
@@ -1314,6 +1323,7 @@ const app = {
             <span style="font-weight:800; font-family:monospace; font-size:0.95rem; color:${cardIsComplete ? '#34d399' : 'var(--text-primary)'};">${cardHasItems ? summary.cardPct + '%' : '-'}</span>
           </div>
           <div class="subtab-progress-banner-stats">
+            <span class="progress-stat-pill" style="background: rgba(251, 191, 36, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.25);"><span class="dot" style="background: #fbbf24;"></span> Previsto: ${formatBRL(summary.cardExpected || summary.card)}</span>
             <span class="progress-stat-pill paid"><span class="dot"></span> Pago: ${formatBRL(summary.cardPaid)}</span>
             <span class="progress-stat-pill pending"><span class="dot"></span> Pendente: ${formatBRL(summary.cardPending)}</span>
           </div>
@@ -1327,27 +1337,41 @@ const app = {
                 <th>Estabelecimento</th>
                 <th>Cartão</th>
                 <th>Parcela</th>
-                <th>Valor da Parcela</th>
-                <th>Estado</th>
+                <th>Valor Previsto</th>
+                <th>Valor Pago</th>
+                <th>Status</th>
                 <th>Data da Compra</th>
+                <th style="width: 70px; text-align: center;">Ações</th>
               </tr>
             </thead>
             <tbody>
               ${cardInstallments.length === 0 ? `
-                <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma parcela de cartão caindo neste mês.</td></tr>
+                <tr><td colspan="9" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma parcela de cartão caindo neste mês.</td></tr>
               ` : cardInstallments.map(c => `
                 <tr>
                   <td><strong>${c.description}</strong></td>
                   <td>${c.place || '-'}</td>
                   <td><span class="status-badge neutral">${c.card}</span></td>
                   <td><span class="status-badge waiting">${c.installmentIndex} de ${c.installmentsTotal}</span></td>
-                  <td style="color: var(--danger); font-weight: 700;">${formatBRL(c.value)}</td>
+                  <td style="color: #fbbf24; font-weight: 700;">${formatBRL(c.value)}</td>
+                  <td>
+                    ${c.status === 'Pago' ? `
+                      <span style="color: var(--danger); font-weight: 800; cursor:pointer;" onclick="app.openEditCardInstallmentModal(${this.activeMonth}, '${c.key}')" title="Clique para editar valor pago">
+                        ${formatBRL(c.valuePaid !== undefined && c.valuePaid !== null ? c.valuePaid : c.value)} ✏️
+                      </span>
+                    ` : `
+                      <span style="color: var(--text-muted); font-weight: 500;">-</span>
+                    `}
+                  </td>
                   <td>
                     <button class="status-badge ${c.status === 'Pago' ? 'paid' : 'pending'}" style="cursor:pointer; border:none;" onclick="app.toggleCardInstallment(${this.activeMonth}, '${c.key}')" title="Clique para alterar status">
                       ${c.status === 'Pago' ? '✓ Pago' : '⏳ Pendente'}
                     </button>
                   </td>
                   <td>${formatDateBR(c.date)}</td>
+                  <td style="text-align:center;">
+                    <button class="action-btn edit" onclick="app.openEditCardInstallmentModal(${this.activeMonth}, '${c.key}')" title="Editar Valor Pago ou Status">✏️</button>
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1656,6 +1680,27 @@ const app = {
     this.renderMeses();
     this.renderResumo();
     this.showToast(targetStatus === 'Pago' ? 'Fatura do mês marcada como paga!' : 'Fatura do mês marcada como pendente.', 'success');
+  },
+
+  openEditCardInstallmentModal(monthNum, key) {
+    const installments = store.getCardInstallmentsForMonth(monthNum);
+    const inst = installments.find(c => c.key === key);
+    if (!inst) return;
+
+    document.getElementById('edit_card_inst_month').value = monthNum;
+    document.getElementById('edit_card_inst_key').value = key;
+    document.getElementById('edit_card_inst_desc').value = inst.description || '';
+    document.getElementById('edit_card_inst_info').value = `${inst.card} — Parcela ${inst.installmentIndex} de ${inst.installmentsTotal}`;
+    document.getElementById('edit_card_inst_val_exp').value = formatMoneyDisplay(inst.value);
+    
+    const currentPaid = (inst.valuePaidStored !== null && inst.valuePaidStored !== undefined)
+      ? inst.valuePaidStored
+      : (inst.status === 'Pago' ? inst.value : inst.value);
+
+    document.getElementById('edit_card_inst_val_paid').value = formatMoneyDisplay(currentPaid);
+    document.getElementById('edit_card_inst_status').value = inst.status || 'Pendente';
+
+    this.openModal('modalEditarParcelaCartao');
   },
 
   deleteVariableExpense(monthNum, id) {
@@ -2944,6 +2989,26 @@ const app = {
         this.renderMeses();
         this.renderResumo();
         this.showToast('Despesa fixa atualizada com sucesso!', 'success');
+      });
+    }
+
+    // Formulário Editar Parcela de Cartão
+    const formEditCardInst = document.getElementById('formEditarParcelaCartao');
+    if (formEditCardInst) {
+      formEditCardInst.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const monthNum = Number(document.getElementById('edit_card_inst_month').value) || this.activeMonth;
+        const key = document.getElementById('edit_card_inst_key').value;
+        const valPaidRaw = document.getElementById('edit_card_inst_val_paid').value.trim();
+        const status = document.getElementById('edit_card_inst_status').value;
+        const valPaid = parseMoney(valPaidRaw);
+
+        store.setCardInstallmentPaidValue(monthNum, key, valPaid, status);
+        this.closeModal('modalEditarParcelaCartao');
+        formEditCardInst.reset();
+        this.renderMeses();
+        this.renderResumo();
+        this.showToast('Parcela de cartão atualizada com sucesso!', 'success');
       });
     }
 

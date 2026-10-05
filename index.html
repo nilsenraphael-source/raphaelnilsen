@@ -370,7 +370,11 @@
                   <div id="monthSumVar" class="metric-pill-val" style="color:var(--danger);">R$ 0,00</div>
                 </div>
                 <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light);">
-                  <div class="metric-pill-label">Fatura Cartões</div>
+                  <div class="metric-pill-label">Fatura Prevista</div>
+                  <div id="monthSumCardExp" class="metric-pill-val" style="color:#fbbf24;">R$ 0,00</div>
+                </div>
+                <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light);">
+                  <div class="metric-pill-label">Fatura Paga</div>
                   <div id="monthSumCard" class="metric-pill-val" style="color:var(--danger);">R$ 0,00</div>
                 </div>
                 <div class="metric-pill" style="background:var(--navy); border-color:var(--navy);">
@@ -560,7 +564,7 @@
                     <th>Data Solicitada</th>
                     <th>Data de Pagamento</th>
                     <th>Valor a Receber</th>
-                    <th>Estado (Status)</th>
+                    <th>Status</th>
                     <th style="width: 80px;">Ações</th>
                   </tr>
                 </thead>
@@ -1155,6 +1159,53 @@
     </div>
   </div>
 
+  <!-- Modal: Editar Parcela de Cartão de Crédito -->
+  <div id="modalEditarParcelaCartao" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Editar Parcela de Cartão</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalEditarParcelaCartao')">✕</button>
+      </div>
+      <form id="formEditarParcelaCartao">
+        <input type="hidden" id="edit_card_inst_month">
+        <input type="hidden" id="edit_card_inst_key">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Compra / Descrição</label>
+            <input type="text" id="edit_card_inst_desc" class="form-input" readonly style="opacity: 0.85; background: rgba(255,255,255,0.03);">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Cartão & Parcela</label>
+              <input type="text" id="edit_card_inst_info" class="form-input" readonly style="opacity: 0.85; background: rgba(255,255,255,0.03);">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Previsto (R$)</label>
+              <input type="text" id="edit_card_inst_val_exp" class="form-input" readonly style="opacity: 0.9; font-weight:700; color: #fbbf24; background: rgba(255,255,255,0.03);">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Valor Pago (R$)</label>
+              <input type="text" inputmode="decimal" id="edit_card_inst_val_paid" class="form-input" placeholder="0,00" style="font-weight: 700; color: #34d399;" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select id="edit_card_inst_status" class="form-input">
+                <option value="Pendente">Pendente</option>
+                <option value="Pago">Pago</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalEditarParcelaCartao')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Alterações</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal: Nova Despesa Variável -->
   <div id="modalNovaDespesaVariavel" class="modal-overlay">
     <div class="modal-dialog">
@@ -1380,7 +1431,7 @@
               <input type="number" step="0.01" id="ff_amount" class="form-input" required placeholder="0,00">
             </div>
             <div class="form-group">
-              <label class="form-label">Estado (Status)</label>
+              <label class="form-label">Status</label>
               <select id="ff_status" class="form-input">
                 <option value="Solicitado">Solicitado</option>
                 <option value="Em Análise">Em Análise</option>
