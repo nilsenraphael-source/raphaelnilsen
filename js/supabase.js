@@ -273,6 +273,20 @@ class SupabaseService {
         await this.client.from('troco_jotur').upsert(joturRows);
       }
 
+      // 8.1 Troco Mastes (R$ 400,00)
+      if (data.trocoMastes && Array.isArray(data.trocoMastes.history) && data.trocoMastes.history.length > 0) {
+        const mastesRows = data.trocoMastes.history.map(m => ({
+          id: String(m.id || ('ms_' + new Date(m.date || Date.now()).getTime())),
+          user_email: email,
+          data_hora: m.date || nowIso,
+          troco_base: Number(m.baseAmount || data.trocoMastes.baseAmount) || 400,
+          total_contado: Number(m.totalCounted) || 0,
+          resultado: m.diffText || m.status || '',
+          updated_at: nowIso
+        }));
+        await this.client.from('troco_mastes').upsert(mastesRows).catch(() => {});
+      }
+
       // 9. Cofre de Senhas
       if (Array.isArray(data.passwords) && data.passwords.length > 0) {
         const pwdRows = data.passwords.map(p => ({

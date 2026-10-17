@@ -58,10 +58,18 @@ const INITIAL_DATABASE = {
   // 5. Bombeiro Comunitário
   firefighterRecords: [],
 
-  // 6. Controle de Troco Jotur
+  // 6. Controle de Troco Jotur (Base R$ 200,00)
   jotur: {
     baseAmount: 200.00,
-    history: []
+    history: [],
+    annualAccumulated: []
+  },
+
+  // 6.1 Controle de Troco Mastes (Base R$ 400,00)
+  trocoMastes: {
+    baseAmount: 400.00,
+    history: [],
+    annualAccumulated: []
   },
 
   // 7. Investimentos
@@ -119,6 +127,23 @@ class DataStore {
           if (!Array.isArray(merged.investments.stockEarnings)) merged.investments.stockEarnings = [];
           if (!Array.isArray(merged.investments.nubankBoxes)) merged.investments.nubankBoxes = [];
           if (!Array.isArray(merged.investments.nubankEarnings)) merged.investments.nubankEarnings = [];
+        }
+
+        // Garante estruturas de troco (Jotur e Mastes) e acumulados anuais
+        if (!merged.jotur || typeof merged.jotur !== 'object') {
+          merged.jotur = { baseAmount: 200.00, history: [], annualAccumulated: [] };
+        } else {
+          if (!Array.isArray(merged.jotur.history)) merged.jotur.history = [];
+          if (!Array.isArray(merged.jotur.annualAccumulated)) merged.jotur.annualAccumulated = [];
+          if (!merged.jotur.baseAmount) merged.jotur.baseAmount = 200.00;
+        }
+
+        if (!merged.trocoMastes || typeof merged.trocoMastes !== 'object') {
+          merged.trocoMastes = { baseAmount: 400.00, history: [], annualAccumulated: [] };
+        } else {
+          if (!Array.isArray(merged.trocoMastes.history)) merged.trocoMastes.history = [];
+          if (!Array.isArray(merged.trocoMastes.annualAccumulated)) merged.trocoMastes.annualAccumulated = [];
+          if (!merged.trocoMastes.baseAmount) merged.trocoMastes.baseAmount = 400.00;
         }
 
         if (!merged.cardPurchases) {
@@ -875,27 +900,129 @@ class DataStore {
 
   // --- JOTUR (CONFERÊNCIA DE TROCO) ---
   saveJoturCount(countData) {
+    if (!this.data.jotur) {
+      this.data.jotur = { baseAmount: 200.00, history: [], annualAccumulated: [] };
+    }
     const record = {
       id: 'jt_' + Date.now(),
       date: new Date().toISOString(),
-      baseAmount: this.data.jotur.baseAmount,
+      baseAmount: this.data.jotur.baseAmount || 200.00,
       totalCounted: countData.totalCounted,
       diff: countData.diff,
       status: countData.status,
       details: countData.details
     };
     this.data.jotur.history.unshift(record);
-    // Limita a 50 históricos
-    if (this.data.jotur.history.length > 50) this.data.jotur.history.pop();
+    if (this.data.jotur.history.length > 250) this.data.jotur.history.pop();
     this.save();
     return record;
   }
 
   deleteJoturHistory(id) {
-    this.data.jotur.history = this.data.jotur.history.filter(h => h.id !== id);
+    if (!this.data.jotur) return;
+    this.data.jotur.history = (this.data.jotur.history || []).filter(h => h.id !== id);
     if (typeof window !== 'undefined' && window.supabaseService) {
       window.supabaseService.deleteRowFromTable('troco_jotur', id);
     }
+    this.save();
+  }
+
+  // --- CONTROLE DE TROCO MASTES (BASE R$ 400,00) ---
+  saveMastesCount(countData) {
+    if (!this.data.trocoMastes) {
+      this.data.trocoMastes = { baseAmount: 400.00, history: [], annualAccumulated: [] };
+    }
+    const record = {
+      id: 'ms_' + Date.now(),
+      date: new Date().toISOString(),
+      baseAmount: this.data.trocoMastes.baseAmount || 400.00,
+      totalCounted: countData.totalCounted,
+      diff: countData.diff,
+      status: countData.status,
+      details: countData.details
+    };
+    this.data.trocoMastes.history.unshift(record);
+    if (this.data.trocoMastes.history.length > 250) this.data.trocoMastes.history.pop();
+    this.save();
+    return record;
+  }
+
+  deleteMastesHistory(id) {
+    if (!this.data.trocoMastes) return;
+    this.data.trocoMastes.history = (this.data.trocoMastes.history || []).filter(h => h.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('troco_mastes', id);
+    }
+    this.save();
+  }
+
+  // --- ACUMULADOS ANUAIS E FECHAMENTO DE ANO (JOTUR / MASTES) ---
+  getTrocoAnnualSummary(type = 'jotur') {
+    const target = type === 'mastes' ? this.data.trocoMastes : this.data.jotur;
+    const history = (target && Array.isArray(target.history)) ? target.history : [];
+    
+    let totalConferences = history.length;
+    let totalSobras = 0;
+    let totalFaltas = 0;
+    let netDifference = 0;
+
+    history.forEach(h => {
+      const diff = Number(h.diff) || 0;
+      netDifference += diff;
+      if (diff > 0.005) {
+        totalSobras += diff;
+      } else if (diff < -0.005) {
+        totalFaltas += Math.abs(diff);
+      }
+    });
+
+    let status = 'Exato';
+    if (netDifference > 0.009) status = 'Sobra';
+    else if (netDifference < -0.009) status = 'Falta';
+
+    return {
+      totalConferences,
+      totalSobras,
+      totalFaltas,
+      netDifference,
+      status
+    };
+  }
+
+  closeTrocoYear(type = 'jotur', year = null) {
+    const target = type === 'mastes' ? this.data.trocoMastes : this.data.jotur;
+    if (!target) return { success: false, message: 'Dados do controle não encontrados.' };
+    if (!Array.isArray(target.annualAccumulated)) target.annualAccumulated = [];
+
+    const summary = this.getTrocoAnnualSummary(type);
+    if (summary.totalConferences === 0) {
+      return { success: false, message: 'Nenhuma conferência salva na planilha para arquivar no acumulado.' };
+    }
+
+    const closeYearNum = year || this.activeYear || new Date().getFullYear();
+    const record = {
+      id: 'acc_' + Date.now(),
+      year: closeYearNum,
+      closedAt: new Date().toISOString(),
+      type: type,
+      baseAmount: target.baseAmount,
+      totalConferences: summary.totalConferences,
+      totalSobras: summary.totalSobras,
+      totalFaltas: summary.totalFaltas,
+      netDifference: summary.netDifference,
+      status: summary.status
+    };
+
+    target.annualAccumulated.unshift(record);
+    target.history = []; // Limpa a planilha ativa para o novo ano
+    this.save();
+    return { success: true, record };
+  }
+
+  deleteTrocoAnnualAccumulated(type = 'jotur', id) {
+    const target = type === 'mastes' ? this.data.trocoMastes : this.data.jotur;
+    if (!target || !Array.isArray(target.annualAccumulated)) return;
+    target.annualAccumulated = target.annualAccumulated.filter(a => a.id !== id);
     this.save();
   }
 

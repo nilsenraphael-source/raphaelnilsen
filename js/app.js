@@ -324,7 +324,8 @@ const app = {
       senhas: 'Cofre de Senhas Protegido',
       sonhos: 'Sonhos & Planejamento de Compras',
       bombeiro: 'Bombeiro Comunitário (Ressarcimentos)',
-      jotur: 'Controle de Caixa & Troco Jotur (R$ 200)',
+      jotur: 'Controle de Troco Jotur',
+      mastes: 'CONTROLE DE TROCO MASTES (R$ 400)',
       investimentos: 'Gestão de Ativos & Investimentos'
     };
     const titleEl = document.getElementById('pageTitle');
@@ -439,6 +440,9 @@ const app = {
         break;
       case 'jotur':
         this.renderJotur();
+        break;
+      case 'mastes':
+        this.renderMastes();
         break;
       case 'investimentos':
         this.renderInvestimentos();
@@ -2284,13 +2288,15 @@ const app = {
   },
 
   // =========================================================================
-  // 6. MÓDULO CONTROLE DE CAIXA / TROCO JOTUR (BASE R$ 200)
+  // 6. MÓDULO CONTROLE DE CAIXA / TROCO JOTUR (BASE R$ 200,00)
   // =========================================================================
   calculateJotur() {
-    const n20 = Number(document.getElementById('jt_n20')?.value) || 0;
-    const n10 = Number(document.getElementById('jt_n10')?.value) || 0;
-    const n5  = Number(document.getElementById('jt_n5')?.value) || 0;
-    const n2  = Number(document.getElementById('jt_n2')?.value) || 0;
+    const n100 = Number(document.getElementById('jt_n100')?.value) || 0;
+    const n50  = Number(document.getElementById('jt_n50')?.value) || 0;
+    const n20  = Number(document.getElementById('jt_n20')?.value) || 0;
+    const n10  = Number(document.getElementById('jt_n10')?.value) || 0;
+    const n5   = Number(document.getElementById('jt_n5')?.value) || 0;
+    const n2   = Number(document.getElementById('jt_n2')?.value) || 0;
 
     const m100 = Number(document.getElementById('jt_m100')?.value) || 0;
     const m50  = Number(document.getElementById('jt_m50')?.value) || 0;
@@ -2298,10 +2304,12 @@ const app = {
     const m10  = Number(document.getElementById('jt_m10')?.value) || 0;
 
     // Subtotais
-    const subN20 = n20 * 20;
-    const subN10 = n10 * 10;
-    const subN5  = n5 * 5;
-    const subN2  = n2 * 2;
+    const subN100 = n100 * 100;
+    const subN50  = n50 * 50;
+    const subN20  = n20 * 20;
+    const subN10  = n10 * 10;
+    const subN5   = n5 * 5;
+    const subN2   = n2 * 2;
 
     const subM100 = m100 * 1.00;
     const subM50  = m50 * 0.50;
@@ -2310,6 +2318,8 @@ const app = {
 
     // Atualiza subtotais na tela
     const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = formatBRL(val); };
+    setTxt('sub_jt_n100', subN100);
+    setTxt('sub_jt_n50', subN50);
     setTxt('sub_n20', subN20);
     setTxt('sub_n10', subN10);
     setTxt('sub_n5', subN5);
@@ -2319,8 +2329,8 @@ const app = {
     setTxt('sub_m25', subM25);
     setTxt('sub_m10', subM10);
 
-    const totalCounted = subN20 + subN10 + subN5 + subN2 + subM100 + subM50 + subM25 + subM10;
-    const baseAmount = store.data.jotur.baseAmount || 200.00;
+    const totalCounted = subN100 + subN50 + subN20 + subN10 + subN5 + subN2 + subM100 + subM50 + subM25 + subM10;
+    const baseAmount = store.data.jotur?.baseAmount || 200.00;
     const diff = totalCounted - baseAmount;
 
     const elTotal = document.getElementById('joturTotalCounted');
@@ -2357,29 +2367,59 @@ const app = {
       totalCounted,
       diff,
       status: Math.abs(diff) < 0.009 ? 'Exato' : (diff > 0 ? 'Sobra' : 'Falta'),
-      details: { n20, n10, n5, n2, m100, m50, m25, m10 }
+      details: { n100, n50, n20, n10, n5, n2, m100, m50, m25, m10 }
     };
+  },
+
+  resetJoturInputs() {
+    const ids = ['jt_n100', 'jt_n50', 'jt_n20', 'jt_n10', 'jt_n5', 'jt_n2', 'jt_m100', 'jt_m50', 'jt_m25', 'jt_m10'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '0';
+    });
+    this.calculateJotur();
   },
 
   saveCurrentJotur() {
     const calc = this.calculateJotur();
     store.saveJoturCount(calc);
-    this.renderJoturHistory();
-    this.showToast('Conferência de troco Jotur salva com sucesso!', 'success');
+    this.resetJoturInputs();
+    this.renderJotur();
+    this.showToast('✅ Conferência salva no histórico! Caixas zeradas para a próxima conferência.', 'success');
   },
 
   renderJotur() {
     this.calculateJotur();
+    this.renderJoturAnnualSummary();
     this.renderJoturHistory();
+    this.renderJoturAccumulated();
+  },
+
+  renderJoturAnnualSummary() {
+    const summary = store.getTrocoAnnualSummary('jotur');
+    const elCount = document.getElementById('joturYearCount');
+    if (elCount) elCount.textContent = `${summary.totalConferences} conferências`;
+
+    const elSobras = document.getElementById('joturYearSobras');
+    if (elSobras) elSobras.textContent = `+ ${formatBRL(summary.totalSobras)}`;
+
+    const elFaltas = document.getElementById('joturYearFaltas');
+    if (elFaltas) elFaltas.textContent = `- ${formatBRL(summary.totalFaltas)}`;
+
+    const elBal = document.getElementById('joturYearBalance');
+    if (elBal) {
+      elBal.textContent = `${summary.netDifference >= 0 ? '+' : ''}${formatBRL(summary.netDifference)}`;
+      elBal.style.color = summary.netDifference >= 0 ? '#34d399' : '#f87171';
+    }
   },
 
   renderJoturHistory() {
     const tbody = document.getElementById('joturHistoryTableBody');
     if (!tbody) return;
 
-    const list = store.data.jotur.history || [];
+    const list = store.data.jotur?.history || [];
     tbody.innerHTML = list.length === 0 ? `
-      <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Nenhuma conferência salva no histórico ainda.</td></tr>
+      <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Nenhuma conferência salva no ano ativo.</td></tr>
     ` : list.map(h => {
       const dateFormatted = new Date(h.date).toLocaleString('pt-BR');
       return `
@@ -2402,10 +2442,285 @@ const app = {
     }).join('');
   },
 
+  renderJoturAccumulated() {
+    const tbody = document.getElementById('joturAccumulatedTableBody');
+    if (!tbody) return;
+
+    const list = store.data.jotur?.annualAccumulated || [];
+    tbody.innerHTML = list.length === 0 ? `
+      <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Nenhum acumulado de ano anterior fechado ainda. No final do ano, use "Zerar Planilha & Gravar no Acumulado do Ano" para arquivar o saldo aqui.</td></tr>
+    ` : list.map(a => {
+      const closedFormatted = new Date(a.closedAt).toLocaleString('pt-BR');
+      const isPositive = a.netDifference >= 0;
+      return `
+        <tr>
+          <td><strong style="font-size:1.05rem; color:#38bdf8;">${a.year}</strong></td>
+          <td>${closedFormatted}</td>
+          <td><strong>${a.totalConferences}</strong></td>
+          <td style="color:#34d399; font-weight:700;">+ ${formatBRL(a.totalSobras || 0)}</td>
+          <td style="color:#f87171; font-weight:700;">- ${formatBRL(a.totalFaltas || 0)}</td>
+          <td>
+            <span class="status-badge ${isPositive ? 'paid' : 'pending'}" style="font-size:0.9rem;">
+              ${isPositive ? '+' : ''}${formatBRL(a.netDifference)} (${a.status})
+            </span>
+          </td>
+          <td>
+            <button class="btn-table-icon delete" title="Excluir Registro de Acumulado" onclick="app.deleteTrocoAnnualAccumulated('jotur', '${a.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
   deleteJoturHistory(id) {
     store.deleteJoturHistory(id);
-    this.renderJoturHistory();
-    this.showToast('Histórico removido.', 'info');
+    this.renderJotur();
+    this.showToast('Conferência removida do histórico.', 'info');
+  },
+
+  // =========================================================================
+  // 6.1 MÓDULO CONTROLE DE TROCO MASTES (BASE R$ 400,00)
+  // =========================================================================
+  calculateMastes() {
+    const n100 = Number(document.getElementById('ms_n100')?.value) || 0;
+    const n50  = Number(document.getElementById('ms_n50')?.value) || 0;
+    const n20  = Number(document.getElementById('ms_n20')?.value) || 0;
+    const n10  = Number(document.getElementById('ms_n10')?.value) || 0;
+    const n5   = Number(document.getElementById('ms_n5')?.value) || 0;
+    const n2   = Number(document.getElementById('ms_n2')?.value) || 0;
+
+    const m100 = Number(document.getElementById('ms_m100')?.value) || 0;
+    const m50  = Number(document.getElementById('ms_m50')?.value) || 0;
+    const m25  = Number(document.getElementById('ms_m25')?.value) || 0;
+    const m10  = Number(document.getElementById('ms_m10')?.value) || 0;
+
+    // Subtotais
+    const subN100 = n100 * 100;
+    const subN50  = n50 * 50;
+    const subN20  = n20 * 20;
+    const subN10  = n10 * 10;
+    const subN5   = n5 * 5;
+    const subN2   = n2 * 2;
+
+    const subM100 = m100 * 1.00;
+    const subM50  = m50 * 0.50;
+    const subM25  = m25 * 0.25;
+    const subM10  = m10 * 0.10;
+
+    // Atualiza subtotais na tela
+    const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = formatBRL(val); };
+    setTxt('sub_ms_n100', subN100);
+    setTxt('sub_ms_n50', subN50);
+    setTxt('sub_ms_n20', subN20);
+    setTxt('sub_ms_n10', subN10);
+    setTxt('sub_ms_n5', subN5);
+    setTxt('sub_ms_n2', subN2);
+    setTxt('sub_ms_m100', subM100);
+    setTxt('sub_ms_m50', subM50);
+    setTxt('sub_ms_m25', subM25);
+    setTxt('sub_ms_m10', subM10);
+
+    const totalCounted = subN100 + subN50 + subN20 + subN10 + subN5 + subN2 + subM100 + subM50 + subM25 + subM10;
+    const baseAmount = store.data.trocoMastes?.baseAmount || 400.00;
+    const diff = totalCounted - baseAmount;
+
+    const elTotal = document.getElementById('mastesTotalCounted');
+    if (elTotal) elTotal.textContent = formatBRL(totalCounted);
+
+    const elBase = document.getElementById('mastesBaseDisplay');
+    if (elBase) elBase.textContent = formatBRL(baseAmount);
+
+    const boxResult = document.getElementById('mastesResultBox');
+    const elResultTitle = document.getElementById('mastesResultTitle');
+    const elResultDiff = document.getElementById('mastesResultDiff');
+
+    if (boxResult && elResultTitle && elResultDiff) {
+      boxResult.className = 'jotur-result-box';
+      if (Math.abs(diff) < 0.009) {
+        boxResult.classList.add('exato');
+        elResultTitle.textContent = 'Caixa Exato (100% Conferido)';
+        elResultTitle.style.color = 'var(--success)';
+        elResultDiff.textContent = 'Diferença: R$ 0,00';
+      } else if (diff > 0) {
+        boxResult.classList.add('sobra');
+        elResultTitle.textContent = 'Sobra de Caixa';
+        elResultTitle.style.color = 'var(--success)';
+        elResultDiff.textContent = `+ ${formatBRL(diff)}`;
+      } else {
+        boxResult.classList.add('falta');
+        elResultTitle.textContent = 'Falta no Caixa';
+        elResultTitle.style.color = 'var(--danger)';
+        elResultDiff.textContent = `- ${formatBRL(Math.abs(diff))}`;
+      }
+    }
+
+    return {
+      totalCounted,
+      diff,
+      status: Math.abs(diff) < 0.009 ? 'Exato' : (diff > 0 ? 'Sobra' : 'Falta'),
+      details: { n100, n50, n20, n10, n5, n2, m100, m50, m25, m10 }
+    };
+  },
+
+  resetMastesInputs() {
+    const ids = ['ms_n100', 'ms_n50', 'ms_n20', 'ms_n10', 'ms_n5', 'ms_n2', 'ms_m100', 'ms_m50', 'ms_m25', 'ms_m10'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '0';
+    });
+    this.calculateMastes();
+  },
+
+  saveCurrentMastes() {
+    const calc = this.calculateMastes();
+    store.saveMastesCount(calc);
+    this.resetMastesInputs();
+    this.renderMastes();
+    this.showToast('✅ Conferência Mastes salva no histórico! Caixas zeradas para a próxima conferência.', 'success');
+  },
+
+  renderMastes() {
+    this.calculateMastes();
+    this.renderMastesAnnualSummary();
+    this.renderMastesHistory();
+    this.renderMastesAccumulated();
+  },
+
+  renderMastesAnnualSummary() {
+    const summary = store.getTrocoAnnualSummary('mastes');
+    const elCount = document.getElementById('mastesYearCount');
+    if (elCount) elCount.textContent = `${summary.totalConferences} conferências`;
+
+    const elSobras = document.getElementById('mastesYearSobras');
+    if (elSobras) elSobras.textContent = `+ ${formatBRL(summary.totalSobras)}`;
+
+    const elFaltas = document.getElementById('mastesYearFaltas');
+    if (elFaltas) elFaltas.textContent = `- ${formatBRL(summary.totalFaltas)}`;
+
+    const elBal = document.getElementById('mastesYearBalance');
+    if (elBal) {
+      elBal.textContent = `${summary.netDifference >= 0 ? '+' : ''}${formatBRL(summary.netDifference)}`;
+      elBal.style.color = summary.netDifference >= 0 ? '#34d399' : '#f87171';
+    }
+  },
+
+  renderMastesHistory() {
+    const tbody = document.getElementById('mastesHistoryTableBody');
+    if (!tbody) return;
+
+    const list = store.data.trocoMastes?.history || [];
+    tbody.innerHTML = list.length === 0 ? `
+      <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Nenhuma conferência Mastes salva no ano ativo.</td></tr>
+    ` : list.map(h => {
+      const dateFormatted = new Date(h.date).toLocaleString('pt-BR');
+      return `
+        <tr>
+          <td>${dateFormatted}</td>
+          <td>${formatBRL(h.baseAmount)}</td>
+          <td><strong>${formatBRL(h.totalCounted)}</strong></td>
+          <td>
+            <span class="status-badge ${h.status === 'Exato' || h.status === 'Sobra' ? 'paid' : 'pending'}">
+              ${h.status}: ${h.diff >= 0 ? '+' : ''}${formatBRL(h.diff)}
+            </span>
+          </td>
+          <td>
+            <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteMastesHistory('${h.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  renderMastesAccumulated() {
+    const tbody = document.getElementById('mastesAccumulatedTableBody');
+    if (!tbody) return;
+
+    const list = store.data.trocoMastes?.annualAccumulated || [];
+    tbody.innerHTML = list.length === 0 ? `
+      <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Nenhum acumulado de ano anterior fechado ainda. No final do ano, use "Zerar Planilha & Gravar no Acumulado do Ano" para arquivar o saldo aqui.</td></tr>
+    ` : list.map(a => {
+      const closedFormatted = new Date(a.closedAt).toLocaleString('pt-BR');
+      const isPositive = a.netDifference >= 0;
+      return `
+        <tr>
+          <td><strong style="font-size:1.05rem; color:#60a5fa;">${a.year}</strong></td>
+          <td>${closedFormatted}</td>
+          <td><strong>${a.totalConferences}</strong></td>
+          <td style="color:#34d399; font-weight:700;">+ ${formatBRL(a.totalSobras || 0)}</td>
+          <td style="color:#f87171; font-weight:700;">- ${formatBRL(a.totalFaltas || 0)}</td>
+          <td>
+            <span class="status-badge ${isPositive ? 'paid' : 'pending'}" style="font-size:0.9rem;">
+              ${isPositive ? '+' : ''}${formatBRL(a.netDifference)} (${a.status})
+            </span>
+          </td>
+          <td>
+            <button class="btn-table-icon delete" title="Excluir Registro de Acumulado" onclick="app.deleteTrocoAnnualAccumulated('mastes', '${a.id}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  deleteMastesHistory(id) {
+    store.deleteMastesHistory(id);
+    this.renderMastes();
+    this.showToast('Conferência Mastes removida do histórico.', 'info');
+  },
+
+  // =========================================================================
+  // ENCERRAMENTO ANUAL & ACUMULADO DO ANO (JOTUR / MASTES)
+  // =========================================================================
+  closeYearTroco(type = 'jotur') {
+    const summary = store.getTrocoAnnualSummary(type);
+    const label = type === 'mastes' ? 'CONTROLE DE TROCO MASTES (R$ 400)' : 'TROCO JOTUR (R$ 200)';
+    const year = store.activeYear || new Date().getFullYear();
+
+    if (summary.totalConferences === 0) {
+      this.showToast(`Não há conferências salvas no ${label} para fechar o ano.`, 'warning');
+      return;
+    }
+
+    const netText = `${summary.netDifference >= 0 ? '+' : ''}${formatBRL(summary.netDifference)} (${summary.status})`;
+    const confirmMsg = `🗓️ FECHAMENTO DO ANO: ${label}\n\n` +
+      `Ano Referência: ${year}\n` +
+      `• Conferências Realizadas: ${summary.totalConferences}\n` +
+      `• Total de Sobras (+): + ${formatBRL(summary.totalSobras)}\n` +
+      `• Total de Faltas (-): - ${formatBRL(summary.totalFaltas)}\n` +
+      `• SALDO ACUMULADO FINAL DO ANO: ${netText}\n\n` +
+      `Ao confirmar este fechamento:\n` +
+      `1. O saldo acumulado de ${netText} ficará gravado permanentemente no histórico de ACUMULADOS ANUAIS.\n` +
+      `2. A planilha de conferências ativas será zerada para o novo ciclo.\n\n` +
+      `Confirma o fechamento e registro no Acumulado do Ano?`;
+
+    if (confirm(confirmMsg)) {
+      const res = store.closeTrocoYear(type, year);
+      if (res && res.success) {
+        if (type === 'mastes') {
+          this.renderMastes();
+        } else {
+          this.renderJotur();
+        }
+        this.showToast(`🎉 Fechamento concluído com sucesso! Saldo ${netText} arquivado no Acumulado do Ano.`, 'success');
+      } else {
+        this.showToast(res?.message || 'Erro ao fechar ano.', 'warning');
+      }
+    }
+  },
+
+  deleteTrocoAnnualAccumulated(type, id) {
+    const label = type === 'mastes' ? 'Troco Mastes' : 'Troco Jotur';
+    if (confirm(`Deseja excluir este registro de acumulado anual do ${label}?`)) {
+      store.deleteTrocoAnnualAccumulated(type, id);
+      if (type === 'mastes') this.renderMastes();
+      else this.renderJotur();
+      this.showToast('Registro de acumulado excluído com sucesso.', 'info');
+    }
   },
 
   // =========================================================================
@@ -3301,9 +3616,15 @@ const app = {
       });
     });
 
-    // Inputs de Troco Jotur (Cálculo em tempo real)
+    // Inputs de Troco Jotur e Troco Mastes (Cálculo em tempo real)
     document.querySelectorAll('.coin-input').forEach(inp => {
-      inp.addEventListener('input', () => this.calculateJotur());
+      inp.addEventListener('input', () => {
+        if (inp.id && inp.id.startsWith('ms_')) {
+          this.calculateMastes();
+        } else {
+          this.calculateJotur();
+        }
+      });
     });
 
     // Busca de Senhas
