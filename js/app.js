@@ -2415,30 +2415,77 @@ const app = {
     const summary = store.getInvestmentsSummary();
 
     const elTotal = document.getElementById('investTotalAssets');
-    if (elTotal) elTotal.textContent = formatBRL(summary.total);
+    if (elTotal) elTotal.textContent = formatBRL(summary.totalInvested);
+
+    const elEarnings = document.getElementById('investTotalEarnings');
+    if (elEarnings) elEarnings.textContent = `+ ${formatBRL(summary.totalEarnings)}`;
+
+    const elYieldBadge = document.getElementById('investYieldBadge');
+    if (elYieldBadge) elYieldBadge.textContent = `Yield: ${summary.yieldGlobal.toFixed(2)}%`;
 
     const elStocks = document.getElementById('investTotalStocks');
     if (elStocks) elStocks.textContent = formatBRL(summary.stocks);
 
+    const elStockEarnings = document.getElementById('investStockEarnings');
+    if (elStockEarnings) elStockEarnings.textContent = `+ ${formatBRL(summary.totalStockEarnings)} proventos`;
+
     const elBoxes = document.getElementById('investTotalBoxes');
     if (elBoxes) elBoxes.textContent = formatBRL(summary.boxes);
 
-    // Tabela Bolsa
+    const elNubankEarnings = document.getElementById('investNubankEarnings');
+    if (elNubankEarnings) elNubankEarnings.textContent = `+ ${formatBRL(summary.totalNubankEarnings)} rendimentos`;
+
+    // Badges de Contagem
+    const badgeStockEarn = document.getElementById('countStockEarningsBadge');
+    if (badgeStockEarn) badgeStockEarn.textContent = (store.data.investments.stockEarnings || []).length;
+
+    const badgeNubankEarn = document.getElementById('countNubankEarningsBadge');
+    if (badgeNubankEarn) badgeNubankEarn.textContent = (store.data.investments.nubankEarnings || []).length;
+
+    // 1. Tabela Bolsa - Ativos em Carteira
     const tbodyStocks = document.getElementById('stocksTableBody');
     if (tbodyStocks) {
-      tbodyStocks.innerHTML = store.data.investments.stocks.length === 0 ? `
+      const stocksList = store.data.investments.stocks || [];
+      tbodyStocks.innerHTML = stocksList.length === 0 ? `
         <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum ativo de Bolsa (Ações/FIIs) cadastrado.</td></tr>
-      ` : store.data.investments.stocks.map(s => `
+      ` : stocksList.map(s => {
+        const totalVal = Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0;
+        return `
         <tr>
-          <td><strong>${s.ticker}</strong></td>
+          <td><strong style="color:#60a5fa; font-size:0.95rem;">${s.ticker}</strong></td>
           <td><span class="status-badge neutral">${s.type || 'Ação'}</span></td>
           <td>${formatDateBR(s.date)}</td>
           <td>${s.shares}</td>
           <td>${formatBRL(s.pricePerShare)}</td>
-          <td style="font-weight: 800; color: var(--navy);">${formatBRL(s.total || s.shares * s.pricePerShare)}</td>
+          <td style="font-weight: 800; color: #fff;">${formatBRL(totalVal)}</td>
           <td>
             <div class="table-actions">
-              <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteStock('${s.id}')">
+              <button class="btn-table-icon delete" title="Excluir Ativo" onclick="app.deleteStock('${s.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;}).join('');
+    }
+
+    // 2. Tabela Bolsa - Rendimentos / Proventos Recebidos
+    const tbodyStockEarnings = document.getElementById('stockEarningsTableBody');
+    if (tbodyStockEarnings) {
+      const earnList = store.data.investments.stockEarnings || [];
+      tbodyStockEarnings.innerHTML = earnList.length === 0 ? `
+        <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum provento ou dividendo lançado. Clique em "+ Inserir Rendimento / Provento" para cadastrar.</td></tr>
+      ` : earnList.map(e => `
+        <tr>
+          <td><strong style="color:#34d399; font-size:0.95rem;">${e.ticker}</strong></td>
+          <td><span class="status-badge paid">${e.type || 'Dividendo'}</span></td>
+          <td>${formatDateBR(e.date)}</td>
+          <td>${e.bank ? `<span class="status-badge neutral">${e.bank}</span>` : '<span style="color:var(--text-muted);">-</span>'}</td>
+          <td style="font-weight: 800; color: #4ade80;">+ ${formatBRL(e.amount)}</td>
+          <td style="font-size: 0.85rem; color: var(--text-secondary);">${e.notes || '-'}</td>
+          <td>
+            <div class="table-actions">
+              <button class="btn-table-icon delete" title="Excluir Rendimento" onclick="app.deleteStockEarning('${e.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
@@ -2447,26 +2494,385 @@ const app = {
       `).join('');
     }
 
-    // Tabela Nubank Caixinhas
+    // 3. Tabela Nubank Caixinhas
     const tbodyBoxes = document.getElementById('nubankBoxesTableBody');
     if (tbodyBoxes) {
-      tbodyBoxes.innerHTML = store.data.investments.nubankBoxes.length === 0 ? `
+      const boxesList = store.data.investments.nubankBoxes || [];
+      tbodyBoxes.innerHTML = boxesList.length === 0 ? `
         <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma caixinha ou renda fixa Nubank cadastrada.</td></tr>
-      ` : store.data.investments.nubankBoxes.map(b => `
+      ` : boxesList.map(b => `
         <tr>
-          <td><strong>${b.name}</strong></td>
+          <td><strong style="color:#c084fc; font-size:0.95rem;">${b.name}</strong></td>
           <td>${formatDateBR(b.date)}</td>
-          <td style="font-weight: 800; color: var(--purple);">${formatBRL(b.amount)}</td>
+          <td style="font-weight: 800; color: #fff;">${formatBRL(b.amount)}</td>
           <td><span class="status-badge paid">${b.status || 'Ativo'}</span></td>
           <td>
             <div class="table-actions">
-              <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteNubankBox('${b.id}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <button class="btn-table-icon delete" title="Excluir Caixinha" onclick="app.deleteNubankBox('${b.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
           </td>
         </tr>
       `).join('');
+    }
+
+    // 4. Tabela Nubank Rendimentos
+    const tbodyNubankEarnings = document.getElementById('nubankEarningsTableBody');
+    if (tbodyNubankEarnings) {
+      const boxEarnList = store.data.investments.nubankEarnings || [];
+      tbodyNubankEarnings.innerHTML = boxEarnList.length === 0 ? `
+        <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum rendimento de caixinha lançado. Clique em "+ Inserir Rendimento Caixinha" para adicionar.</td></tr>
+      ` : boxEarnList.map(b => `
+        <tr>
+          <td><strong style="color:#c084fc; font-size:0.95rem;">${b.boxName}</strong></td>
+          <td>${formatDateBR(b.date)}</td>
+          <td style="font-weight: 800; color: #4ade80;">+ ${formatBRL(b.amount)}</td>
+          <td style="font-size: 0.85rem; color: var(--text-secondary);">${b.notes || '-'}</td>
+          <td>
+            <div class="table-actions">
+              <button class="btn-table-icon delete" title="Excluir Rendimento" onclick="app.deleteNubankEarning('${b.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Renderiza os Gráficos Exclusivos de Investimentos
+    this.renderInvestCharts(summary);
+  },
+
+  // Alternar abas da Bolsa
+  switchInvestStockTab(tab) {
+    const btnPos = document.getElementById('btnTabStocksPositions');
+    const btnEarn = document.getElementById('btnTabStocksEarnings');
+    const pnlPos = document.getElementById('panelStocksPositions');
+    const pnlEarn = document.getElementById('panelStocksEarnings');
+
+    if (tab === 'positions') {
+      btnPos?.classList.add('active');
+      btnEarn?.classList.remove('active');
+      if (pnlPos) pnlPos.style.display = 'block';
+      if (pnlEarn) pnlEarn.style.display = 'none';
+    } else {
+      btnPos?.classList.remove('active');
+      btnEarn?.classList.add('active');
+      if (pnlPos) pnlPos.style.display = 'none';
+      if (pnlEarn) pnlEarn.style.display = 'block';
+    }
+  },
+
+  // Alternar abas do Nubank
+  switchInvestNubankTab(tab) {
+    const btnBox = document.getElementById('btnTabNubankBoxes');
+    const btnEarn = document.getElementById('btnTabNubankEarnings');
+    const pnlBox = document.getElementById('panelNubankBoxes');
+    const pnlEarn = document.getElementById('panelNubankEarnings');
+
+    if (tab === 'boxes') {
+      btnBox?.classList.add('active');
+      btnEarn?.classList.remove('active');
+      if (pnlBox) pnlBox.style.display = 'block';
+      if (pnlEarn) pnlEarn.style.display = 'none';
+    } else {
+      btnBox?.classList.remove('active');
+      btnEarn?.classList.add('active');
+      if (pnlBox) pnlBox.style.display = 'none';
+      if (pnlEarn) pnlEarn.style.display = 'block';
+    }
+  },
+
+  // =========================================================================
+  // GRÁFICOS EXCLUSIVOS DE INVESTIMENTOS (CHART.JS)
+  // =========================================================================
+  destroyInvestChart(key) {
+    if (this.investCharts && this.investCharts[key]) {
+      try {
+        this.investCharts[key].destroy();
+      } catch (e) {
+        console.warn('Erro ao destruir gráfico ' + key, e);
+      }
+      this.investCharts[key] = null;
+    }
+  },
+
+  renderInvestCharts(summary) {
+    if (typeof Chart === 'undefined') return;
+    if (!this.investCharts) this.investCharts = {};
+
+    const colorPalette = [
+      '#38bdf8', '#818cf8', '#c084fc', '#f472b6', 
+      '#34d399', '#fbbf24', '#f87171', '#2dd4bf', 
+      '#fb923c', '#a78bfa', '#4ade80', '#60a5fa'
+    ];
+
+    // --- GRÁFICO 1: TOTAL INVESTIDO POR ATIVO ---
+    const canvasAlloc = document.getElementById('chartInvestAllocation');
+    const emptyAlloc = document.getElementById('emptyChartAllocation');
+    if (canvasAlloc && emptyAlloc) {
+      const labels = [];
+      const values = [];
+
+      Object.entries(summary.stocksByAsset || {}).forEach(([ticker, val]) => {
+        if (val > 0) {
+          labels.push(ticker);
+          values.push(val);
+        }
+      });
+      Object.entries(summary.boxesByName || {}).forEach(([boxName, val]) => {
+        if (val > 0) {
+          labels.push(`Nu: ${boxName}`);
+          values.push(val);
+        }
+      });
+
+      if (values.length === 0) {
+        canvasAlloc.style.display = 'none';
+        emptyAlloc.style.display = 'block';
+        this.destroyInvestChart('allocation');
+      } else {
+        canvasAlloc.style.display = 'block';
+        emptyAlloc.style.display = 'none';
+        this.destroyInvestChart('allocation');
+
+        const ctx = canvasAlloc.getContext('2d');
+        this.investCharts.allocation = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: colorPalette.slice(0, labels.length),
+              borderWidth: 2,
+              borderColor: '#141518'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: '#d4d4d8',
+                  boxWidth: 12,
+                  padding: 10,
+                  font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                    const pct = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                    return ` ${ctx.label}: ${formatBRL(ctx.raw)} (${pct}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // --- GRÁFICO 2: TOTAL DE RENDIMENTOS POR ATIVO (BOLSA) ---
+    const canvasEarnings = document.getElementById('chartStockEarnings');
+    const emptyEarnings = document.getElementById('emptyChartStockEarnings');
+    if (canvasEarnings && emptyEarnings) {
+      const earnEntries = Object.entries(summary.earningsByStock || {}).filter(([_, v]) => v > 0);
+      
+      if (earnEntries.length === 0) {
+        canvasEarnings.style.display = 'none';
+        emptyEarnings.style.display = 'block';
+        this.destroyInvestChart('stockEarnings');
+      } else {
+        canvasEarnings.style.display = 'block';
+        emptyEarnings.style.display = 'none';
+        this.destroyInvestChart('stockEarnings');
+
+        const labels = earnEntries.map(e => e[0]);
+        const values = earnEntries.map(e => e[1]);
+
+        const ctx = canvasEarnings.getContext('2d');
+        this.investCharts.stockEarnings = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Proventos Recebidos (R$)',
+              data: values,
+              backgroundColor: 'rgba(52, 211, 153, 0.75)',
+              borderColor: '#34d399',
+              borderWidth: 1.5,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: '#a1a1aa' }
+              },
+              y: {
+                grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                ticks: {
+                  color: '#a1a1aa',
+                  callback: (v) => 'R$ ' + v
+                }
+              }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => ` Rendimento: ${formatBRL(ctx.raw)}`
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // --- GRÁFICO 3: NUBANK CAIXINHAS & RENDIMENTOS ---
+    const canvasNubank = document.getElementById('chartNubankOverview');
+    const emptyNubank = document.getElementById('emptyChartNubank');
+    if (canvasNubank && emptyNubank) {
+      const allBoxNames = [...new Set([
+        ...Object.keys(summary.boxesByName || {}),
+        ...Object.keys(summary.earningsByBox || {})
+      ])];
+
+      if (allBoxNames.length === 0) {
+        canvasNubank.style.display = 'none';
+        emptyNubank.style.display = 'block';
+        this.destroyInvestChart('nubankOverview');
+      } else {
+        canvasNubank.style.display = 'block';
+        emptyNubank.style.display = 'none';
+        this.destroyInvestChart('nubankOverview');
+
+        const valuesApplied = allBoxNames.map(name => summary.boxesByName[name] || 0);
+        const valuesEarned = allBoxNames.map(name => summary.earningsByBox[name] || 0);
+
+        const ctx = canvasNubank.getContext('2d');
+        this.investCharts.nubankOverview = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: allBoxNames,
+            datasets: [
+              {
+                label: 'Valor Guardado',
+                data: valuesApplied,
+                backgroundColor: 'rgba(168, 85, 247, 0.75)',
+                borderColor: '#c084fc',
+                borderWidth: 1.5,
+                borderRadius: 6
+              },
+              {
+                label: 'Rendimentos',
+                data: valuesEarned,
+                backgroundColor: 'rgba(52, 211, 153, 0.75)',
+                borderColor: '#34d399',
+                borderWidth: 1.5,
+                borderRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: '#a1a1aa' }
+              },
+              y: {
+                grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                ticks: {
+                  color: '#a1a1aa',
+                  callback: (v) => 'R$ ' + v
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: '#d4d4d8',
+                  boxWidth: 12,
+                  font: { size: 11 }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => ` ${ctx.dataset.label}: ${formatBRL(ctx.raw)}`
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // --- GRÁFICO 4: PANORAMA GERAL DA CARTEIRA ---
+    const canvasComp = document.getElementById('chartInvestComparison');
+    const emptyComp = document.getElementById('emptyChartComparison');
+    if (canvasComp && emptyComp) {
+      if (summary.totalInvested === 0 && summary.totalEarnings === 0) {
+        canvasComp.style.display = 'none';
+        emptyComp.style.display = 'block';
+        this.destroyInvestChart('comparison');
+      } else {
+        canvasComp.style.display = 'block';
+        emptyComp.style.display = 'none';
+        this.destroyInvestChart('comparison');
+
+        const ctx = canvasComp.getContext('2d');
+        this.investCharts.comparison = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Bolsa (Ativos)', 'Bolsa (Proventos)', 'Nubank (Caixinhas)', 'Nubank (Rendimentos)'],
+            datasets: [{
+              data: [
+                summary.stocks,
+                summary.totalStockEarnings,
+                summary.boxes,
+                summary.totalNubankEarnings
+              ],
+              backgroundColor: ['#2563eb', '#10b981', '#8b5cf6', '#34d399'],
+              borderWidth: 2,
+              borderColor: '#141518'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: '#d4d4d8',
+                  boxWidth: 12,
+                  padding: 8,
+                  font: { size: 10.5 }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => ` ${ctx.label}: ${formatBRL(ctx.raw)}`
+                }
+              }
+            }
+          }
+        });
+      }
     }
   },
 
@@ -2479,12 +2885,65 @@ const app = {
     }
   },
 
+  deleteStockEarning(id) {
+    if (confirm('Deseja excluir este provento/rendimento da Bolsa?')) {
+      store.deleteStockEarning(id);
+      this.renderInvestimentos();
+      this.renderResumo();
+      this.showToast('Rendimento excluído.', 'info');
+    }
+  },
+
   deleteNubankBox(id) {
     if (confirm('Deseja excluir esta caixinha do Nubank?')) {
       store.deleteNubankBox(id);
       this.renderInvestimentos();
       this.renderResumo();
       this.showToast('Caixinha excluída.', 'info');
+    }
+  },
+
+  deleteNubankEarning(id) {
+    if (confirm('Deseja excluir este rendimento da caixinha?')) {
+      store.deleteNubankEarning(id);
+      this.renderInvestimentos();
+      this.renderResumo();
+      this.showToast('Rendimento excluído.', 'info');
+    }
+  },
+
+  prepareModalNovoRendimentoBolsa() {
+    const form = document.getElementById('formNovoRendimentoBolsa');
+    if (form) form.reset();
+
+    const dateInp = document.getElementById('stk_earn_date');
+    if (dateInp) dateInp.value = new Date().toISOString().split('T')[0];
+
+    const datalist = document.getElementById('stockTickersDatalist');
+    if (datalist) {
+      const tickers = [...new Set((store.data.investments.stocks || []).map(s => s.ticker).filter(Boolean))];
+      datalist.innerHTML = tickers.map(t => `<option value="${t}">`).join('');
+    }
+
+    const bankSelect = document.getElementById('stk_earn_bank');
+    if (bankSelect) {
+      const accounts = store.data.accounts || [];
+      bankSelect.innerHTML = `<option value="">Selecione o banco (opcional)</option>` + 
+        accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+    }
+  },
+
+  prepareModalNovoRendimentoNubank() {
+    const form = document.getElementById('formNovoRendimentoNubank');
+    if (form) form.reset();
+
+    const dateInp = document.getElementById('box_earn_date');
+    if (dateInp) dateInp.value = new Date().toISOString().split('T')[0];
+
+    const datalist = document.getElementById('nubankBoxesDatalist');
+    if (datalist) {
+      const boxNames = [...new Set((store.data.investments.nubankBoxes || []).map(b => b.name).filter(Boolean))];
+      datalist.innerHTML = boxNames.map(b => `<option value="${b}">`).join('');
     }
   },
 
@@ -2587,6 +3046,10 @@ const app = {
     if (modal) {
       if (modalId === 'modalConfigSupabase') {
         this.updateSupabaseModalUI();
+      } else if (modalId === 'modalNovoRendimentoBolsa') {
+        this.prepareModalNovoRendimentoBolsa();
+      } else if (modalId === 'modalNovoRendimentoNubank') {
+        this.prepareModalNovoRendimentoNubank();
       }
       modal.classList.add('active');
     }
@@ -3226,6 +3689,48 @@ const app = {
         this.renderInvestimentos();
         this.renderResumo();
         this.showToast('Caixinha Nubank cadastrada!', 'success');
+      });
+    }
+
+    // Formulário Novo Rendimento da Bolsa
+    const formStockEarn = document.getElementById('formNovoRendimentoBolsa');
+    if (formStockEarn) {
+      formStockEarn.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const earn = {
+          ticker: document.getElementById('stk_earn_ticker').value.toUpperCase().trim(),
+          type: document.getElementById('stk_earn_type').value,
+          date: document.getElementById('stk_earn_date').value,
+          amount: document.getElementById('stk_earn_val').value,
+          bank: document.getElementById('stk_earn_bank').value,
+          notes: document.getElementById('stk_earn_notes').value
+        };
+        store.addStockEarning(earn);
+        this.closeModal('modalNovoRendimentoBolsa');
+        formStockEarn.reset();
+        this.renderInvestimentos();
+        this.renderResumo();
+        this.showToast('💰 Rendimento da Bolsa lançado com sucesso!', 'success');
+      });
+    }
+
+    // Formulário Novo Rendimento Nubank
+    const formBoxEarn = document.getElementById('formNovoRendimentoNubank');
+    if (formBoxEarn) {
+      formBoxEarn.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const earn = {
+          boxName: document.getElementById('box_earn_name').value.trim(),
+          date: document.getElementById('box_earn_date').value,
+          amount: document.getElementById('box_earn_val').value,
+          notes: document.getElementById('box_earn_notes').value
+        };
+        store.addNubankEarning(earn);
+        this.closeModal('modalNovoRendimentoNubank');
+        formBoxEarn.reset();
+        this.renderInvestimentos();
+        this.renderResumo();
+        this.showToast('✨ Rendimento do Nubank cadastrado com sucesso!', 'success');
       });
     }
 

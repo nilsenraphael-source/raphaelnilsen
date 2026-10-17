@@ -42,10 +42,20 @@ ALTER TABLE public.investimentos_bolsa ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Permissao_Total_Bolsa" ON public.investimentos_bolsa;
 CREATE POLICY "Permissao_Total_Bolsa" ON public.investimentos_bolsa FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
+-- investimentos_rendimentos_bolsa
+ALTER TABLE public.investimentos_rendimentos_bolsa ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permissao_Total_RendBolsa" ON public.investimentos_rendimentos_bolsa;
+CREATE POLICY "Permissao_Total_RendBolsa" ON public.investimentos_rendimentos_bolsa FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
 -- investimentos_caixinhas
 ALTER TABLE public.investimentos_caixinhas ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Permissao_Total_Caixinhas" ON public.investimentos_caixinhas;
 CREATE POLICY "Permissao_Total_Caixinhas" ON public.investimentos_caixinhas FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+-- investimentos_rendimentos_caixinhas
+ALTER TABLE public.investimentos_rendimentos_caixinhas ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permissao_Total_RendCaixinhas" ON public.investimentos_rendimentos_caixinhas;
+CREATE POLICY "Permissao_Total_RendCaixinhas" ON public.investimentos_rendimentos_caixinhas FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 -- troco_jotur
 ALTER TABLE public.troco_jotur ENABLE ROW LEVEL SECURITY;

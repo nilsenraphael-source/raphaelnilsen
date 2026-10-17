@@ -87,6 +87,19 @@ CREATE TABLE IF NOT EXISTS public.investimentos_bolsa (
     updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 6.1 Rendimentos da Bolsa (Dividendos / JCP / Proventos de FIIs)
+CREATE TABLE IF NOT EXISTS public.investimentos_rendimentos_bolsa (
+    id TEXT PRIMARY KEY,
+    user_email TEXT NOT NULL,
+    ticker TEXT NOT NULL,
+    tipo TEXT DEFAULT 'Dividendo',
+    data TEXT,
+    valor NUMERIC(12,2) NOT NULL,
+    banco TEXT,
+    notas TEXT,
+    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- 7. Investimentos Nubank (Caixinhas e Renda Fixa)
 CREATE TABLE IF NOT EXISTS public.investimentos_caixinhas (
     id TEXT PRIMARY KEY,
@@ -95,6 +108,17 @@ CREATE TABLE IF NOT EXISTS public.investimentos_caixinhas (
     valor NUMERIC(12,2) DEFAULT 0.00,
     status TEXT DEFAULT 'Ativa',
     data_aplicacao TEXT,
+    updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 7.1 Rendimentos das Caixinhas Nubank
+CREATE TABLE IF NOT EXISTS public.investimentos_rendimentos_caixinhas (
+    id TEXT PRIMARY KEY,
+    user_email TEXT NOT NULL,
+    caixinha TEXT NOT NULL,
+    data TEXT,
+    valor NUMERIC(12,2) NOT NULL,
+    notas TEXT,
     updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -185,9 +209,17 @@ ALTER TABLE public.investimentos_bolsa ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Permissao_Total_Bolsa" ON public.investimentos_bolsa;
 CREATE POLICY "Permissao_Total_Bolsa" ON public.investimentos_bolsa FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
+ALTER TABLE public.investimentos_rendimentos_bolsa ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permissao_Total_RendBolsa" ON public.investimentos_rendimentos_bolsa;
+CREATE POLICY "Permissao_Total_RendBolsa" ON public.investimentos_rendimentos_bolsa FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
 ALTER TABLE public.investimentos_caixinhas ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Permissao_Total_Caixinhas" ON public.investimentos_caixinhas;
 CREATE POLICY "Permissao_Total_Caixinhas" ON public.investimentos_caixinhas FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.investimentos_rendimentos_caixinhas ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permissao_Total_RendCaixinhas" ON public.investimentos_rendimentos_caixinhas;
+CREATE POLICY "Permissao_Total_RendCaixinhas" ON public.investimentos_rendimentos_caixinhas FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
 ALTER TABLE public.troco_jotur ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Permissao_Total_Jotur" ON public.troco_jotur;

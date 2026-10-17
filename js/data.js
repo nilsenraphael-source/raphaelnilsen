@@ -66,8 +66,10 @@ const INITIAL_DATABASE = {
 
   // 7. Investimentos
   investments: {
-    stocks: [], // Bolsa de Valores: Ações / FIIs
-    nubankBoxes: [] // Caixinhas Nubank / Renda Fixa
+    stocks: [],          // Bolsa de Valores: Ações / FIIs
+    stockEarnings: [],   // Rendimentos / Proventos da Bolsa (Dividendos / JCP / Rendimentos FII)
+    nubankBoxes: [],     // Caixinhas Nubank / Renda Fixa
+    nubankEarnings: []   // Rendimentos das Caixinhas Nubank
   },
 
   // 8. Cofre de Senhas
@@ -107,6 +109,16 @@ class DataStore {
             !merged.settings.supabase.anonKey ||
             merged.settings.supabase.anonKey.includes('sua-chave')) {
           merged.settings.supabase = { ...INITIAL_DATABASE.settings.supabase };
+        }
+
+        // Garante estruturas de investimentos e rendimentos
+        if (!merged.investments || typeof merged.investments !== 'object') {
+          merged.investments = { stocks: [], stockEarnings: [], nubankBoxes: [], nubankEarnings: [] };
+        } else {
+          if (!Array.isArray(merged.investments.stocks)) merged.investments.stocks = [];
+          if (!Array.isArray(merged.investments.stockEarnings)) merged.investments.stockEarnings = [];
+          if (!Array.isArray(merged.investments.nubankBoxes)) merged.investments.nubankBoxes = [];
+          if (!Array.isArray(merged.investments.nubankEarnings)) merged.investments.nubankEarnings = [];
         }
 
         if (!merged.cardPurchases) {
@@ -922,13 +934,109 @@ class DataStore {
     this.save();
   }
 
+  // --- RENDIMENTOS BOLSA ---
+  addStockEarning(earning) {
+    earning.id = 'stk_earn_' + Date.now();
+    earning.amount = Number(earning.amount) || 0;
+    if (!this.data.investments.stockEarnings) this.data.investments.stockEarnings = [];
+    this.data.investments.stockEarnings.push(earning);
+    this.save();
+    return earning;
+  }
+
+  deleteStockEarning(id) {
+    if (!this.data.investments.stockEarnings) return;
+    this.data.investments.stockEarnings = this.data.investments.stockEarnings.filter(e => e.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('investimentos_rendimentos_bolsa', id);
+    }
+    this.save();
+  }
+
+  // --- RENDIMENTOS NUBANK ---
+  addNubankEarning(earning) {
+    earning.id = 'box_earn_' + Date.now();
+    earning.amount = Number(earning.amount) || 0;
+    if (!this.data.investments.nubankEarnings) this.data.investments.nubankEarnings = [];
+    this.data.investments.nubankEarnings.push(earning);
+    this.save();
+    return earning;
+  }
+
+  deleteNubankEarning(id) {
+    if (!this.data.investments.nubankEarnings) return;
+    this.data.investments.nubankEarnings = this.data.investments.nubankEarnings.filter(e => e.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('investimentos_rendimentos_caixinhas', id);
+    }
+    this.save();
+  }
+
   getInvestmentsSummary() {
-    const totalStocks = this.data.investments.stocks.reduce((acc, s) => acc + (Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0), 0);
-    const totalBoxes = this.data.investments.nubankBoxes.reduce((acc, b) => acc + (Number(b.amount) || 0), 0);
+    const stocks = this.data.investments.stocks || [];
+    const boxes = this.data.investments.nubankBoxes || [];
+    const stockEarnings = this.data.investments.stockEarnings || [];
+    const nubankEarnings = this.data.investments.nubankEarnings || [];
+
+    const totalStocks = stocks.reduce((acc, s) => acc + (Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0), 0);
+    const totalBoxes = boxes.reduce((acc, b) => acc + (Number(b.amount) || 0), 0);
+    const totalInvested = totalStocks + totalBoxes;
+
+    const totalStockEarnings = stockEarnings.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const totalNubankEarnings = nubankEarnings.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const totalEarnings = totalStockEarnings + totalNubankEarnings;
+
+    const yieldGlobal = totalInvested > 0 ? (totalEarnings / totalInvested) * 100 : 0;
+    const yieldStocks = totalStocks > 0 ? (totalStockEarnings / totalStocks) * 100 : 0;
+    const yieldNubank = totalBoxes > 0 ? (totalNubankEarnings / totalBoxes) * 100 : 0;
+
+    // Agrupamento por ativo da bolsa (Total Investido por Ativo)
+    const stocksByAsset = {};
+    stocks.forEach(s => {
+      const ticker = (s.ticker || 'OUTROS').toUpperCase().trim();
+      const val = Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0;
+      stocksByAsset[ticker] = (stocksByAsset[ticker] || 0) + val;
+    });
+
+    // Agrupamento de Rendimentos por Ativo da bolsa
+    const earningsByStock = {};
+    stockEarnings.forEach(e => {
+      const ticker = (e.ticker || 'OUTROS').toUpperCase().trim();
+      const val = Number(e.amount) || 0;
+      earningsByStock[ticker] = (earningsByStock[ticker] || 0) + val;
+    });
+
+    // Agrupamento Nubank por Caixinha (Total Aplicado)
+    const boxesByName = {};
+    boxes.forEach(b => {
+      const name = (b.name || 'Geral').trim();
+      const val = Number(b.amount) || 0;
+      boxesByName[name] = (boxesByName[name] || 0) + val;
+    });
+
+    // Agrupamento de Rendimentos Nubank por Caixinha
+    const earningsByBox = {};
+    nubankEarnings.forEach(e => {
+      const name = (e.boxName || 'Geral').trim();
+      const val = Number(e.amount) || 0;
+      earningsByBox[name] = (earningsByBox[name] || 0) + val;
+    });
+
     return {
       stocks: totalStocks,
       boxes: totalBoxes,
-      total: totalStocks + totalBoxes
+      total: totalInvested,
+      totalInvested: totalInvested,
+      totalStockEarnings,
+      totalNubankEarnings,
+      totalEarnings,
+      yieldGlobal,
+      yieldStocks,
+      yieldNubank,
+      stocksByAsset,
+      earningsByStock,
+      boxesByName,
+      earningsByBox
     };
   }
 

@@ -206,13 +206,29 @@ class SupabaseService {
           user_email: email,
           ticker: s.ticker || s.name || '',
           tipo: s.type || 'Ação',
-          quantidade: Number(s.quantity) || 0,
-          preco_medio: Number(s.averagePrice) || 0,
-          total_aplicado: Number(s.totalInvested) || 0,
+          quantidade: Number(s.shares || s.quantity) || 0,
+          preco_medio: Number(s.pricePerShare || s.averagePrice) || 0,
+          total_aplicado: Number(s.total || s.totalInvested || (Number(s.shares) * Number(s.pricePerShare))) || 0,
           data_compra: s.date || '',
           updated_at: nowIso
         }));
         await this.client.from('investimentos_bolsa').upsert(stockRows);
+      }
+
+      // 6.1 Rendimentos Bolsa
+      if (data.investments && Array.isArray(data.investments.stockEarnings) && data.investments.stockEarnings.length > 0) {
+        const earnRows = data.investments.stockEarnings.map(e => ({
+          id: String(e.id),
+          user_email: email,
+          ticker: e.ticker || '',
+          tipo: e.type || 'Dividendo',
+          data: e.date || '',
+          valor: Number(e.amount) || 0,
+          banco: e.bank || '',
+          notas: e.notes || '',
+          updated_at: nowIso
+        }));
+        await this.client.from('investimentos_rendimentos_bolsa').upsert(earnRows);
       }
 
       // 7. Investimentos Caixinhas
@@ -227,6 +243,20 @@ class SupabaseService {
           updated_at: nowIso
         }));
         await this.client.from('investimentos_caixinhas').upsert(boxRows);
+      }
+
+      // 7.1 Rendimentos Caixinhas Nubank
+      if (data.investments && Array.isArray(data.investments.nubankEarnings) && data.investments.nubankEarnings.length > 0) {
+        const boxEarnRows = data.investments.nubankEarnings.map(e => ({
+          id: String(e.id),
+          user_email: email,
+          caixinha: e.boxName || '',
+          data: e.date || '',
+          valor: Number(e.amount) || 0,
+          notas: e.notes || '',
+          updated_at: nowIso
+        }));
+        await this.client.from('investimentos_rendimentos_caixinhas').upsert(boxEarnRows);
       }
 
       // 8. Troco Jotur
