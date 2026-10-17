@@ -4097,10 +4097,22 @@ const app = {
     if (hintEl) hintEl.textContent = hint;
   },
 
+  openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+  },
+
   closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.remove('active');
+      const anyActive = document.querySelector('.modal-overlay.active');
+      if (!anyActive) {
+        document.body.classList.remove('modal-open');
+      }
     }
   },
 

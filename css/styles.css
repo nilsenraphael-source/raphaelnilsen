@@ -91,6 +91,9 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
 button, input, select, textarea {
@@ -2076,9 +2079,10 @@ textarea.form-input {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(6, 9, 16, 0.75);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
+  background-color: rgba(6, 9, 16, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 10050;
   display: none;
   align-items: center;
   justify-content: center;
@@ -2971,11 +2975,29 @@ select:focus {
   /* Mostra a barra de navegação inferior */
   .mobile-bottom-nav {
     display: flex;
+    z-index: 1000;
+  }
+
+  /* Quando um modal estiver aberto, esconde a barra inferior e trava o scroll */
+  body.modal-open {
+    overflow: hidden !important;
+  }
+
+  body.modal-open .mobile-bottom-nav {
+    display: none !important;
   }
 
   /* Deixa espaço inferior no app para a barra mobile */
   .app-main {
     padding-bottom: calc(75px + env(safe-area-inset-bottom)) !important;
+    max-width: 100vw;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .app-content {
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   /* Sidebar vira gaveta sobreposta */
@@ -2985,44 +3007,166 @@ select:focus {
     box-shadow: 4px 0 25px rgba(0, 0, 0, 0.7);
   }
 
-  /* Cabeçalho compacto estilo App */
+  /* Cabeçalho compacto estilo App com suporte ao Safe Area */
   .app-header {
     height: auto;
-    padding: 0.75rem 1rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    padding-top: max(0.65rem, env(safe-area-inset-top));
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+    padding-bottom: 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
-  .header-year-pill,
-  .header-datetime-pill {
-    padding: 0.35rem 0.65rem;
-    font-size: 0.75rem;
+  .header-left {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
   }
 
-  .header-year-select {
-    font-size: 0.8rem;
+  .btn-mobile-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-primary);
+  }
+
+  .header-title-wrap {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .header-greeting {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .header-page-title {
     font-size: 1.05rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.25;
+  }
+
+  .header-right {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    box-sizing: border-box;
+  }
+
+  .header-right::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* No celular, esconde o relógio e data longa (já visíveis no topo do celular) para nunca estourar a largura */
+  .header-datetime-pill {
+    display: none !important;
+  }
+
+  .header-year-pill {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .cloud-status-pill {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .btn-header {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.78rem;
+    flex-shrink: 0;
   }
 
   /* Modais como Bottom Sheet no celular */
   .modal-overlay {
     align-items: flex-end;
     padding: 0;
+    z-index: 10050 !important;
   }
 
   .modal-dialog {
-    max-width: 100%;
-    width: 100%;
-    border-radius: 20px 20px 0 0;
-    max-height: 92vh;
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 92vh !important;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    overflow: hidden !important;
     animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.85);
+  }
+
+  .modal-dialog form {
+    display: flex;
+    flex-direction: column;
+    max-height: 92vh;
+    height: 100%;
+    overflow: hidden;
+    flex: 1;
+  }
+
+  .modal-header {
+    flex-shrink: 0;
+    padding: 0.9rem 1.25rem;
+  }
+
+  .modal-body {
+    flex: 1 1 auto;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem 1.25rem 1.5rem 1.25rem;
+  }
+
+  .modal-footer {
+    flex-shrink: 0;
+    padding: 0.85rem 1.25rem;
+    padding-bottom: max(1.25rem, calc(env(safe-area-inset-bottom) + 0.6rem));
+    background: var(--bg-surface-alt);
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  .modal-footer .btn-primary {
+    flex: 1;
+    min-height: 48px;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .modal-footer .btn-header {
+    height: 48px;
+    padding: 0 1.25rem;
   }
 
   @keyframes slideUpSheet {
