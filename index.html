@@ -21,7 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Estilos Executivos -->
-  <link rel="stylesheet" href="css/styles.css?v=20261017h">
+  <link rel="stylesheet" href="css/styles.css?v=20261017i">
 
   <!-- Chart.js para Gráficos Interativos de Investimentos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -584,6 +584,11 @@
               <button class="bombeiro-filter-btn" data-filter="vermelha" onclick="app.filterBombeiroGu('vermelha')">🔴 Vermelha (Búrigo)</button>
               <button class="bombeiro-filter-btn" data-filter="jotur" onclick="app.filterBombeiroGu('jotur')">🚌 Apenas Jotur</button>
               <button class="bombeiro-filter-btn" data-filter="contemplados" onclick="app.filterBombeiroGu('contemplados')">⭐ Meus Plantões</button>
+            </div>
+
+            <!-- Dica de swipe no mobile para o calendário -->
+            <div class="bombeiro-swipe-hint">
+              👉 Deslize para o lado para ver até Sábado 👈
             </div>
 
             <!-- GRADE DO CALENDÁRIO -->
@@ -2109,21 +2114,6 @@
 
           </div>
 
-          <!-- PAGAMENTO & STATUS -->
-          <div class="form-grid-2" style="margin-top: 1rem;">
-            <div class="form-group">
-              <label class="form-label">Status do Pagamento</label>
-              <select id="ff_status" class="form-input" onchange="app.onBombeiroModalStatusChange()">
-                <option value="Pendente">Pendente (a receber)</option>
-                <option value="Pago">Pago (recebido)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Data do Pagamento</label>
-              <input type="date" id="ff_date_pay" class="form-input">
-            </div>
-          </div>
-
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalNovoBombeiro')">Cancelar</button>
@@ -2471,8 +2461,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261017h"></script>
-  <script src="js/supabase.js?v=20261017h"></script>
-  <script src="js/app.js?v=20261017h"></script>
+  <script src="js/data.js?v=20261017i"></script>
+  <script src="js/supabase.js?v=20261017i"></script>
+  <script src="js/app.js?v=20261017i"></script>
 </body>
 </html>

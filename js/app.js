@@ -4563,8 +4563,15 @@ const app = {
         const recordId = document.getElementById('ff_record_id')?.value;
         const monthRef = document.getElementById('ff_month')?.value || '';
         const dateRequested = document.getElementById('ff_date_req')?.value || '';
-        const datePayment = document.getElementById('ff_date_pay')?.value || '';
-        const status = document.getElementById('ff_status')?.value || 'Pendente';
+        let datePayment = '';
+        let status = 'Pendente';
+        if (recordId) {
+          const existing = store.data.firefighterRecords.find(r => r.id === recordId);
+          if (existing) {
+            status = existing.status || 'Pendente';
+            datePayment = existing.datePayment || '';
+          }
+        }
         const shifts = this.currentModalShifts || [];
         const amount = shifts.filter(s => s.contemplated).length * 125.00;
 
