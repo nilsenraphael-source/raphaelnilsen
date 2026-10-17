@@ -288,9 +288,10 @@ const app = {
   navigateTo(tabId) {
     this.currentTab = tabId;
 
-    // Atualiza Sidebar Desktop
+    // Atualiza Sidebar Desktop (Mastes é uma sub-seção de Jotur)
+    const activeNavTab = tabId === 'mastes' ? 'jotur' : tabId;
     document.querySelectorAll('.nav-item').forEach(item => {
-      if (item.dataset.tab === tabId) {
+      if (item.dataset.tab === activeNavTab) {
         item.classList.add('active');
       } else {
         item.classList.remove('active');
@@ -299,7 +300,7 @@ const app = {
 
     // Atualiza Barra Inferior Mobile
     document.querySelectorAll('.mobile-nav-item').forEach(item => {
-      if (item.dataset.tab === tabId) {
+      if (item.dataset.tab === activeNavTab) {
         item.classList.add('active');
       } else {
         item.classList.remove('active');
