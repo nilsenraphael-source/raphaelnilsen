@@ -532,6 +532,87 @@
              ==================================================================== -->
         <section id="view-bombeiro" class="page-view">
           
+          <!-- ==================================================================
+               CARD 1: ESCALA OPERACIONAL DAS GUARNIÇÕES (24x72) & ESCALA JOTUR
+               ================================================================== -->
+          <div class="card" style="margin-bottom: 1.5rem;">
+            
+            <!-- HEADER DA ESCALA -->
+            <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
+              <div class="card-title-group">
+                <div class="card-icon" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Escala Operacional das Guarnições (24x72)</h3>
+                  <span class="card-subtitle">Ciclo contínuo de 4 Guarnições e Escala Jotur nos fins de semana</span>
+                </div>
+              </div>
+
+              <!-- CONTROLES DE MÊS / ANO -->
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn-table-icon" title="Mês Anterior" onclick="app.prevBombeiroMonth()" style="width: 34px; height: 34px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+                <span id="bombeiroCalMonthLabel" style="font-weight: 800; font-size: 1.05rem; color: #fff; min-width: 170px; text-align: center;">Outubro de 2026</span>
+                <button class="btn-table-icon" title="Próximo Mês" onclick="app.nextBombeiroMonth()" style="width: 34px; height: 34px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+                <button class="btn-header" style="font-size: 0.8rem; padding: 0.35rem 0.85rem;" onclick="app.todayBombeiroMonth()">
+                  Hoje
+                </button>
+              </div>
+            </div>
+
+            <!-- CARD LIVE: PLANTÃO DE HOJE & PRÓXIMAS GUARNIAÇÕES -->
+            <div id="cardPlantaoHoje" class="bombeiro-today-card" style="margin-bottom: 1.25rem;">
+              <!-- Preenchido dinamicamente via JS -->
+            </div>
+
+            <!-- FILTRO DE GUARNIÇÕES & JOTUR -->
+            <div class="bombeiro-filter-bar">
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">Filtrar:</span>
+              <button class="bombeiro-filter-btn active" data-filter="all" onclick="app.filterBombeiroGu('all')">Todas</button>
+              <button class="bombeiro-filter-btn" data-filter="azul" onclick="app.filterBombeiroGu('azul')">🔵 Azul (Moraes)</button>
+              <button class="bombeiro-filter-btn" data-filter="amarela" onclick="app.filterBombeiroGu('amarela')">🟡 Amarela (Lapa)</button>
+              <button class="bombeiro-filter-btn" data-filter="verde" onclick="app.filterBombeiroGu('verde')">🟢 Verde (Uitajuci)</button>
+              <button class="bombeiro-filter-btn" data-filter="vermelha" onclick="app.filterBombeiroGu('vermelha')">🔴 Vermelha (Búrigo)</button>
+              <button class="bombeiro-filter-btn" data-filter="jotur" onclick="app.filterBombeiroGu('jotur')">🚌 Apenas Jotur</button>
+            </div>
+
+            <!-- GRADE DO CALENDÁRIO -->
+            <div class="bombeiro-calendar-wrapper">
+              <!-- Cabeçalho dos Dias da Semana -->
+              <div class="bombeiro-weekdays-grid">
+                <div class="bombeiro-weekday weekend">Dom</div>
+                <div class="bombeiro-weekday">Seg</div>
+                <div class="bombeiro-weekday">Ter</div>
+                <div class="bombeiro-weekday">Qua</div>
+                <div class="bombeiro-weekday">Qui</div>
+                <div class="bombeiro-weekday">Sex</div>
+                <div class="bombeiro-weekday weekend">Sáb</div>
+              </div>
+
+              <!-- Células dos Dias -->
+              <div id="bombeiroDaysGrid" class="bombeiro-days-grid">
+                <!-- Inserido dinamicamente via JS -->
+              </div>
+            </div>
+
+            <!-- LEGENDA DA ESCALA -->
+            <div class="bombeiro-calendar-legend">
+              <div class="legend-item"><span class="legend-dot" style="background:#38bdf8;"></span> <strong>GU AZUL:</strong> Moraes</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#facc15;"></span> <strong>GU AMARELA:</strong> Lapa</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#4ade80;"></span> <strong>GU VERDE:</strong> Uitajuci</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#f87171;"></span> <strong>GU VERMELHA:</strong> Búrigo</div>
+              <div class="legend-item"><span class="legend-tag-jotur">🚌 JOTUR</span> Finais de semana alternados (Hoje: Sáb, próx: Dom)</div>
+            </div>
+
+          </div>
+
+          <!-- ==================================================================
+               CARD 2: RESSARCIMENTOS DO BOMBEIRO COMUNITÁRIO
+               ================================================================== -->
           <div class="card">
             <div class="card-header">
               <div class="card-title-group">
@@ -2307,8 +2388,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261017d"></script>
-  <script src="js/supabase.js?v=20261017d"></script>
-  <script src="js/app.js?v=20261017d"></script>
+  <script src="js/data.js?v=20261017e"></script>
+  <script src="js/supabase.js?v=20261017e"></script>
+  <script src="js/app.js?v=20261017e"></script>
 </body>
 </html>

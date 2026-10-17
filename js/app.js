@@ -2225,9 +2225,251 @@ const app = {
   },
 
   // =========================================================================
-  // 5. MÓDULO BOMBEIRO COMUNITÁRIO
+  // 5. MÓDULO BOMBEIRO COMUNITÁRIO (ESCALA 24x72 & RESSARCIMENTOS)
   // =========================================================================
+  bombeiroCalState: {
+    year: 2026,
+    month: 9, // Outubro (0-indexed)
+    filter: 'all'
+  },
+
+  getGuPorData(ano, mes, dia) {
+    const GUS = [
+      { id: 'azul', nome: 'AZUL', responsavel: 'Moraes', cor: '#38bdf8', bg: 'rgba(56, 189, 248, 0.16)', border: 'rgba(56, 189, 248, 0.45)', icone: '🔵' },
+      { id: 'amarela', nome: 'AMARELA', responsavel: 'Lapa', cor: '#facc15', bg: 'rgba(250, 204, 21, 0.16)', border: 'rgba(250, 204, 21, 0.45)', icone: '🟡' },
+      { id: 'verde', nome: 'VERDE', responsavel: 'Uitajuci', cor: '#4ade80', bg: 'rgba(74, 222, 128, 0.16)', border: 'rgba(74, 222, 128, 0.45)', icone: '🟢' },
+      { id: 'vermelha', nome: 'VERMELHA', responsavel: 'Búrigo', cor: '#f87171', bg: 'rgba(248, 113, 113, 0.16)', border: 'rgba(248, 113, 113, 0.45)', icone: '🔴' }
+    ];
+    // Âncora: 17 de Outubro de 2026 = AZUL (índice 0)
+    const dtUtc = Date.UTC(parseInt(ano), parseInt(mes), parseInt(dia));
+    const ancoraUtc = Date.UTC(2026, 9, 17);
+    const diffDias = Math.round((dtUtc - ancoraUtc) / 86400000);
+    const idx = ((diffDias % 4) + 4) % 4;
+    return GUS[idx];
+  },
+
+  isJoturEscalado(ano, mes, dia) {
+    const dt = new Date(ano, mes, dia);
+    const dayOfWeek = dt.getDay(); // 0 = Domingo, 6 = Sábado
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) return false;
+
+    // Encontra o Sábado deste final de semana
+    const satUtc = dayOfWeek === 6
+      ? Date.UTC(ano, mes, dia)
+      : Date.UTC(ano, mes, dia - 1);
+
+    // Âncora: Sábado 17/10/2026
+    const ancoraSatUtc = Date.UTC(2026, 9, 17);
+    const diffWeeks = Math.round((satUtc - ancoraSatUtc) / (7 * 86400000));
+    const cycleIndex = ((diffWeeks % 2) + 2) % 2;
+
+    // cycleIndex === 0: Sábado tem JOTUR
+    // cycleIndex === 1: Domingo tem JOTUR
+    if (cycleIndex === 0 && dayOfWeek === 6) return true;
+    if (cycleIndex === 1 && dayOfWeek === 0) return true;
+    return false;
+  },
+
+  prevBombeiroMonth() {
+    this.bombeiroCalState.month--;
+    if (this.bombeiroCalState.month < 0) {
+      this.bombeiroCalState.month = 11;
+      this.bombeiroCalState.year--;
+    }
+    this.renderBombeiroEscala();
+  },
+
+  nextBombeiroMonth() {
+    this.bombeiroCalState.month++;
+    if (this.bombeiroCalState.month > 11) {
+      this.bombeiroCalState.month = 0;
+      this.bombeiroCalState.year++;
+    }
+    this.renderBombeiroEscala();
+  },
+
+  todayBombeiroMonth() {
+    const now = new Date();
+    this.bombeiroCalState.year = now.getFullYear();
+    this.bombeiroCalState.month = now.getMonth();
+    this.renderBombeiroEscala();
+  },
+
+  filterBombeiroGu(filter) {
+    this.bombeiroCalState.filter = filter;
+    this.renderBombeiroEscala();
+  },
+
+  renderBombeiroEscala() {
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    const weekdays = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+    const today = new Date();
+    const tYear = today.getFullYear();
+    const tMonth = today.getMonth();
+    const tDay = today.getDate();
+
+    // 1. Destaque do Plantão de Hoje
+    const cardHoje = document.getElementById('cardPlantaoHoje');
+    if (cardHoje) {
+      const guHoje = this.getGuPorData(tYear, tMonth, tDay);
+      const joturHoje = this.isJoturEscalado(tYear, tMonth, tDay);
+
+      // Próximas 3 guarnições
+      let proxHtml = '';
+      for (let i = 1; i <= 3; i++) {
+        const proxDt = new Date(tYear, tMonth, tDay + i);
+        const pY = proxDt.getFullYear();
+        const pM = proxDt.getMonth();
+        const pD = proxDt.getDate();
+        const pGu = this.getGuPorData(pY, pM, pD);
+        const pJotur = this.isJoturEscalado(pY, pM, pD);
+        const labelQuando = i === 1 ? 'Amanhã' : (i === 2 ? 'Segunda' : weekdays[proxDt.getDay()].split('-')[0]);
+
+        proxHtml += `
+          <div class="bombeiro-next-pill" style="border-color:${pGu.border};">
+            <span style="color:#94a3b8; font-size:0.7rem; font-weight:700;">${labelQuando} (${String(pD).padStart(2,'0')}/${String(pM+1).padStart(2,'0')})</span>
+            <span style="color:${pGu.cor}; font-weight:800;">${pGu.icone} ${pGu.nome}</span>
+            <span style="color:#cbd5e1; font-size:0.68rem;">${pGu.responsavel}</span>
+            ${pJotur ? '<span class="legend-tag-jotur" style="margin-top:2px;">🚌 JOTUR</span>' : ''}
+          </div>
+        `;
+      }
+
+      cardHoje.style.borderLeftColor = guHoje.cor;
+      cardHoje.innerHTML = `
+        <div class="bombeiro-today-main">
+          <div class="bombeiro-today-tag">
+            <span>🔥 PLANTÃO DE HOJE</span>
+            <span>•</span>
+            <span>${weekdays[today.getDay()]}, ${String(tDay).padStart(2,'0')} de ${monthNames[tMonth]} de ${tYear}</span>
+          </div>
+          <div class="bombeiro-today-title" style="color:${guHoje.cor};">
+            <span>${guHoje.icone} GU ${guHoje.nome}</span>
+            <span style="font-size:1.05rem; color:#fff; font-weight:600;">(Coordenação: ${guHoje.responsavel})</span>
+            ${joturHoje ? '<span class="bombeiro-jotur-badge" style="font-size:0.8rem; padding:0.25rem 0.6rem;">🚌 ESCALA JOTUR HOJE</span>' : ''}
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:0.4rem;">
+          <span style="font-size:0.72rem; font-weight:700; color:#94a3b8; text-transform:uppercase;">Próximas Escalas:</span>
+          <div class="bombeiro-next-list">
+            ${proxHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Título Mês / Ano
+    const labelMonth = document.getElementById('bombeiroCalMonthLabel');
+    if (labelMonth) {
+      labelMonth.textContent = `${monthNames[this.bombeiroCalState.month]} de ${this.bombeiroCalState.year}`;
+    }
+
+    // 3. Atualiza Botões de Filtro
+    document.querySelectorAll('.bombeiro-filter-btn').forEach(btn => {
+      if (btn.dataset.filter === this.bombeiroCalState.filter) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // 4. Grade do Calendário
+    const grid = document.getElementById('bombeiroDaysGrid');
+    if (!grid) return;
+
+    const calYear = this.bombeiroCalState.year;
+    const calMonth = this.bombeiroCalState.month;
+    const filter = this.bombeiroCalState.filter;
+
+    const firstDayIndex = new Date(calYear, calMonth, 1).getDay(); // 0 = Dom, 6 = Sáb
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
+
+    let cellsHtml = '';
+
+    // Dias do mês anterior
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const pDay = daysInPrevMonth - i;
+      const pMonth = calMonth === 0 ? 11 : calMonth - 1;
+      const pYear = calMonth === 0 ? calYear - 1 : calYear;
+      const gu = this.getGuPorData(pYear, pMonth, pDay);
+      const hasJotur = this.isJoturEscalado(pYear, pMonth, pDay);
+
+      cellsHtml += `
+        <div class="bombeiro-day-cell other-month">
+          <div class="bombeiro-day-header">
+            <span class="bombeiro-day-num" style="opacity:0.4;">${pDay}</span>
+          </div>
+          <div class="bombeiro-gu-badge" style="background:${gu.bg}; border:1px dashed ${gu.border}; color:${gu.cor};">
+            <span class="bombeiro-gu-line">${gu.icone} ${gu.nome}</span>
+            <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
+          </div>
+          ${hasJotur ? '<span class="legend-tag-jotur" style="opacity:0.5; font-size:0.6rem;">🚌 JOTUR</span>' : ''}
+        </div>
+      `;
+    }
+
+    // Dias do mês atual
+    for (let day = 1; day <= daysInMonth; day++) {
+      const gu = this.getGuPorData(calYear, calMonth, day);
+      const hasJotur = this.isJoturEscalado(calYear, calMonth, day);
+      const isToday = (tYear === calYear && tMonth === calMonth && tDay === day);
+
+      let isFilteredOut = false;
+      if (filter === 'jotur') {
+        isFilteredOut = !hasJotur;
+      } else if (filter !== 'all') {
+        isFilteredOut = (gu.id !== filter);
+      }
+
+      cellsHtml += `
+        <div class="bombeiro-day-cell ${isToday ? 'is-today' : ''} ${isFilteredOut ? 'filtered-out' : ''}">
+          <div class="bombeiro-day-header">
+            <span class="bombeiro-day-num" style="${isToday ? 'color:#38bdf8; font-weight:800;' : ''}">${day}</span>
+            ${isToday ? '<span class="bombeiro-today-badge">HOJE</span>' : ''}
+          </div>
+          <div class="bombeiro-gu-badge" style="background:${gu.bg}; border:1px solid ${gu.border}; color:${gu.cor};">
+            <span class="bombeiro-gu-line">${gu.icone} ${gu.nome}</span>
+            <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
+          </div>
+          ${hasJotur ? '<div class="bombeiro-jotur-badge">🚌 JOTUR</div>' : ''}
+        </div>
+      `;
+    }
+
+    // Dias do próximo mês para completar semanas
+    const totalCellsSoFar = firstDayIndex + daysInMonth;
+    const remainingCells = (7 - (totalCellsSoFar % 7)) % 7;
+    for (let n = 1; n <= remainingCells; n++) {
+      const nMonth = calMonth === 11 ? 0 : calMonth + 1;
+      const nYear = calMonth === 11 ? calYear + 1 : calYear;
+      const gu = this.getGuPorData(nYear, nMonth, n);
+      const hasJotur = this.isJoturEscalado(nYear, nMonth, n);
+
+      cellsHtml += `
+        <div class="bombeiro-day-cell other-month">
+          <div class="bombeiro-day-header">
+            <span class="bombeiro-day-num" style="opacity:0.4;">${n}</span>
+          </div>
+          <div class="bombeiro-gu-badge" style="background:${gu.bg}; border:1px dashed ${gu.border}; color:${gu.cor};">
+            <span class="bombeiro-gu-line">${gu.icone} ${gu.nome}</span>
+            <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
+          </div>
+          ${hasJotur ? '<span class="legend-tag-jotur" style="opacity:0.5; font-size:0.6rem;">🚌 JOTUR</span>' : ''}
+        </div>
+      `;
+    }
+
+    grid.innerHTML = cellsHtml;
+  },
+
   renderBombeiro() {
+    this.renderBombeiroEscala();
+
     const tbody = document.getElementById('bombeiroTableBody');
     if (!tbody) return;
 
