@@ -2416,23 +2416,29 @@ const app = {
       let pShiftsHtml = '';
       pShifts.forEach(s => {
         if (s.contemplated) {
-          pShiftsHtml += `<div class="bombeiro-shift-badge contemplated-${s.period}" style="opacity:0.65;">${s.period === 'diurno' ? '☀️ MEU PLANTÃO (+ R$ 125)' : '🌙 MEU PLANTÃO (+ R$ 125)'}</div>`;
+          pShiftsHtml += `
+            <div class="bombeiro-shift-pill ${s.period}" style="opacity:0.75;" title="Plantão Confirmado (+ R$ 125,00)">
+              <span>${s.period === 'diurno' ? '☀️ Diurno' : '🌙 Noturno'}</span>
+              <span class="shift-val">+ R$ 125</span>
+            </div>
+          `;
         } else {
-          pShiftsHtml += `<div class="bombeiro-shift-badge pending" style="opacity:0.5;">⏱️ Disp: ${s.period === 'diurno' ? 'Diurno' : 'Noturno'}</div>`;
+          pShiftsHtml += `<div class="bombeiro-shift-pill pending" style="opacity:0.5;">⏱️ Disp: ${s.period === 'diurno' ? 'Diurno' : 'Noturno'}</div>`;
         }
       });
 
       cellsHtml += `
         <div class="bombeiro-day-cell other-month ${hasPContemplated ? 'has-contemplated' : ''}">
+          ${hasPContemplated ? '<div class="bombeiro-plantao-banner" style="opacity:0.75;"><span class="plantao-star">⭐</span> MEU PLANTÃO</div>' : ''}
           <div class="bombeiro-day-header">
-            <span class="bombeiro-day-num" style="opacity:0.4;">${pDay}</span>
+            <span class="bombeiro-day-num ${hasPContemplated ? 'plantao-day' : ''}" style="opacity:0.4;">${pDay}</span>
           </div>
+          ${pShiftsHtml ? `<div class="bombeiro-shifts-wrap">${pShiftsHtml}</div>` : ''}
           <div class="bombeiro-gu-badge" style="background:${gu.bg}; border:1px dashed ${gu.border}; color:${gu.cor};">
             <span class="bombeiro-gu-line">${gu.icone} ${gu.nome}</span>
             <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
           </div>
           ${hasJotur ? '<span class="legend-tag-jotur" style="opacity:0.5; font-size:0.6rem;">🚌 JOTUR</span>' : ''}
-          ${pShiftsHtml}
         </div>
       `;
     }
@@ -2460,13 +2466,14 @@ const app = {
       myShifts.forEach(s => {
         if (s.contemplated) {
           myShiftsHtml += `
-            <div class="bombeiro-shift-badge contemplated-${s.period}" title="Plantão Contemplado (+ R$ 125,00)">
-              ${s.period === 'diurno' ? '☀️ MEU PLANTÃO DIURNO (+ R$ 125)' : '🌙 MEU PLANTÃO NOTURNO (+ R$ 125)'}
+            <div class="bombeiro-shift-pill ${s.period}" title="Plantão Contemplado (+ R$ 125,00)">
+              <span>${s.period === 'diurno' ? '☀️ Diurno' : '🌙 Noturno'}</span>
+              <span class="shift-val">+ R$ 125</span>
             </div>
           `;
         } else {
           myShiftsHtml += `
-            <div class="bombeiro-shift-badge pending" title="Disponibilidade enviada (aguardando contemplação)">
+            <div class="bombeiro-shift-pill pending" title="Disponibilidade enviada (aguardando contemplação)">
               ⏱️ Disp: ${s.period === 'diurno' ? 'Diurno' : 'Noturno'}
             </div>
           `;
@@ -2475,16 +2482,17 @@ const app = {
 
       cellsHtml += `
         <div class="bombeiro-day-cell ${isToday ? 'is-today' : ''} ${hasContemplated ? 'has-contemplated' : ''} ${isFilteredOut ? 'filtered-out' : ''}">
+          ${hasContemplated ? '<div class="bombeiro-plantao-banner"><span class="plantao-star">⭐</span> MEU PLANTÃO</div>' : ''}
           <div class="bombeiro-day-header">
-            <span class="bombeiro-day-num" style="${isToday ? 'color:#38bdf8; font-weight:800;' : ''}">${day}</span>
+            <span class="bombeiro-day-num ${hasContemplated ? 'plantao-day' : ''}" style="${isToday ? 'color:#38bdf8; font-weight:800;' : ''}">${day}</span>
             ${isToday ? '<span class="bombeiro-today-badge">HOJE</span>' : ''}
           </div>
+          ${myShiftsHtml ? `<div class="bombeiro-shifts-wrap">${myShiftsHtml}</div>` : ''}
           <div class="bombeiro-gu-badge" style="background:${gu.bg}; border:1px solid ${gu.border}; color:${gu.cor};">
             <span class="bombeiro-gu-line">${gu.icone} ${gu.nome}</span>
             <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
           </div>
           ${hasJotur ? '<div class="bombeiro-jotur-badge">🚌 JOTUR</div>' : ''}
-          ${myShiftsHtml}
         </div>
       `;
     }
@@ -2504,23 +2512,29 @@ const app = {
       let nShiftsHtml = '';
       nShifts.forEach(s => {
         if (s.contemplated) {
-          nShiftsHtml += `<div class="bombeiro-shift-badge contemplated-${s.period}" style="opacity:0.65;">${s.period === 'diurno' ? '☀️ MEU PLANTÃO (+ R$ 125)' : '🌙 MEU PLANTÃO (+ R$ 125)'}</div>`;
+          nShiftsHtml += `
+            <div class="bombeiro-shift-pill ${s.period}" style="opacity:0.75;" title="Plantão Confirmado (+ R$ 125,00)">
+              <span>${s.period === 'diurno' ? '☀️ Diurno' : '🌙 Noturno'}</span>
+              <span class="shift-val">+ R$ 125</span>
+            </div>
+          `;
         } else {
-          nShiftsHtml += `<div class="bombeiro-shift-badge pending" style="opacity:0.5;">⏱️ Disp: ${s.period === 'diurno' ? 'Diurno' : 'Noturno'}</div>`;
+          nShiftsHtml += `<div class="bombeiro-shift-pill pending" style="opacity:0.5;">⏱️ Disp: ${s.period === 'diurno' ? 'Diurno' : 'Noturno'}</div>`;
         }
       });
 
       cellsHtml += `
         <div class="bombeiro-day-cell other-month ${hasNContemplated ? 'has-contemplated' : ''}">
+          ${hasNContemplated ? '<div class="bombeiro-plantao-banner" style="opacity:0.75;"><span class="plantao-star">⭐</span> MEU PLANTÃO</div>' : ''}
           <div class="bombeiro-day-header">
-            <span class="bombeiro-day-num" style="opacity:0.4;">${n}</span>
+            <span class="bombeiro-day-num ${hasNContemplated ? 'plantao-day' : ''}" style="opacity:0.4;">${n}</span>
           </div>
+          ${nShiftsHtml ? `<div class="bombeiro-shifts-wrap">${nShiftsHtml}</div>` : ''}
           <div class="bombeiro-gu-badge" style="background:${gu.bg}; border:1px dashed ${gu.border}; color:${gu.cor};">
             <span class="bombeiro-gu-line">${gu.icone} ${gu.nome}</span>
             <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
           </div>
           ${hasJotur ? '<span class="legend-tag-jotur" style="opacity:0.5; font-size:0.6rem;">🚌 JOTUR</span>' : ''}
-          ${nShiftsHtml}
         </div>
       `;
     }

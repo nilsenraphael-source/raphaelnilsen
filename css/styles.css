@@ -3642,58 +3642,172 @@ select:focus {
 
 @media (max-width: 768px) {
   .bombeiro-day-cell {
-    min-height: 70px;
-    padding: 0.35rem;
+    min-height: 80px;
+    padding: 0.35rem 0.25rem;
+    gap: 0.25rem;
+  }
+  .bombeiro-plantao-banner {
+    font-size: 0.58rem;
+    padding: 0.15rem 0.2rem;
+    letter-spacing: 0.02em;
+  }
+  .bombeiro-shift-pill {
+    font-size: 0.62rem;
+    padding: 0.15rem 0.25rem;
   }
   .bombeiro-gu-resp {
     display: none;
   }
   .bombeiro-gu-badge {
-    padding: 0.2rem 0.3rem;
+    padding: 0.2rem 0.25rem;
     font-size: 0.65rem;
   }
 }
 
-/* Badges e Destaques de Plantão do Bombeiro (Disponibilidade vs Contemplado) */
-.bombeiro-shift-badge {
+/* ==========================================================================
+   Destaque Exclusivo: MEU PLANTÃO
+   Cores e estilos projetados para máxima visibilidade e contraste absoluto
+   com todas as guarnições (Azul, Amarela, Verde, Vermelha) e Jotur.
+   ========================================================================== */
+
+/* Célula do Dia Contemplado */
+.bombeiro-day-cell.has-contemplated {
+  border: 2px solid #8b5cf6 !important;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.28) 0%, rgba(18, 19, 24, 0.98) 70%) !important;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5), inset 0 0 14px rgba(139, 92, 246, 0.2) !important;
+  position: relative;
+  z-index: 4;
+  animation: plantaoPulse 3s infinite ease-in-out;
+}
+
+@keyframes plantaoPulse {
+  0%, 100% {
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.45), inset 0 0 12px rgba(139, 92, 246, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 26px rgba(168, 85, 247, 0.7), inset 0 0 16px rgba(168, 85, 247, 0.3);
+  }
+}
+
+.bombeiro-day-cell.has-contemplated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ec4899, #8b5cf6, #06b6d4);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.9);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Faixa / Banner Superior: MEU PLANTÃO */
+.bombeiro-plantao-banner {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  padding: 0.22rem 0.35rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.6);
+  border: 1px solid rgba(196, 181, 253, 0.45);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bombeiro-plantao-banner .plantao-star {
+  font-size: 0.75rem;
+  filter: drop-shadow(0 0 4px #fef08a);
+}
+
+/* Número do Dia quando é Plantão */
+.bombeiro-day-num.plantao-day {
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  background: rgba(139, 92, 246, 0.3);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  border: 1px solid rgba(167, 139, 250, 0.4);
+}
+
+/* Container de Turnos */
+.bombeiro-shifts-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.15rem 0;
+}
+
+/* Pílula de Turno */
+.bombeiro-shift-pill {
   border-radius: 5px;
-  padding: 0.25rem 0.45rem;
-  font-size: 0.7rem;
+  padding: 0.22rem 0.35rem;
+  font-size: 0.68rem;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.3rem;
-  margin-top: 0.25rem;
+  gap: 0.25rem;
   line-height: 1.2;
 }
 
-.bombeiro-shift-badge.contemplated-diurno {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.4) 0%, rgba(217, 119, 6, 0.6) 100%);
-  border: 1px solid #f59e0b;
+.bombeiro-shift-pill.diurno {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.bombeiro-shift-pill.diurno .shift-val {
+  font-size: 0.64rem;
   color: #fef08a;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+  font-weight: 900;
 }
 
-.bombeiro-shift-badge.contemplated-noturno {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(109, 40, 217, 0.6) 100%);
-  border: 1px solid #8b5cf6;
-  color: #e9d5ff;
-  box-shadow: 0 0 12px rgba(139, 92, 246, 0.45);
+.bombeiro-shift-pill.noturno {
+  background: rgba(79, 70, 229, 0.35);
+  border: 1px solid rgba(165, 180, 252, 0.5);
+  color: #e0e7ff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
-.bombeiro-shift-badge.pending {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  color: #cbd5e1;
-  font-size: 0.66rem;
+.bombeiro-shift-pill.noturno .shift-val {
+  font-size: 0.64rem;
+  color: #a7f3d0;
+  font-weight: 900;
+}
+
+.bombeiro-shift-pill.pending {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: #94a3b8;
+  font-size: 0.64rem;
   font-weight: 600;
+  justify-content: center;
 }
 
-.bombeiro-day-cell.has-contemplated {
-  border: 1.5px solid #f59e0b !important;
-  background: rgba(245, 158, 11, 0.08) !important;
-  box-shadow: inset 0 0 15px rgba(245, 158, 11, 0.15);
+/* Legenda: Banner MEU PLANTÃO */
+.bombeiro-plantao-banner-legend {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid rgba(196, 181, 253, 0.5);
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
 }
 
 /* Lista de Turnos no Modal */
