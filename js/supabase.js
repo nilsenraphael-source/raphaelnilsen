@@ -63,11 +63,13 @@ class SupabaseService {
 
       store.data.settings.lastSync = nowIso;
       store.save(true); // salva lastSync sem disparar novo loop
+      this.lastError = null;
       if (!silent) console.log('[Cofre Supabase] Sincronização concluída com sucesso às ' + nowIso);
       return { success: true, message: 'Dados salvos com sucesso no Cofre Supabase!', timestamp: nowIso };
     } catch (e) {
       console.error('[Cofre Supabase] Erro ao sincronizar:', e);
-      return { success: false, error: e.message || 'Erro ao sincronizar com o Supabase' };
+      this.lastError = e.message || 'Erro ao sincronizar com o Supabase';
+      return { success: false, error: this.lastError };
     }
   }
 
@@ -301,6 +303,28 @@ class SupabaseService {
     }
   }
 
+  // Testar Conexão em Tempo Real
+  async testConnection() {
+    if (!this.client) this.init();
+    if (!this.isConfigured() || !this.client) {
+      return { ok: false, error: 'Cofre Supabase não configurado.' };
+    }
+    try {
+      const startTime = performance.now();
+      const { data, error } = await this.client
+        .from('financial_vault')
+        .select('updated_at')
+        .limit(1);
+      const latency = Math.round(performance.now() - startTime);
+      if (error) throw error;
+      this.lastError = null;
+      return { ok: true, latency };
+    } catch (e) {
+      this.lastError = e.message || 'Falha na resposta do servidor Supabase';
+      return { ok: false, error: this.lastError };
+    }
+  }
+
   // Carregar dados da Nuvem
   async loadFromCloud(silent = false) {
     if (!this.client) this.init();
@@ -308,11 +332,13 @@ class SupabaseService {
       return { success: false, reason: 'Cofre Supabase não configurado' };
     }
 
+    const email = (store.data.settings?.userEmail || 'raphael_nilsen@hotmail.com').trim().toLowerCase();
+
     try {
       const { data, error } = await this.client
         .from('financial_vault')
         .select('data_json, updated_at')
-        .eq('user_email', store.data.settings.userEmail)
+        .eq('user_email', email)
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = zero rows found
@@ -323,6 +349,7 @@ class SupabaseService {
         store.data = data.data_json;
         store.data.settings.lastSync = data.updated_at;
         store.save(true);
+        this.lastError = null;
         if (!silent) console.log('[Cofre Supabase] Dados carregados da nuvem com sucesso.');
         return { success: true, message: 'Dados restaurados com sucesso da nuvem!' };
       } else {
@@ -332,6 +359,7 @@ class SupabaseService {
       }
     } catch (e) {
       console.error('[Cofre Supabase] Erro ao carregar:', e);
+      this.lastError = e.message;
       return { success: false, error: e.message };
     }
   }

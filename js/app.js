@@ -134,8 +134,16 @@ const app = {
 
   async autoSyncOnStartup() {
     if (typeof supabaseService !== 'undefined' && supabaseService.isConfigured()) {
-      this.setCloudSyncing(true);
-      const res = await supabaseService.loadFromCloud(true);
+      this.setCloudSyncing(true, true, null, '☁️ Conectando à Nuvem...');
+      let res = await supabaseService.loadFromCloud(true);
+
+      // Se falhou por servidor Supabase acordando do modo inativo (cold-start), aguarda e tenta novamente
+      if (!res.success && res.error) {
+        this.setCloudSyncing(true, true, null, '☁️ Acordando Servidor...');
+        await new Promise(r => setTimeout(r, 2000));
+        res = await supabaseService.loadFromCloud(true);
+      }
+
       if (res.success) {
         this.render();
         this.setCloudSyncing(false, true, store.data.settings.lastSync);
@@ -144,20 +152,24 @@ const app = {
         this.showToast('☁️ Dados carregados da Nuvem!', 'success');
       } else {
         // Se ainda não havia dados na nuvem, sobe o estado inicial
-        const syncRes = await supabaseService.syncToCloud(true);
+        let syncRes = await supabaseService.syncToCloud(true);
+        if (!syncRes.success && syncRes.error) {
+          await new Promise(r => setTimeout(r, 2000));
+          syncRes = await supabaseService.syncToCloud(true);
+        }
         this.setCloudSyncing(false, syncRes.success, syncRes.timestamp);
       }
     }
   },
 
-  setCloudSyncing(isSyncing, success = true, timestamp = null) {
+  setCloudSyncing(isSyncing, success = true, timestamp = null, customText = null) {
     const pill = document.getElementById('cloudSyncStatus');
     const text = document.getElementById('cloudStatusText');
     if (!pill || !text) return;
 
     if (isSyncing) {
       pill.className = 'cloud-status-pill syncing';
-      text.textContent = '☁️ Salvando na Nuvem...';
+      text.textContent = customText || '☁️ Salvando na Nuvem...';
     } else {
       if (success) {
         pill.className = 'cloud-status-pill';
@@ -2592,23 +2604,58 @@ const app = {
     if (keyInput && sbConfig?.anonKey) keyInput.value = sbConfig.anonKey;
 
     if (badge) {
-      if (isConfigured) {
-        badge.className = 'badge-pill-counter green';
-        badge.textContent = '● Conectado';
-      } else {
+      if (!isConfigured) {
         badge.className = 'badge-pill-counter orange';
         badge.textContent = '● Não Configurado';
+      } else if (supabaseService.lastError) {
+        badge.className = 'badge-pill-counter orange';
+        badge.textContent = '● Instável / Falha Recente';
+      } else {
+        badge.className = 'badge-pill-counter green';
+        badge.textContent = '● Conectado e Ativo';
       }
     }
 
     if (details) {
       const lastSync = store.data.settings?.lastSync;
-      if (lastSync) {
+      const lastErr = supabaseService?.lastError;
+      if (lastErr) {
+        details.innerHTML = `<span style="color:#f87171;">⚠️ Última ocorrência:</span> ${lastErr}<br><small style="color:var(--text-muted);">Dica: O projeto pode estar acordando do modo repouso gratuito do Supabase. Clique em "Testar Agora" para verificar.</small>`;
+      } else if (lastSync) {
         const d = new Date(lastSync);
         details.textContent = `Última sincronização com sucesso: ${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR')}`;
       } else {
         details.textContent = isConfigured ? 'Pronto para sincronizar com a nuvem.' : 'Informe as credenciais do seu projeto Supabase.';
       }
+    }
+  },
+
+  async testSupabaseConnectionNow() {
+    const btn = document.getElementById('btnTestSbConnection');
+    const details = document.getElementById('sbStatusDetails');
+    const badge = document.getElementById('sbStatusBadge');
+    
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Testando...';
+    }
+    if (details) {
+      details.textContent = 'Enviando teste de ping ao servidor Supabase...';
+    }
+
+    const res = await supabaseService.testConnection();
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ Testar Agora';
+    }
+
+    if (res.ok) {
+      this.showToast(`✅ Conexão excelente com Supabase! (${res.latency}ms)`, 'success');
+      this.setCloudSyncing(false, true, store.data.settings.lastSync);
+      this.updateSupabaseModalUI();
+    } else {
+      this.showToast(`⚠️ Supabase: ${res.error}`, 'warning');
+      this.updateSupabaseModalUI();
     }
   },
 
