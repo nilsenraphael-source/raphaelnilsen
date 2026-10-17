@@ -1149,14 +1149,54 @@ class DataStore {
       earningsByBox[name] = (earningsByBox[name] || 0) + val;
     });
 
+    // Proventos e Rendimentos do Mês Atual (Ano/Mês corrente)
+    const today = new Date();
+    const currYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const monthStockEarnings = stockEarnings
+      .filter(e => (e.date || '').startsWith(currYearMonth))
+      .reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const monthNubankEarnings = nubankEarnings
+      .filter(e => (e.date || '').startsWith(currYearMonth))
+      .reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const currentMonthEarnings = monthStockEarnings + monthNubankEarnings;
+
+    // Maior Ativo / Posição (Top Asset)
+    let topAssetTicker = '-';
+    let topAssetVal = 0;
+    Object.entries(stocksByAsset).forEach(([ticker, val]) => {
+      if (val > topAssetVal) {
+        topAssetVal = val;
+        topAssetTicker = ticker;
+      }
+    });
+    // Se não houver ativo em bolsa mas houver caixinha
+    if (topAssetVal === 0 && boxes.length > 0) {
+      Object.entries(boxesByName).forEach(([name, val]) => {
+        if (val > topAssetVal) {
+          topAssetVal = val;
+          topAssetTicker = name;
+        }
+      });
+    }
+    const topAssetShare = totalInvested > 0 ? (topAssetVal / totalInvested) * 100 : 0;
+
     return {
       stocks: totalStocks,
       boxes: totalBoxes,
       total: totalInvested,
       totalInvested: totalInvested,
+      totalAccumulated: totalInvested + totalEarnings,
       totalStockEarnings,
       totalNubankEarnings,
       totalEarnings,
+      currentMonthEarnings,
+      stockCount: stocks.length,
+      boxCount: boxes.length,
+      totalPositions: stocks.length + boxes.length,
+      earningsCount: stockEarnings.length + nubankEarnings.length,
+      topAssetTicker,
+      topAssetVal,
+      topAssetShare,
       yieldGlobal,
       yieldStocks,
       yieldNubank,

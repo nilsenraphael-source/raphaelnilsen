@@ -2750,6 +2750,41 @@ const app = {
     const elNubankEarnings = document.getElementById('investNubankEarnings');
     if (elNubankEarnings) elNubankEarnings.textContent = `+ ${formatBRL(summary.totalNubankEarnings)} rendimentos`;
 
+    // Métricas executivas enriquecidas no banner superior
+    const elAssetsBadge = document.getElementById('investAssetsBadge');
+    if (elAssetsBadge) elAssetsBadge.textContent = `${summary.totalPositions} posições ativas`;
+
+    const elEarningsCount = document.getElementById('investEarningsCountBadge');
+    if (elEarningsCount) elEarningsCount.textContent = `(${summary.earningsCount} lançamentos)`;
+
+    const elTotalPlusEarnings = document.getElementById('investTotalPlusEarnings');
+    if (elTotalPlusEarnings) elTotalPlusEarnings.textContent = formatBRL(summary.totalAccumulated);
+
+    const elCurrMonthEarnings = document.getElementById('investCurrentMonthEarnings');
+    if (elCurrMonthEarnings) elCurrMonthEarnings.textContent = `+ ${formatBRL(summary.currentMonthEarnings)}`;
+
+    const elStockCount = document.getElementById('investStockCount');
+    if (elStockCount) elStockCount.textContent = `${summary.stockCount} ativos`;
+
+    const elBoxCount = document.getElementById('investBoxCount');
+    if (elBoxCount) elBoxCount.textContent = `${summary.boxCount} caixinhas`;
+
+    const elTopAsset = document.getElementById('investTopAsset');
+    if (elTopAsset) elTopAsset.textContent = summary.topAssetTicker;
+
+    const elTopAssetDetail = document.getElementById('investTopAssetDetail');
+    if (elTopAssetDetail) {
+      elTopAssetDetail.textContent = summary.topAssetVal > 0 
+        ? `${formatBRL(summary.topAssetVal)} (${summary.topAssetShare.toFixed(1)}% da carteira)`
+        : '0% da carteira';
+    }
+
+    const elTotalReturnVal = document.getElementById('investTotalReturnVal');
+    if (elTotalReturnVal) elTotalReturnVal.textContent = `+ ${summary.yieldGlobal.toFixed(2)}%`;
+
+    const elTotalReturnSub = document.getElementById('investTotalReturnSub');
+    if (elTotalReturnSub) elTotalReturnSub.textContent = `+ ${formatBRL(summary.totalEarnings)} em rendimentos`;
+
     // Badges de Contagem
     const badgeStockEarn = document.getElementById('countStockEarningsBadge');
     if (badgeStockEarn) badgeStockEarn.textContent = (store.data.investments.stockEarnings || []).length;
@@ -2789,13 +2824,12 @@ const app = {
     if (tbodyStockEarnings) {
       const earnList = store.data.investments.stockEarnings || [];
       tbodyStockEarnings.innerHTML = earnList.length === 0 ? `
-        <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum provento ou dividendo lançado. Clique em "+ Inserir Rendimento / Provento" para cadastrar.</td></tr>
+        <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum provento ou dividendo lançado. Clique em "+ Inserir Rendimento / Provento" para cadastrar.</td></tr>
       ` : earnList.map(e => `
         <tr>
           <td><strong style="color:#34d399; font-size:0.95rem;">${e.ticker}</strong></td>
           <td><span class="status-badge paid">${e.type || 'Dividendo'}</span></td>
           <td>${formatDateBR(e.date)}</td>
-          <td>${e.bank ? `<span class="status-badge neutral">${e.bank}</span>` : '<span style="color:var(--text-muted);">-</span>'}</td>
           <td style="font-weight: 800; color: #4ade80;">+ ${formatBRL(e.amount)}</td>
           <td style="font-size: 0.85rem; color: var(--text-secondary);">${e.notes || '-'}</td>
           <td>
@@ -4023,7 +4057,7 @@ const app = {
           type: document.getElementById('stk_earn_type').value,
           date: document.getElementById('stk_earn_date').value,
           amount: document.getElementById('stk_earn_val').value,
-          bank: document.getElementById('stk_earn_bank').value,
+          bank: document.getElementById('stk_earn_bank') ? document.getElementById('stk_earn_bank').value : '',
           notes: document.getElementById('stk_earn_notes').value
         };
         store.addStockEarning(earn);

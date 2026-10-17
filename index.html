@@ -1032,46 +1032,225 @@
 
           </div>
 
-        </section>
-
-        <!-- ====================================================================
-             8. PÁGINA: INVESTIMENTOS
-             ==================================================================== -->
-        <section id="view-investimentos" class="page-view">
+            <section id="view-investimentos" class="page-view">
           
           <!-- BANNER INVESTIMENTOS & RENDIMENTOS CONSOLIDADO -->
-          <div class="card" style="background:linear-gradient(135deg, #090d16 0%, #0f172a 45%, #1e3a8a 100%); color:#fff; border:1px solid rgba(59, 130, 246, 0.25); box-shadow: 0 10px 30px -10px rgba(30, 58, 138, 0.5);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1.5rem;">
-              <div>
-                <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.25rem;">
-                  <span style="font-size:0.82rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#93c5fd;">Patrimônio Total Investido</span>
+          <div class="card" style="background:linear-gradient(135deg, #090d16 0%, #0f172a 45%, #1e3a8a 100%); color:#fff; border:1px solid rgba(59, 130, 246, 0.25); box-shadow: 0 10px 30px -10px rgba(30, 58, 138, 0.5); padding:1.75rem 2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.75rem;">
+              
+              <!-- Bloco Principal Esquerdo -->
+              <div style="flex:1; min-width:280px;">
+                <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.35rem; flex-wrap:wrap;">
+                  <span style="font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#93c5fd;">Patrimônio Total Investido</span>
                   <span id="investYieldBadge" class="invest-chart-badge" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);">Yield: 0.00%</span>
+                  <span id="investAssetsBadge" class="invest-chart-badge" style="background:rgba(59, 130, 246, 0.15); color:#93c5fd; border-color:rgba(59, 130, 246, 0.3);">0 posições</span>
                 </div>
-                <div id="investTotalAssets" style="font-size:2.5rem; font-weight:800; color:#fff; letter-spacing:-0.02em;">R$ 0,00</div>
-                <div style="margin-top:0.4rem; font-size:0.9rem; color:#e2e8f0; display:flex; align-items:center; gap:0.5rem;">
-                  <span>💰 Total de Rendimentos Recebidos:</span>
-                  <strong id="investTotalEarnings" style="color:#4ade80; font-size:1.15rem;">+ R$ 0,00</strong>
+
+                <div id="investTotalAssets" style="font-size:2.65rem; font-weight:800; color:#fff; letter-spacing:-0.03em; line-height:1.15;">R$ 0,00</div>
+
+                <!-- Métricas de Retorno e Patrimônio Acumulado -->
+                <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.35rem;">
+                  <div style="font-size:0.92rem; color:#e2e8f0; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                    <span>💰 Total de Rendimentos Recebidos:</span>
+                    <strong id="investTotalEarnings" style="color:#4ade80; font-size:1.15rem;">+ R$ 0,00</strong>
+                    <span id="investEarningsCountBadge" style="font-size:0.75rem; color:#94a3b8; background:rgba(255,255,255,0.08); padding:0.15rem 0.5rem; border-radius:12px;">(0 lançamentos)</span>
+                  </div>
+
+                  <div style="font-size:0.85rem; color:#cbd5e1; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                    <span>💼 Patrimônio Total Acumulado (Investido + Rendimentos):</span>
+                    <strong id="investTotalPlusEarnings" style="color:#38bdf8; font-weight:800;">R$ 0,00</strong>
+                  </div>
+
+                  <div style="font-size:0.85rem; color:#fde047; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                    <span>📅 Proventos / Rendimentos no Mês Atual:</span>
+                    <strong id="investCurrentMonthEarnings" style="color:#fde047; font-weight:800;">+ R$ 0,00</strong>
+                  </div>
                 </div>
               </div>
-              <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-                <div class="metric-pill" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); padding:0.65rem 1rem;">
-                  <div class="metric-pill-label" style="color:#bfdbfe;">Bolsa (Ações / FIIs)</div>
-                  <div id="investTotalStocks" class="metric-pill-val" style="color:#60a5fa;">R$ 0,00</div>
-                  <div id="investStockEarnings" style="font-size:0.75rem; color:#4ade80; margin-top:0.2rem; font-weight:700;">+ R$ 0,00 proventos</div>
+
+              <!-- Grid de Pílulas Executivas no Topo Direito -->
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.85rem; flex:1.2; min-width:320px;">
+                
+                <!-- Pílula 1: Bolsa de Valores -->
+                <div class="metric-pill" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); padding:0.85rem 1.1rem; border-radius:10px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="metric-pill-label" style="color:#bfdbfe; font-size:0.72rem;">Bolsa (Ações / FIIs)</div>
+                    <span id="investStockCount" style="font-size:0.7rem; color:#93c5fd; background:rgba(59,130,246,0.2); padding:0.1rem 0.4rem; border-radius:8px;">0 ativos</span>
+                  </div>
+                  <div id="investTotalStocks" class="metric-pill-val" style="color:#60a5fa; font-size:1.25rem; font-weight:800; margin-top:0.25rem;">R$ 0,00</div>
+                  <div id="investStockEarnings" style="font-size:0.76rem; color:#4ade80; margin-top:0.2rem; font-weight:700;">+ R$ 0,00 proventos</div>
                 </div>
-                <div class="metric-pill" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); padding:0.65rem 1rem;">
-                  <div class="metric-pill-label" style="color:#e9d5ff;">Nubank (Caixinhas)</div>
-                  <div id="investTotalBoxes" class="metric-pill-val" style="color:#c084fc;">R$ 0,00</div>
-                  <div id="investNubankEarnings" style="font-size:0.75rem; color:#4ade80; margin-top:0.2rem; font-weight:700;">+ R$ 0,00 rendimentos</div>
+
+                <!-- Pílula 2: Nubank Caixinhas -->
+                <div class="metric-pill" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); padding:0.85rem 1.1rem; border-radius:10px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="metric-pill-label" style="color:#e9d5ff; font-size:0.72rem;">Nubank (Caixinhas)</div>
+                    <span id="investBoxCount" style="font-size:0.7rem; color:#c084fc; background:rgba(168,85,247,0.2); padding:0.1rem 0.4rem; border-radius:8px;">0 caixinhas</span>
+                  </div>
+                  <div id="investTotalBoxes" class="metric-pill-val" style="color:#c084fc; font-size:1.25rem; font-weight:800; margin-top:0.25rem;">R$ 0,00</div>
+                  <div id="investNubankEarnings" style="font-size:0.76rem; color:#4ade80; margin-top:0.2rem; font-weight:700;">+ R$ 0,00 rendimentos</div>
                 </div>
+
+                <!-- Pílula 3: Maior Posição / Top Ativo -->
+                <div class="metric-pill" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); padding:0.85rem 1.1rem; border-radius:10px;">
+                  <div class="metric-pill-label" style="color:#fed7aa; font-size:0.72rem;">Maior Posição (Top Ativo)</div>
+                  <div id="investTopAsset" class="metric-pill-val" style="color:#fb923c; font-size:1.15rem; font-weight:800; margin-top:0.25rem; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">-</div>
+                  <div id="investTopAssetDetail" style="font-size:0.76rem; color:#fdba74; margin-top:0.2rem; font-weight:700;">0% da carteira</div>
+                </div>
+
+                <!-- Pílula 4: Rentabilidade / Retorno sobre Capital -->
+                <div class="metric-pill" style="background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.12); padding:0.85rem 1.1rem; border-radius:10px;">
+                  <div class="metric-pill-label" style="color:#a7f3d0; font-size:0.72rem;">Retorno Total da Carteira</div>
+                  <div id="investTotalReturnVal" class="metric-pill-val" style="color:#34d399; font-size:1.15rem; font-weight:800; margin-top:0.25rem;">+ 0.00%</div>
+                  <div id="investTotalReturnSub" style="font-size:0.76rem; color:#6ee7b7; margin-top:0.2rem; font-weight:700;">+ R$ 0,00 em rendimentos</div>
+                </div>
+
               </div>
+
             </div>
           </div>
 
           <!-- ==================================================================
-               PAINEL DE GRÁFICOS EXCLUSIVOS DE INVESTIMENTOS
+               SEÇÃO BOLSA DE VALORES (AÇÕES / FIIS)
                ================================================================== -->
-          <div class="invest-charts-grid">
+          <div class="card">
+            <div class="card-header" style="flex-wrap:wrap; gap:1rem;">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:#eff6ff; color:#2563eb;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Bolsa de Valores (Ações / FIIs)</h3>
+                  <span class="card-subtitle">Posições em carteira e histórico de dividendos/proventos</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <button class="btn-header" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);" onclick="app.openModal('modalNovoRendimentoBolsa')">
+                  💰 + Inserir Rendimento / Provento
+                </button>
+                <button class="btn-header primary" onclick="app.openModal('modalNovoAtivoBolsa')">
+                  + Nova Compra de Ativo
+                </button>
+              </div>
+            </div>
+
+            <!-- SUB-ABAS BOLSA -->
+            <div class="invest-subtabs">
+              <button class="invest-subtab-btn active" id="btnTabStocksPositions" onclick="app.switchInvestStockTab('positions')">
+                📊 Ativos em Carteira
+              </button>
+              <button class="invest-subtab-btn" id="btnTabStocksEarnings" onclick="app.switchInvestStockTab('earnings')">
+                💰 Proventos / Dividendos Recebidos (<span id="countStockEarningsBadge">0</span>)
+              </button>
+            </div>
+
+            <!-- TABELA 1: ATIVOS EM CARTEIRA -->
+            <div id="panelStocksPositions" class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ativo / Ticker</th>
+                    <th>Tipo</th>
+                    <th>Data Compra</th>
+                    <th>Qtd. Cotas</th>
+                    <th>Valor por Cota</th>
+                    <th>Total Aplicado</th>
+                    <th style="width: 80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="stocksTableBody"></tbody>
+              </table>
+            </div>
+
+            <!-- TABELA 2: PROVENTOS E RENDIMENTOS DA BOLSA -->
+            <div id="panelStocksEarnings" class="table-responsive" style="display:none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ativo / Ticker</th>
+                    <th>Tipo de Provento</th>
+                    <th>Data Recebimento</th>
+                    <th>Valor Recebido</th>
+                    <th>Observações</th>
+                    <th style="width: 80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="stockEarningsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ==================================================================
+               SEÇÃO NUBANK CAIXINHAS (RENDA FIXA & LIQUIDEZ)
+               ================================================================== -->
+          <div class="card">
+            <div class="card-header" style="flex-wrap:wrap; gap:1rem;">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:#f5f3ff; color:#8b5cf6;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                </div>
+                <div>
+                  <h3 class="card-title">Nubank (Renda Fixa & Caixinhas)</h3>
+                  <span class="card-subtitle">Reservas de emergência, aplicações e histórico de rendimentos</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <button class="btn-header" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);" onclick="app.openModal('modalNovoRendimentoNubank')">
+                  💰 + Inserir Rendimento Caixinha
+                </button>
+                <button class="btn-header primary" onclick="app.openModal('modalNovaCaixinhaNubank')">
+                  + Nova Caixinha
+                </button>
+              </div>
+            </div>
+
+            <!-- SUB-ABAS NUBANK -->
+            <div class="invest-subtabs">
+              <button class="invest-subtab-btn active" id="btnTabNubankBoxes" onclick="app.switchInvestNubankTab('boxes')">
+                💜 Caixinhas / Aplicações
+              </button>
+              <button class="invest-subtab-btn" id="btnTabNubankEarnings" onclick="app.switchInvestNubankTab('earnings')">
+                ✨ Rendimentos Acumulados (<span id="countNubankEarningsBadge">0</span>)
+              </button>
+            </div>
+
+            <!-- TABELA 1: CAIXINHAS NUBANK -->
+            <div id="panelNubankBoxes" class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Nome da Caixinha / Aplicação</th>
+                    <th>Data</th>
+                    <th>Valor Guardado</th>
+                    <th>Status</th>
+                    <th style="width: 80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="nubankBoxesTableBody"></tbody>
+              </table>
+            </div>
+
+            <!-- TABELA 2: RENDIMENTOS NUBANK -->
+            <div id="panelNubankEarnings" class="table-responsive" style="display:none;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Caixinha / Aplicação</th>
+                    <th>Data</th>
+                    <th>Valor Rendido</th>
+                    <th>Observações</th>
+                    <th style="width: 80px;">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="nubankEarningsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ==================================================================
+               PAINEL DE GRÁFICOS EXCLUSIVOS DE INVESTIMENTOS (COLOCADOS ABAIXO)
+               ================================================================== -->
+          <div class="invest-charts-grid" style="margin-top:1.5rem;">
             
             <!-- GRÁFICO 1: TOTAL INVESTIDO POR ATIVO -->
             <div class="invest-chart-card">
@@ -1153,144 +1332,6 @@
               </div>
             </div>
 
-          </div>
-
-          <!-- ==================================================================
-               SEÇÃO BOLSA DE VALORES (AÇÕES / FIIS)
-               ================================================================== -->
-          <div class="card">
-            <div class="card-header" style="flex-wrap:wrap; gap:1rem;">
-              <div class="card-title-group">
-                <div class="card-icon" style="background:#eff6ff; color:#2563eb;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline></svg>
-                </div>
-                <div>
-                  <h3 class="card-title">Bolsa de Valores (Ações / FIIs)</h3>
-                  <span class="card-subtitle">Posições em carteira e histórico de dividendos/proventos</span>
-                </div>
-              </div>
-              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                <button class="btn-header" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);" onclick="app.openModal('modalNovoRendimentoBolsa')">
-                  💰 + Inserir Rendimento / Provento
-                </button>
-                <button class="btn-header primary" onclick="app.openModal('modalNovoAtivoBolsa')">
-                  + Nova Compra de Ativo
-                </button>
-              </div>
-            </div>
-
-            <!-- SUB-ABAS BOLSA -->
-            <div class="invest-subtabs">
-              <button class="invest-subtab-btn active" id="btnTabStocksPositions" onclick="app.switchInvestStockTab('positions')">
-                📊 Ativos em Carteira
-              </button>
-              <button class="invest-subtab-btn" id="btnTabStocksEarnings" onclick="app.switchInvestStockTab('earnings')">
-                💰 Proventos / Dividendos Recebidos (<span id="countStockEarningsBadge">0</span>)
-              </button>
-            </div>
-
-            <!-- TABELA 1: ATIVOS EM CARTEIRA -->
-            <div id="panelStocksPositions" class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Ativo / Ticker</th>
-                    <th>Tipo</th>
-                    <th>Data Compra</th>
-                    <th>Qtd. Cotas</th>
-                    <th>Valor por Cota</th>
-                    <th>Total Aplicado</th>
-                    <th style="width: 80px;">Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="stocksTableBody"></tbody>
-              </table>
-            </div>
-
-            <!-- TABELA 2: PROVENTOS E RENDIMENTOS DA BOLSA -->
-            <div id="panelStocksEarnings" class="table-responsive" style="display:none;">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Ativo / Ticker</th>
-                    <th>Tipo de Provento</th>
-                    <th>Data Recebimento</th>
-                    <th>Conta / Banco</th>
-                    <th>Valor Recebido</th>
-                    <th>Observações</th>
-                    <th style="width: 80px;">Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="stockEarningsTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- ==================================================================
-               SEÇÃO NUBANK CAIXINHAS (RENDA FIXA & LIQUIDEZ)
-               ================================================================== -->
-          <div class="card">
-            <div class="card-header" style="flex-wrap:wrap; gap:1rem;">
-              <div class="card-title-group">
-                <div class="card-icon" style="background:#f5f3ff; color:#8b5cf6;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
-                </div>
-                <div>
-                  <h3 class="card-title">Nubank (Renda Fixa & Caixinhas)</h3>
-                  <span class="card-subtitle">Reservas de emergência, aplicações e histórico de rendimentos</span>
-                </div>
-              </div>
-              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                <button class="btn-header" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);" onclick="app.openModal('modalNovoRendimentoNubank')">
-                  💰 + Inserir Rendimento Caixinha
-                </button>
-                <button class="btn-header primary" onclick="app.openModal('modalNovaCaixinhaNubank')">
-                  + Nova Caixinha
-                </button>
-              </div>
-            </div>
-
-            <!-- SUB-ABAS NUBANK -->
-            <div class="invest-subtabs">
-              <button class="invest-subtab-btn active" id="btnTabNubankBoxes" onclick="app.switchInvestNubankTab('boxes')">
-                💜 Caixinhas / Aplicações
-              </button>
-              <button class="invest-subtab-btn" id="btnTabNubankEarnings" onclick="app.switchInvestNubankTab('earnings')">
-                ✨ Rendimentos Acumulados (<span id="countNubankEarningsBadge">0</span>)
-              </button>
-            </div>
-
-            <!-- TABELA 1: CAIXINHAS NUBANK -->
-            <div id="panelNubankBoxes" class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Nome da Caixinha / Aplicação</th>
-                    <th>Data</th>
-                    <th>Valor Guardado</th>
-                    <th>Status</th>
-                    <th style="width: 80px;">Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="nubankBoxesTableBody"></tbody>
-              </table>
-            </div>
-
-            <!-- TABELA 2: RENDIMENTOS NUBANK -->
-            <div id="panelNubankEarnings" class="table-responsive" style="display:none;">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Caixinha / Aplicação</th>
-                    <th>Data</th>
-                    <th>Valor Rendido</th>
-                    <th>Observações</th>
-                    <th style="width: 80px;">Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="nubankEarningsTableBody"></tbody>
-              </table>
-            </div>
           </div>
 
         </section>
@@ -2057,12 +2098,6 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Conta / Banco onde o valor caiu</label>
-            <select id="stk_earn_bank" class="form-input">
-              <option value="">Selecione o banco (opcional)</option>
-            </select>
-          </div>
-          <div class="form-group">
             <label class="form-label">Observações / Anotações</label>
             <input type="text" id="stk_earn_notes" class="form-input" placeholder="Ex: Rendimento de R$ 0,10 por cota">
           </div>
@@ -2284,8 +2319,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js"></script>
-  <script src="js/supabase.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/data.js?v=20261017b"></script>
+  <script src="js/supabase.js?v=20261017b"></script>
+  <script src="js/app.js?v=20261017b"></script>
 </body>
 </html>
