@@ -875,11 +875,48 @@ class DataStore {
 
   // --- BOMBEIRO COMUNITÁRIO ---
   addFirefighterRecord(rec) {
-    rec.id = 'ff_' + Date.now();
-    rec.amount = Number(rec.amount) || 0;
+    rec.id = rec.id || ('ff_' + Date.now());
+    rec.shifts = rec.shifts || [];
+    if (rec.shifts.length > 0) {
+      const contemplated = rec.shifts.filter(s => s.contemplated).length;
+      rec.amount = contemplated * 125.00;
+    } else {
+      rec.amount = Number(rec.amount) || 0;
+    }
     this.data.firefighterRecords.push(rec);
     this.save();
     return rec;
+  }
+
+  updateFirefighterRecord(id, updatedData) {
+    const idx = this.data.firefighterRecords.findIndex(r => r.id === id);
+    if (idx !== -1) {
+      const rec = { ...this.data.firefighterRecords[idx], ...updatedData };
+      rec.shifts = rec.shifts || [];
+      if (rec.shifts.length > 0) {
+        const contemplated = rec.shifts.filter(s => s.contemplated).length;
+        rec.amount = contemplated * 125.00;
+      }
+      this.data.firefighterRecords[idx] = rec;
+      this.save();
+      return rec;
+    }
+    return null;
+  }
+
+  toggleShiftContemplated(recordId, shiftId) {
+    const rec = this.data.firefighterRecords.find(r => r.id === recordId);
+    if (rec && rec.shifts) {
+      const shift = rec.shifts.find(s => s.id === shiftId);
+      if (shift) {
+        shift.contemplated = !shift.contemplated;
+        const contemplated = rec.shifts.filter(s => s.contemplated).length;
+        rec.amount = contemplated * 125.00;
+        this.save();
+        return rec;
+      }
+    }
+    return null;
   }
 
   deleteFirefighterRecord(id) {
@@ -890,12 +927,30 @@ class DataStore {
     this.save();
   }
 
-  updateFirefighterStatus(id, newStatus) {
+  updateFirefighterStatus(id, newStatus, paymentDate = null) {
     const r = this.data.firefighterRecords.find(item => item.id === id);
     if (r) {
       r.status = newStatus;
+      if (newStatus === 'Pago' && !r.datePayment) {
+        r.datePayment = paymentDate || new Date().toISOString().split('T')[0];
+      }
       this.save();
     }
+  }
+
+  getAllFirefighterShifts() {
+    const all = [];
+    (this.data.firefighterRecords || []).forEach(rec => {
+      (rec.shifts || []).forEach(sh => {
+        all.push({
+          ...sh,
+          recordId: rec.id,
+          monthRef: rec.monthRef,
+          status: rec.status
+        });
+      });
+    });
+    return all;
   }
 
   // --- JOTUR (CONFERÊNCIA DE TROCO) ---

@@ -3438,5 +3438,89 @@ select:focus {
   }
 }
 
+/* Badges e Destaques de Plantão do Bombeiro (Disponibilidade vs Contemplado) */
+.bombeiro-shift-badge {
+  border-radius: 5px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+  line-height: 1.2;
+}
+
+.bombeiro-shift-badge.contemplated-diurno {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.4) 0%, rgba(217, 119, 6, 0.6) 100%);
+  border: 1px solid #f59e0b;
+  color: #fef08a;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+}
+
+.bombeiro-shift-badge.contemplated-noturno {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(109, 40, 217, 0.6) 100%);
+  border: 1px solid #8b5cf6;
+  color: #e9d5ff;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.45);
+}
+
+.bombeiro-shift-badge.pending {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  color: #cbd5e1;
+  font-size: 0.66rem;
+  font-weight: 600;
+}
+
+.bombeiro-day-cell.has-contemplated {
+  border: 1.5px solid #f59e0b !important;
+  background: rgba(245, 158, 11, 0.08) !important;
+  box-shadow: inset 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+/* Lista de Turnos no Modal */
+.modal-shift-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg-surface-alt);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.modal-shift-item.is-contemplated {
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.btn-shift-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.btn-shift-toggle.active {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #0c0d0e;
+  font-weight: 800;
+}
+
+
 
 

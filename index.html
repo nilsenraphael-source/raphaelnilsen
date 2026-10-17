@@ -578,6 +578,7 @@
               <button class="bombeiro-filter-btn" data-filter="verde" onclick="app.filterBombeiroGu('verde')">🟢 Verde (Uitajuci)</button>
               <button class="bombeiro-filter-btn" data-filter="vermelha" onclick="app.filterBombeiroGu('vermelha')">🔴 Vermelha (Búrigo)</button>
               <button class="bombeiro-filter-btn" data-filter="jotur" onclick="app.filterBombeiroGu('jotur')">🚌 Apenas Jotur</button>
+              <button class="bombeiro-filter-btn" data-filter="contemplados" onclick="app.filterBombeiroGu('contemplados')">⭐ Meus Plantões</button>
             </div>
 
             <!-- GRADE DO CALENDÁRIO -->
@@ -606,6 +607,8 @@
               <div class="legend-item"><span class="legend-dot" style="background:#4ade80;"></span> <strong>GU VERDE:</strong> Uitajuci</div>
               <div class="legend-item"><span class="legend-dot" style="background:#f87171;"></span> <strong>GU VERMELHA:</strong> Búrigo</div>
               <div class="legend-item"><span class="legend-tag-jotur">🚌 JOTUR</span> Finais de semana alternados (Hoje: Sáb, próx: Dom)</div>
+              <div class="legend-item"><span class="bombeiro-shift-badge contemplated-diurno" style="margin:0; font-size:0.68rem; display:inline-block; padding:0.15rem 0.45rem;">⭐ MEU PLANTÃO (+ R$ 125)</span> Plantão Contemplado</div>
+              <div class="legend-item"><span class="bombeiro-shift-badge pending" style="margin:0; font-size:0.68rem; display:inline-block; padding:0.15rem 0.45rem;">⏱️ Disp</span> Disponibilidade Enviada</div>
             </div>
 
           </div>
@@ -624,20 +627,24 @@
                   <span class="card-subtitle">Controle de valores solicitados e datas de pagamento</span>
                 </div>
               </div>
-              <button class="btn-header primary" onclick="app.openModal('modalNovoBombeiro')">
-                + Novo Registro
+              <button class="btn-header primary" onclick="app.openModalNovoBombeiro()">
+                + Lançar Disponibilidades do Mês
               </button>
             </div>
 
             <!-- Métricas Bombeiro -->
-            <div style="display:flex; gap:1.5rem; margin-bottom:1.5rem; flex-wrap:wrap;">
-              <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light); flex:1;">
+            <div style="display:flex; gap:1.25rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+              <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light); flex:1; min-width:180px;">
                 <div class="metric-pill-label">Total a Receber (Pendente)</div>
                 <div id="bombeiroTotalPending" class="metric-pill-val" style="color:var(--warning); font-size:1.35rem;">R$ 0,00</div>
               </div>
-              <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light); flex:1;">
-                <div class="metric-pill-label">Total Já Recebido</div>
+              <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light); flex:1; min-width:180px;">
+                <div class="metric-pill-label">Total Já Recebido (Pago)</div>
                 <div id="bombeiroTotalPaid" class="metric-pill-val" style="color:var(--success); font-size:1.35rem;">R$ 0,00</div>
+              </div>
+              <div class="metric-pill" style="background:var(--bg-surface-alt); border-color:var(--border-light); flex:1; min-width:180px;">
+                <div class="metric-pill-label">Serviços Contemplados</div>
+                <div id="bombeiroTotalContemplated" class="metric-pill-val" style="color:#38bdf8; font-size:1.35rem;">0 serviços</div>
               </div>
             </div>
 
@@ -646,11 +653,12 @@
                 <thead>
                   <tr>
                     <th>Mês de Referência</th>
-                    <th>Data Solicitada</th>
-                    <th>Data de Pagamento</th>
-                    <th>Valor a Receber</th>
-                    <th>Status</th>
-                    <th style="width: 80px;">Ações</th>
+                    <th>Disponibilidades Enviadas</th>
+                    <th>Serviços Contemplados</th>
+                    <th>Valor Previsto (R$ 125/cada)</th>
+                    <th>Data Pagamento</th>
+                    <th>Status do Pagamento</th>
+                    <th style="width: 100px;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="bombeiroTableBody"></tbody>
@@ -2004,47 +2012,115 @@
     </div>
   </div>
 
-  <!-- Modal: Bombeiro Comunitário -->
+  <!-- Modal: Bombeiro Comunitário - Disponibilidades & Contemplações -->
   <div id="modalNovoBombeiro" class="modal-overlay">
-    <div class="modal-dialog">
+    <div class="modal-dialog" style="max-width: 650px;">
       <div class="modal-header">
-        <h3 class="modal-title">Novo Registro do Bombeiro Comunitário</h3>
+        <h3 class="modal-title" id="modalNovoBombeiroTitle">🚒 Disponibilidades do Bombeiro Comunitário</h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalNovoBombeiro')">✕</button>
       </div>
       <form id="formNovoBombeiro">
+        <input type="hidden" id="ff_record_id">
         <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">Mês de Referência</label>
-            <input type="text" id="ff_month" class="form-input" required placeholder="Ex: Setembro / 2026">
-          </div>
+          
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Data Solicitada</label>
-              <input type="date" id="ff_date_req" class="form-input" required>
+              <label class="form-label">Mês de Referência da Escala *</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <select id="ff_month_sel" class="form-input" style="flex: 2;" onchange="app.onBombeiroMonthYearChange()">
+                  <option value="1">Janeiro</option>
+                  <option value="2">Fevereiro</option>
+                  <option value="3">Março</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Maio</option>
+                  <option value="6">Junho</option>
+                  <option value="7">Julho</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Setembro</option>
+                  <option value="10">Outubro</option>
+                  <option value="11" selected>Novembro</option>
+                  <option value="12">Dezembro</option>
+                </select>
+                <select id="ff_year_sel" class="form-input" style="flex: 1.2;" onchange="app.onBombeiroMonthYearChange()">
+                  <option value="2025">2025</option>
+                  <option value="2026" selected>2026</option>
+                  <option value="2027">2027</option>
+                </select>
+              </div>
+              <input type="hidden" id="ff_month" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Data de Pagamento</label>
+              <label class="form-label">Data em que enviou as disponibilidades</label>
+              <input type="date" id="ff_date_req" class="form-input" required>
+            </div>
+          </div>
+
+          <!-- SEÇÃO: ADICIONAR DIAS E TURNOS -->
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-light); border-radius: 8px; padding: 1rem; margin-top: 0.5rem;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap:wrap; gap:0.4rem;">
+              <span>📅 Adicionar Dias Disponíveis</span>
+              <span style="font-size: 0.75rem; color: #94a3b8; font-weight: normal;">Informe o dia e o turno que você mandou</span>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end;">
+              <div style="flex: 1.2; min-width: 140px;">
+                <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Dia</label>
+                <input type="date" id="ff_temp_date" class="form-input">
+              </div>
+              <div style="flex: 1.2; min-width: 150px;">
+                <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.25rem;">Turno</label>
+                <select id="ff_temp_period" class="form-input">
+                  <option value="diurno">☀️ Diurno (07h às 19h)</option>
+                  <option value="noturno">🌙 Noturno (19h às 07h)</option>
+                </select>
+              </div>
+              <button type="button" class="btn-primary" style="width: auto; height: 38px; padding: 0 1.25rem; font-size: 0.82rem;" onclick="app.addShiftToModalList()">
+                + Adicionar Dia
+              </button>
+            </div>
+
+            <!-- LISTA DE DIAS LANÇADOS -->
+            <div style="margin-top: 1rem;">
+              <div style="font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.4rem;">
+                Dias Informados (<span id="lblModalTotalShifts">0</span> turnos) • Marque os que foi Contemplado:
+              </div>
+              <div id="ff_shifts_container" style="max-height: 200px; overflow-y: auto; padding-right: 0.25rem;">
+                <!-- Itens inseridos dinamicamente -->
+              </div>
+            </div>
+
+            <!-- RESUMO EM TEMPO REAL DO VALOR PREVISTO -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px dashed var(--border-light); flex-wrap: wrap; gap: 0.5rem;">
+              <div style="font-size: 0.82rem; color: #cbd5e1;">
+                Contemplados: <strong id="lblModalContemplated" style="color: #facc15;">0 serviços</strong>
+              </div>
+              <div style="font-size: 0.95rem; font-weight: 700; color: #fff;">
+                Valor Previsto: <strong id="lblModalTotalAmount" style="color: #4ade80; font-size: 1.25rem; font-weight: 800;">R$ 0,00</strong>
+                <span style="font-size: 0.75rem; color: #94a3b8; font-weight: normal;">(R$ 125,00 cada)</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- PAGAMENTO & STATUS -->
+          <div class="form-grid-2" style="margin-top: 1rem;">
+            <div class="form-group">
+              <label class="form-label">Status do Pagamento</label>
+              <select id="ff_status" class="form-input" onchange="app.onBombeiroModalStatusChange()">
+                <option value="Pendente">Pendente (a receber)</option>
+                <option value="Pago">Pago (recebido)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data do Pagamento</label>
               <input type="date" id="ff_date_pay" class="form-input">
             </div>
           </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Valor a Receber (R$)</label>
-              <input type="number" step="0.01" id="ff_amount" class="form-input" required placeholder="0,00">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Status</label>
-              <select id="ff_status" class="form-input">
-                <option value="Solicitado">Solicitado</option>
-                <option value="Em Análise">Em Análise</option>
-                <option value="Pago">Pago</option>
-              </select>
-            </div>
-          </div>
+
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalNovoBombeiro')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Registro</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.75rem;">Salvar Registro do Mês</button>
         </div>
       </form>
     </div>
@@ -2388,8 +2464,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261017e"></script>
-  <script src="js/supabase.js?v=20261017e"></script>
-  <script src="js/app.js?v=20261017e"></script>
+  <script src="js/data.js?v=20261017g"></script>
+  <script src="js/supabase.js?v=20261017g"></script>
+  <script src="js/app.js?v=20261017g"></script>
 </body>
 </html>

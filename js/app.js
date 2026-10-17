@@ -2232,6 +2232,7 @@ const app = {
     month: 9, // Outubro (0-indexed)
     filter: 'all'
   },
+  currentModalShifts: [],
 
   getGuPorData(ano, mes, dia) {
     const GUS = [
@@ -2377,7 +2378,17 @@ const app = {
       }
     });
 
-    // 4. Grade do Calendário
+    // 4. Mapeamento de Plantões do Usuário (Disponíveis e Contemplados)
+    const shiftsMap = {};
+    if (typeof store.getAllFirefighterShifts === 'function') {
+      const allShifts = store.getAllFirefighterShifts();
+      allShifts.forEach(s => {
+        if (!shiftsMap[s.date]) shiftsMap[s.date] = [];
+        shiftsMap[s.date].push(s);
+      });
+    }
+
+    // 5. Grade do Calendário
     const grid = document.getElementById('bombeiroDaysGrid');
     if (!grid) return;
 
@@ -2398,9 +2409,21 @@ const app = {
       const pYear = calMonth === 0 ? calYear - 1 : calYear;
       const gu = this.getGuPorData(pYear, pMonth, pDay);
       const hasJotur = this.isJoturEscalado(pYear, pMonth, pDay);
+      const pDayIso = `${pYear}-${String(pMonth + 1).padStart(2, '0')}-${String(pDay).padStart(2, '0')}`;
+      const pShifts = shiftsMap[pDayIso] || [];
+      const hasPContemplated = pShifts.some(s => s.contemplated);
+
+      let pShiftsHtml = '';
+      pShifts.forEach(s => {
+        if (s.contemplated) {
+          pShiftsHtml += `<div class="bombeiro-shift-badge contemplated-${s.period}" style="opacity:0.65;">${s.period === 'diurno' ? '☀️ MEU PLANTÃO (+ R$ 125)' : '🌙 MEU PLANTÃO (+ R$ 125)'}</div>`;
+        } else {
+          pShiftsHtml += `<div class="bombeiro-shift-badge pending" style="opacity:0.5;">⏱️ Disp: ${s.period === 'diurno' ? 'Diurno' : 'Noturno'}</div>`;
+        }
+      });
 
       cellsHtml += `
-        <div class="bombeiro-day-cell other-month">
+        <div class="bombeiro-day-cell other-month ${hasPContemplated ? 'has-contemplated' : ''}">
           <div class="bombeiro-day-header">
             <span class="bombeiro-day-num" style="opacity:0.4;">${pDay}</span>
           </div>
@@ -2409,6 +2432,7 @@ const app = {
             <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
           </div>
           ${hasJotur ? '<span class="legend-tag-jotur" style="opacity:0.5; font-size:0.6rem;">🚌 JOTUR</span>' : ''}
+          ${pShiftsHtml}
         </div>
       `;
     }
@@ -2419,15 +2443,38 @@ const app = {
       const hasJotur = this.isJoturEscalado(calYear, calMonth, day);
       const isToday = (tYear === calYear && tMonth === calMonth && tDay === day);
 
+      const dayIso = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const myShifts = shiftsMap[dayIso] || [];
+      const hasContemplated = myShifts.some(s => s.contemplated);
+
       let isFilteredOut = false;
       if (filter === 'jotur') {
         isFilteredOut = !hasJotur;
+      } else if (filter === 'contemplados') {
+        isFilteredOut = !hasContemplated;
       } else if (filter !== 'all') {
         isFilteredOut = (gu.id !== filter);
       }
 
+      let myShiftsHtml = '';
+      myShifts.forEach(s => {
+        if (s.contemplated) {
+          myShiftsHtml += `
+            <div class="bombeiro-shift-badge contemplated-${s.period}" title="Plantão Contemplado (+ R$ 125,00)">
+              ${s.period === 'diurno' ? '☀️ MEU PLANTÃO DIURNO (+ R$ 125)' : '🌙 MEU PLANTÃO NOTURNO (+ R$ 125)'}
+            </div>
+          `;
+        } else {
+          myShiftsHtml += `
+            <div class="bombeiro-shift-badge pending" title="Disponibilidade enviada (aguardando contemplação)">
+              ⏱️ Disp: ${s.period === 'diurno' ? 'Diurno' : 'Noturno'}
+            </div>
+          `;
+        }
+      });
+
       cellsHtml += `
-        <div class="bombeiro-day-cell ${isToday ? 'is-today' : ''} ${isFilteredOut ? 'filtered-out' : ''}">
+        <div class="bombeiro-day-cell ${isToday ? 'is-today' : ''} ${hasContemplated ? 'has-contemplated' : ''} ${isFilteredOut ? 'filtered-out' : ''}">
           <div class="bombeiro-day-header">
             <span class="bombeiro-day-num" style="${isToday ? 'color:#38bdf8; font-weight:800;' : ''}">${day}</span>
             ${isToday ? '<span class="bombeiro-today-badge">HOJE</span>' : ''}
@@ -2437,6 +2484,7 @@ const app = {
             <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
           </div>
           ${hasJotur ? '<div class="bombeiro-jotur-badge">🚌 JOTUR</div>' : ''}
+          ${myShiftsHtml}
         </div>
       `;
     }
@@ -2449,9 +2497,21 @@ const app = {
       const nYear = calMonth === 11 ? calYear + 1 : calYear;
       const gu = this.getGuPorData(nYear, nMonth, n);
       const hasJotur = this.isJoturEscalado(nYear, nMonth, n);
+      const nDayIso = `${nYear}-${String(nMonth + 1).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
+      const nShifts = shiftsMap[nDayIso] || [];
+      const hasNContemplated = nShifts.some(s => s.contemplated);
+
+      let nShiftsHtml = '';
+      nShifts.forEach(s => {
+        if (s.contemplated) {
+          nShiftsHtml += `<div class="bombeiro-shift-badge contemplated-${s.period}" style="opacity:0.65;">${s.period === 'diurno' ? '☀️ MEU PLANTÃO (+ R$ 125)' : '🌙 MEU PLANTÃO (+ R$ 125)'}</div>`;
+        } else {
+          nShiftsHtml += `<div class="bombeiro-shift-badge pending" style="opacity:0.5;">⏱️ Disp: ${s.period === 'diurno' ? 'Diurno' : 'Noturno'}</div>`;
+        }
+      });
 
       cellsHtml += `
-        <div class="bombeiro-day-cell other-month">
+        <div class="bombeiro-day-cell other-month ${hasNContemplated ? 'has-contemplated' : ''}">
           <div class="bombeiro-day-header">
             <span class="bombeiro-day-num" style="opacity:0.4;">${n}</span>
           </div>
@@ -2460,6 +2520,7 @@ const app = {
             <span class="bombeiro-gu-resp">(${gu.responsavel})</span>
           </div>
           ${hasJotur ? '<span class="legend-tag-jotur" style="opacity:0.5; font-size:0.6rem;">🚌 JOTUR</span>' : ''}
+          ${nShiftsHtml}
         </div>
       `;
     }
@@ -2477,52 +2538,306 @@ const app = {
     const totalPending = list.filter(r => r.status !== 'Pago').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
     const totalPaid = list.filter(r => r.status === 'Pago').reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
 
+    let totalContemplatedCount = 0;
+    list.forEach(r => {
+      totalContemplatedCount += (r.shifts || []).filter(s => s.contemplated).length;
+    });
+
     const elPending = document.getElementById('bombeiroTotalPending');
     if (elPending) elPending.textContent = formatBRL(totalPending);
 
     const elPaid = document.getElementById('bombeiroTotalPaid');
     if (elPaid) elPaid.textContent = formatBRL(totalPaid);
 
+    const elContemplated = document.getElementById('bombeiroTotalContemplated');
+    if (elContemplated) {
+      elContemplated.textContent = `${totalContemplatedCount} serviço${totalContemplatedCount === 1 ? '' : 's'}`;
+    }
+
     tbody.innerHTML = list.length === 0 ? `
-      <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum registro do Bombeiro Comunitário cadastrado.</td></tr>
-    ` : list.map(r => `
-      <tr>
-        <td><strong>${r.monthRef}</strong></td>
-        <td>${formatDateBR(r.dateRequested)}</td>
-        <td>${formatDateBR(r.datePayment)}</td>
-        <td style="font-weight: 800; color: var(--navy);">${formatBRL(r.amount)}</td>
-        <td>
-          <button class="status-badge ${r.status === 'Pago' ? 'paid' : (r.status === 'Em Análise' ? 'waiting' : 'pending')}" style="cursor:pointer; border:none;" onclick="app.toggleBombeiroStatus('${r.id}')">
-            ${r.status || 'Solicitado'}
-          </button>
-        </td>
-        <td>
-          <div class="table-actions">
-            <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteBombeiro('${r.id}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+      <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum registro de disponibilidades do Bombeiro cadastrado. Clique no botão acima para lançar!</td></tr>
+    ` : list.map(r => {
+      const shifts = r.shifts || [];
+      const diurnos = shifts.filter(s => s.period === 'diurno').length;
+      const noturnos = shifts.filter(s => s.period === 'noturno').length;
+      const cont = shifts.filter(s => s.contemplated);
+      const isPaid = r.status === 'Pago';
+
+      return `
+        <tr>
+          <td>
+            <strong style="color:#fff; font-size:0.95rem;">${r.monthRef}</strong>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Envio: ${formatDateBR(r.dateRequested)}</div>
+          </td>
+          <td>
+            <div style="font-size:0.85rem; font-weight:700; color:#fff;">${shifts.length} turno${shifts.length === 1 ? '' : 's'} informados</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">
+              ☀️ ${diurnos} Diurno${diurnos === 1 ? '' : 's'} • 🌙 ${noturnos} Noturno${noturnos === 1 ? '' : 's'}
+            </div>
+          </td>
+          <td>
+            <div style="display:flex; flex-direction:column; gap:0.25rem;">
+              ${cont.length === 0 ? `
+                <span style="color:var(--text-muted); font-size:0.8rem;">0 contemplados</span>
+              ` : `
+                <span style="color:#facc15; font-weight:800; font-size:0.92rem;">⭐ ${cont.length} serviço${cont.length === 1 ? '' : 's'}</span>
+              `}
+              <button class="btn-table-icon" style="font-size:0.72rem; padding:2px 8px; width:fit-content; background:rgba(250,204,21,0.12); color:#facc15; border:1px solid rgba(250,204,21,0.3);" title="Selecionar quais dias você foi contemplado" onclick="app.openModalNovoBombeiro('${r.id}')">
+                ✏️ Selecionar Contemplados
+              </button>
+            </div>
+          </td>
+          <td>
+            <div style="font-weight: 800; color: #4ade80; font-size: 1.1rem;">
+              ${formatBRL(r.amount || 0)}
+            </div>
+            <div style="font-size:0.7rem; color:var(--text-muted);">
+              (R$ 125,00 cada)
+            </div>
+          </td>
+          <td>
+            ${r.datePayment ? `<span style="color:#4ade80; font-weight:700; font-size:0.85rem;">${formatDateBR(r.datePayment)}</span>` : '<span style="color:var(--text-muted); font-size:0.8rem;">Aguardando</span>'}
+          </td>
+          <td>
+            <button class="status-badge ${isPaid ? 'paid' : 'pending'}" style="cursor:pointer; border:none; font-weight:800; padding:0.4rem 0.85rem; font-size:0.78rem; transition:all 0.2s;" title="Clique para alternar entre Pendente e Pago" onclick="app.quickToggleBombeiroPago('${r.id}')">
+              ${isPaid ? '✓ PAGO' : '⏳ PENDENTE'}
             </button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
+          </td>
+          <td>
+            <div class="table-actions">
+              <button class="btn-table-icon" title="Editar / Ver Detalhes" onclick="app.openModalNovoBombeiro('${r.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
+              <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteBombeiro('${r.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   },
 
-  toggleBombeiroStatus(id) {
-    const item = store.data.firefighterRecords.find(r => r.id === id);
-    if (item) {
-      if (item.status === 'Solicitado') item.status = 'Em Análise';
-      else if (item.status === 'Em Análise') item.status = 'Pago';
-      else item.status = 'Solicitado';
+  openModalNovoBombeiro(editId) {
+    const titleEl = document.getElementById('modalNovoBombeiroTitle');
+    const idInput = document.getElementById('ff_record_id');
+    const monthSel = document.getElementById('ff_month_sel');
+    const yearSel = document.getElementById('ff_year_sel');
+    const dateReq = document.getElementById('ff_date_req');
+    const statusSel = document.getElementById('ff_status');
+    const datePay = document.getElementById('ff_date_pay');
 
-      store.save();
-      this.renderBombeiro();
-      this.renderResumo();
-      this.showToast(`Status alterado para: ${item.status}`, 'success');
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+
+    if (editId) {
+      const record = store.data.firefighterRecords.find(r => r.id === editId);
+      if (!record) return;
+      if (titleEl) titleEl.textContent = '🚒 Editar Disponibilidades & Contemplações';
+      if (idInput) idInput.value = record.id;
+
+      // Extrai mês e ano de record.monthRef (ex: "Novembro/2026" ou "11/2026")
+      if (record.monthRef && record.monthRef.includes('/')) {
+        const parts = record.monthRef.split('/');
+        const mStr = parts[0].trim();
+        const yStr = parts[1].trim();
+        const mIdx = monthNames.findIndex(mn => mn.toLowerCase() === mStr.toLowerCase());
+        if (mIdx >= 0 && monthSel) monthSel.value = String(mIdx + 1);
+        else if (!isNaN(Number(mStr)) && monthSel) monthSel.value = String(Number(mStr));
+        if (yearSel) yearSel.value = yStr;
+      }
+
+      if (dateReq) dateReq.value = record.dateRequested || '';
+      if (statusSel) statusSel.value = record.status || 'Pendente';
+      if (datePay) datePay.value = record.datePayment || '';
+      this.currentModalShifts = JSON.parse(JSON.stringify(record.shifts || []));
+    } else {
+      if (titleEl) titleEl.textContent = '🚒 Disponibilidades do Bombeiro Comunitário';
+      if (idInput) idInput.value = '';
+
+      // Padrão: Mês seguinte
+      const targetDt = new Date();
+      targetDt.setMonth(targetDt.getMonth() + 1);
+      const nextM = targetDt.getMonth() + 1;
+      const nextY = targetDt.getFullYear();
+
+      if (monthSel) monthSel.value = String(nextM);
+      if (yearSel) yearSel.value = String(nextY);
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (dateReq) dateReq.value = todayStr;
+      if (statusSel) statusSel.value = 'Pendente';
+      if (datePay) datePay.value = '';
+
+      this.currentModalShifts = [];
+    }
+
+    this.onBombeiroMonthYearChange();
+    this.renderModalShiftsList();
+    this.openModal('modalNovoBombeiro');
+  },
+
+  onBombeiroMonthYearChange() {
+    const monthSel = document.getElementById('ff_month_sel');
+    const yearSel = document.getElementById('ff_year_sel');
+    const monthInput = document.getElementById('ff_month');
+    const tempDate = document.getElementById('ff_temp_date');
+
+    const monthNames = [
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+
+    const m = monthSel ? parseInt(monthSel.value) : 11;
+    const y = yearSel ? parseInt(yearSel.value) : 2026;
+
+    if (monthInput) {
+      monthInput.value = `${monthNames[m - 1]}/${y}`;
+    }
+
+    // Pré-configura a data padrão para o primeiro dia do mês selecionado
+    if (tempDate) {
+      const curVal = tempDate.value;
+      if (!curVal || !curVal.startsWith(`${y}-${String(m).padStart(2, '0')}`)) {
+        tempDate.value = `${y}-${String(m).padStart(2, '0')}-01`;
+      }
     }
   },
 
+  onBombeiroModalStatusChange() {
+    const statusSel = document.getElementById('ff_status');
+    const datePay = document.getElementById('ff_date_pay');
+    if (!statusSel || !datePay) return;
+
+    if (statusSel.value === 'Pago' && !datePay.value) {
+      datePay.value = new Date().toISOString().split('T')[0];
+    } else if (statusSel.value === 'Pendente') {
+      datePay.value = '';
+    }
+  },
+
+  addShiftToModalList() {
+    const tempDate = document.getElementById('ff_temp_date');
+    const tempPeriod = document.getElementById('ff_temp_period');
+    if (!tempDate || !tempDate.value) {
+      this.showToast('Selecione uma data para adicionar a disponibilidade.', 'warning');
+      return;
+    }
+
+    const dateVal = tempDate.value;
+    const periodVal = tempPeriod ? tempPeriod.value : 'diurno';
+
+    // Evita duplicidade
+    const exists = this.currentModalShifts.some(s => s.date === dateVal && s.period === periodVal);
+    if (exists) {
+      this.showToast('Este dia e turno já foram adicionados na lista.', 'warning');
+      return;
+    }
+
+    this.currentModalShifts.push({
+      id: 'sh_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      date: dateVal,
+      period: periodVal,
+      contemplated: false
+    });
+
+    // Ordena por data
+    this.currentModalShifts.sort((a, b) => a.date.localeCompare(b.date));
+    this.renderModalShiftsList();
+    this.showToast('Dia adicionado à lista!', 'success');
+  },
+
+  toggleModalShiftContemplated(shiftId) {
+    const shift = this.currentModalShifts.find(s => s.id === shiftId);
+    if (shift) {
+      shift.contemplated = !shift.contemplated;
+      this.renderModalShiftsList();
+    }
+  },
+
+  removeModalShift(shiftId) {
+    this.currentModalShifts = this.currentModalShifts.filter(s => s.id !== shiftId);
+    this.renderModalShiftsList();
+  },
+
+  renderModalShiftsList() {
+    const container = document.getElementById('ff_shifts_container');
+    const lblTotal = document.getElementById('lblModalTotalShifts');
+    const lblCont = document.getElementById('lblModalContemplated');
+    const lblAmount = document.getElementById('lblModalTotalAmount');
+
+    if (!container) return;
+
+    const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    if (this.currentModalShifts.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:1.25rem; color:#94a3b8; font-size:0.82rem; border:1px dashed var(--border-light); border-radius:6px; background:rgba(255,255,255,0.02);">
+          Nenhum dia adicionado ainda. Escolha o dia e o turno acima e clique em <strong>+ Adicionar Dia</strong>.
+        </div>
+      `;
+    } else {
+      container.innerHTML = this.currentModalShifts.map(s => {
+        const parts = s.date.split('-');
+        let wd = '';
+        if (parts.length === 3) {
+          const dt = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          wd = weekdays[dt.getDay()];
+        }
+        const dateBR = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : s.date;
+
+        return `
+          <div class="modal-shift-item ${s.contemplated ? 'contemplated' : ''}">
+            <div class="modal-shift-info">
+              <span class="modal-shift-date">📅 ${dateBR} (${wd})</span>
+              <span class="modal-shift-period ${s.period}">
+                ${s.period === 'diurno' ? '☀️ Diurno (07h às 19h)' : '🌙 Noturno (19h às 07h)'}
+              </span>
+              ${s.contemplated ? '<span class="modal-shift-val-badge">⭐ Contemplado (+ R$ 125,00)</span>' : '<span style="font-size:0.75rem; color:#94a3b8;">(Aguardando)</span>'}
+            </div>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <button type="button" class="btn-shift-toggle ${s.contemplated ? 'active' : ''}" onclick="app.toggleModalShiftContemplated('${s.id}')">
+                ${s.contemplated ? '✓ Contemplado' : 'Marcar Contemplado'}
+              </button>
+              <button type="button" class="btn-table-icon delete" style="padding:4px 6px;" title="Remover" onclick="app.removeModalShift('${s.id}')">
+                ✕
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    const totalCount = this.currentModalShifts.length;
+    const contCount = this.currentModalShifts.filter(s => s.contemplated).length;
+    const totalAmount = contCount * 125.00;
+
+    if (lblTotal) lblTotal.textContent = totalCount;
+    if (lblCont) lblCont.textContent = `${contCount} serviço${contCount === 1 ? '' : 's'}`;
+    if (lblAmount) lblAmount.textContent = formatBRL(totalAmount);
+  },
+
+  quickToggleBombeiroPago(id) {
+    const item = store.data.firefighterRecords.find(r => r.id === id);
+    if (!item) return;
+
+    if (item.status === 'Pago') {
+      store.updateFirefighterStatus(id, 'Pendente', '');
+      this.showToast('Status alterado para PENDENTE.', 'info');
+    } else {
+      const todayStr = new Date().toISOString().split('T')[0];
+      store.updateFirefighterStatus(id, 'Pago', todayStr);
+      this.showToast('Ótimo! Registro marcado como PAGO.', 'success');
+    }
+
+    this.renderBombeiro();
+    this.renderResumo();
+  },
+
   deleteBombeiro(id) {
-    if (confirm('Deseja excluir este registro de ressarcimento?')) {
+    if (confirm('Deseja excluir este registro de disponibilidades do Bombeiro?')) {
       store.deleteFirefighterRecord(id);
       this.renderBombeiro();
       this.renderResumo();
@@ -4233,19 +4548,41 @@ const app = {
     if (formBombeiro) {
       formBombeiro.addEventListener('submit', (e) => {
         e.preventDefault();
-        const rec = {
-          monthRef: document.getElementById('ff_month').value,
-          dateRequested: document.getElementById('ff_date_req').value,
-          datePayment: document.getElementById('ff_date_pay').value,
-          amount: document.getElementById('ff_amount').value,
-          status: document.getElementById('ff_status').value
-        };
-        store.addFirefighterRecord(rec);
+        const recordId = document.getElementById('ff_record_id')?.value;
+        const monthRef = document.getElementById('ff_month')?.value || '';
+        const dateRequested = document.getElementById('ff_date_req')?.value || '';
+        const datePayment = document.getElementById('ff_date_pay')?.value || '';
+        const status = document.getElementById('ff_status')?.value || 'Pendente';
+        const shifts = this.currentModalShifts || [];
+        const amount = shifts.filter(s => s.contemplated).length * 125.00;
+
+        if (recordId) {
+          store.updateFirefighterRecord(recordId, {
+            monthRef,
+            dateRequested,
+            datePayment,
+            amount,
+            status,
+            shifts
+          });
+          this.showToast('Registro do Bombeiro atualizado com sucesso!', 'success');
+        } else {
+          store.addFirefighterRecord({
+            monthRef,
+            dateRequested,
+            datePayment,
+            amount,
+            status,
+            shifts
+          });
+          this.showToast('Disponibilidades do Bombeiro salvas com sucesso!', 'success');
+        }
+
         this.closeModal('modalNovoBombeiro');
         formBombeiro.reset();
+        this.currentModalShifts = [];
         this.renderBombeiro();
         this.renderResumo();
-        this.showToast('Registro do Bombeiro cadastrado!', 'success');
       });
     }
 
