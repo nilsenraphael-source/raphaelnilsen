@@ -110,7 +110,13 @@ class DataStore {
       if (stored) {
         const parsed = JSON.parse(stored);
         const merged = { ...INITIAL_DATABASE, ...parsed };
-        if (!merged.settings) merged.settings = { ...INITIAL_DATABASE.settings };
+        if (!merged.settings) {
+          merged.settings = { ...INITIAL_DATABASE.settings };
+        } else {
+          merged.settings = { ...INITIAL_DATABASE.settings, ...merged.settings };
+        }
+        if (!merged.settings.userEmail) merged.settings.userEmail = 'raphael_nilsen@hotmail.com';
+        if (!merged.settings.userPasswordHash) merged.settings.userPasswordHash = '12345';
         if (!merged.settings.supabase || 
             !merged.settings.supabase.url || 
             merged.settings.supabase.url.includes('seu-projeto') ||

@@ -392,7 +392,11 @@ class SupabaseService {
       }
 
       if (data && data.data_json && data.data_json.accounts && Array.isArray(data.data_json.accounts)) {
-        store.data = data.data_json;
+        store.data = { ...INITIAL_DATABASE, ...data.data_json };
+        if (!store.data.settings) store.data.settings = {};
+        store.data.settings = { ...INITIAL_DATABASE.settings, ...store.data.settings };
+        if (!store.data.settings.userEmail) store.data.settings.userEmail = 'raphael_nilsen@hotmail.com';
+        if (!store.data.settings.userPasswordHash) store.data.settings.userPasswordHash = '12345';
         store.data.settings.lastSync = data.updated_at;
         store.save(true);
         this.lastError = null;
