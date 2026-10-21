@@ -90,7 +90,7 @@ const app = {
   cardCalendarOffset: 0,
   activeTabInvest: 'bolsa',
   senhasAbaAtiva: 'bancos_cartoes',
-  senhasViewMode: 'table',
+  senhasViewMode: (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'cards' : 'table',
   senhasRevelarTodas: false,
   senhasRevealedIds: new Set(),
 
@@ -4518,6 +4518,22 @@ const app = {
     this.ensureInitialPasswords();
     if (!this.senhasAbaAtiva) this.senhasAbaAtiva = 'bancos_cartoes';
     if (!this.senhasRevealedIds) this.senhasRevealedIds = new Set();
+    if (!this.senhasViewMode) {
+      this.senhasViewMode = (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'cards' : 'table';
+    }
+
+    // Sincroniza estado visual dos botões do alternador Tabela / Cards
+    const btnTable = document.getElementById('btnViewTableSenhas');
+    const btnCards = document.getElementById('btnViewCardsSenhas');
+    if (btnTable && btnCards) {
+      if (this.senhasViewMode === 'cards') {
+        btnCards.classList.add('active');
+        btnTable.classList.remove('active');
+      } else {
+        btnTable.classList.add('active');
+        btnCards.classList.remove('active');
+      }
+    }
 
     const allPasswords = store.data.passwords || [];
 
@@ -4564,7 +4580,7 @@ const app = {
     if (filtered.length === 0) {
       const labelsAba = {
         'bancos_cartoes': 'Bancos & Cartões',
-        'logins_sites': 'Logins e Senhas de Sites',
+        'logins_sites': 'Sites & Logins',
         'emails': 'E-mails',
         'dona_tania': 'Senhas Dona Tânia'
       };
@@ -4583,7 +4599,7 @@ const app = {
       return;
     }
 
-    // RENDERIZAÇÃO EM MODO CARDS
+    // RENDERIZAÇÃO EM MODO CARDS (OTIMIZADO PARA MOBILE E VISUAL MODERNO)
     if (this.senhasViewMode === 'cards') {
       let cardsHtml = '<div class="senhas-cards-grid">';
       filtered.forEach(p => {
@@ -4600,8 +4616,8 @@ const app = {
               <div style="display:flex; align-items:center; gap:0.65rem;">
                 <span style="font-size:1.5rem;">${icone}</span>
                 <div>
-                  <h4 style="font-size:1rem; font-weight:800; color:var(--text-white); margin-bottom:0.2rem;">${escapeHtml(titulo)}</h4>
-                  <span class="status-badge neutral" style="font-size:0.7rem;">${escapeHtml(sub)}</span>
+                  <h4 style="font-size:1.05rem; font-weight:800; color:var(--text-white); margin-bottom:0.2rem;">${escapeHtml(titulo)}</h4>
+                  <span class="status-badge neutral" style="font-size:0.72rem;">${escapeHtml(sub)}</span>
                 </div>
               </div>
               <div style="display:flex; gap:0.35rem;">
@@ -4618,65 +4634,80 @@ const app = {
               ${isBanco ? `
                 <div class="senhas-card-row">
                   <span class="senhas-card-label">Senha Principal:</span>
-                  <div class="credential-box password-box" style="min-width:130px;">
-                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_principal || '-') : '••••••••'}</span>
-                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_principal)}', 'Senha principal copiada!')">📋</button>
+                  <div class="credential-box password-box">
+                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_principal || '-') : (p.senha_principal ? '••••••••' : '-')}</span>
+                    ${p.senha_principal ? `
+                      <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_principal)}', 'Senha principal copiada!')" title="Copiar">📋</button>
+                    ` : ''}
                   </div>
                 </div>
                 ${p.letra_auxiliar ? `
                   <div class="senhas-card-row">
                     <span class="senhas-card-label">Letra / Auxiliar:</span>
-                    <div class="credential-box password-box" style="min-width:130px;">
+                    <div class="credential-box password-box">
                       <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.letra_auxiliar) : '••••••••'}</span>
-                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.letra_auxiliar)}', 'Letra auxiliar copiada!')">📋</button>
+                      <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.letra_auxiliar)}', 'Letra auxiliar copiada!')" title="Copiar">📋</button>
                     </div>
                   </div>
                 ` : ''}
                 <div class="senhas-card-row">
                   <span class="senhas-card-label">Login / Conta:</span>
-                  <div class="credential-box" style="min-width:130px;">
+                  <div class="credential-box">
                     <span class="credential-text">${escapeHtml(p.login || p.username || '-')}</span>
-                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.login || p.username)}', 'Login copiado!')">📋</button>
+                    ${(p.login || p.username) ? `
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.login || p.username)}', 'Login copiado!')" title="Copiar">📋</button>
+                    ` : ''}
                   </div>
                 </div>
                 <div class="senhas-card-row">
                   <span class="senhas-card-label">Senha App / Web:</span>
-                  <div class="credential-box password-box" style="min-width:130px;">
-                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : '••••••••'}</span>
-                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')">📋</button>
+                  <div class="credential-box password-box">
+                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : (p.senha || p.password ? '••••••••' : '-')}</span>
+                    ${(p.senha || p.password) ? `
+                      <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')" title="Copiar">📋</button>
+                    ` : ''}
                   </div>
                 </div>
                 ${p.senha_auxiliar ? `
                   <div class="senhas-card-row">
                     <span class="senhas-card-label">Senha Cartão / Token:</span>
-                    <div class="credential-box password-box" style="min-width:130px;">
+                    <div class="credential-box password-box">
                       <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_auxiliar) : '••••••••'}</span>
-                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_auxiliar)}', 'Senha auxiliar copiada!')">📋</button>
+                      <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_auxiliar)}', 'Senha auxiliar copiada!')" title="Copiar">📋</button>
                     </div>
                   </div>
                 ` : ''}
                 ${p.pix ? `
                   <div class="senhas-card-row">
                     <span class="senhas-card-label">Chave PIX:</span>
-                    <div class="credential-box" style="min-width:130px;">
+                    <div class="credential-box">
                       <span class="credential-text" style="color:#60a5fa;">${escapeHtml(p.pix)}</span>
-                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.pix)}', 'Chave PIX copiada!')">📋</button>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.pix)}', 'Chave PIX copiada!')" title="Copiar PIX">📋</button>
                     </div>
                   </div>
                 ` : ''}
               ` : `
                 <div class="senhas-card-row">
                   <span class="senhas-card-label">Login / Usuário:</span>
-                  <div class="credential-box" style="min-width:140px;">
+                  <div class="credential-box">
                     <span class="credential-text">${escapeHtml(p.login || p.username || '-')}</span>
-                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.login || p.username)}', 'Login copiado!')">📋</button>
+                    ${(p.login || p.username) ? `
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.login || p.username)}', 'Login copiado!')" title="Copiar">📋</button>
+                    ` : ''}
                   </div>
                 </div>
                 <div class="senhas-card-row">
                   <span class="senhas-card-label">Senha:</span>
-                  <div class="credential-box password-box" style="min-width:140px;">
-                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : '••••••••'}</span>
-                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')">📋</button>
+                  <div class="credential-box password-box">
+                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : (p.senha || p.password ? '••••••••' : '-')}</span>
+                    ${(p.senha || p.password) ? `
+                      <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')" title="Copiar">📋</button>
+                    ` : ''}
                   </div>
                 </div>
                 <div class="senhas-card-row">
@@ -4689,7 +4720,6 @@ const app = {
                     <a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem; color:#60a5fa;">Abrir Site ↗</a>
                   </div>
                 ` : ''}
-              `}
             </div>
 
             ${(p.observacoes || p.notes) ? `
