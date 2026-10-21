@@ -2289,6 +2289,17 @@ const app = {
         </button>
       </div>
     ` : store.data.dreams.map(d => {
+      // Auto-migração para garantir que sonhos pré-existentes com saldo guardado tenham histórico registrado
+      if ((!Array.isArray(d.deposits) || d.deposits.length === 0) && Number(d.saved) > 0) {
+        d.deposits = [{
+          id: 'dep_init_' + d.id,
+          date: new Date().toISOString().split('T')[0],
+          value: Number(d.saved),
+          notes: 'Valor guardado'
+        }];
+        store.save();
+      }
+
       const target = Number(d.value) || 1;
       const deposits = Array.isArray(d.deposits) ? d.deposits : [];
       const saved = deposits.length > 0 
@@ -2299,6 +2310,25 @@ const app = {
       const pct = Math.min(100, Math.round((saved / target) * 100));
       const defaultImg = `https://image.pollinations.ai/prompt/${encodeURIComponent(d.title + ' realistic product photography')}?width=600&height=350&nologo=true`;
       const displayImg = d.imageUrl || defaultImg;
+
+      // Monta histórico de lançamentos com data e valor
+      let historicoCardHtml = '';
+      if (deposits.length === 0) {
+        historicoCardHtml = `
+          <div style="font-size:0.75rem; color:var(--text-muted); text-align:center; padding:0.4rem 0;">
+            Nenhum valor lançado ainda.
+          </div>
+        `;
+      } else {
+        const sorted = [...deposits].reverse();
+        historicoCardHtml = sorted.map(dep => `
+          <div class="dream-card-history-row">
+            <span class="dream-history-date">📅 ${formatDateBR(dep.date)}</span>
+            <span class="dream-history-note" title="${escapeHtml(dep.notes || 'Lançamento')}">${escapeHtml(dep.notes || 'Lançamento')}</span>
+            <strong class="dream-history-val">+ ${formatBRL(dep.value)}</strong>
+          </div>
+        `).join('');
+      }
 
       return `
         <div class="dream-card">
@@ -2348,9 +2378,20 @@ const app = {
               </div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:var(--text-muted); margin-bottom:1rem; padding: 0 0.2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:var(--text-muted); padding: 0 0.2rem;">
               <span>Objetivo Final: <strong>${formatBRL(target)}</strong></span>
               <span>${deposits.length} lançamento(s)</span>
+            </div>
+
+            <!-- Histórico de Valores Lançados e Datas -->
+            <div class="dream-card-history-section">
+              <div class="dream-card-history-header" onclick="app.toggleDreamHistory('${d.id}')">
+                <span>📋 Histórico de Lançamentos (${deposits.length})</span>
+                <span id="dreamHistIcon_${d.id}" style="font-size:0.72rem; color:var(--text-muted);">▾</span>
+              </div>
+              <div id="dreamHistList_${d.id}" class="dream-card-history-list">
+                ${historicoCardHtml}
+              </div>
             </div>
 
             <!-- Botão de Ação: Lançar Valor Guardado -->
@@ -2361,6 +2402,16 @@ const app = {
         </div>
       `;
     }).join('');
+  },
+
+  toggleDreamHistory(dreamId) {
+    const list = document.getElementById(`dreamHistList_${dreamId}`);
+    const icon = document.getElementById(`dreamHistIcon_${dreamId}`);
+    if (list) {
+      const isHidden = list.style.display === 'none';
+      list.style.display = isHidden ? 'flex' : 'none';
+      if (icon) icon.textContent = isHidden ? '▾' : '▸';
+    }
   },
 
   openModalAporte(dreamId) {
