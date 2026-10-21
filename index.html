@@ -471,35 +471,106 @@
         <!-- ====================================================================
              4. PÁGINA: COFRE DE SENHAS
              ==================================================================== -->
+        <!-- ====================================================================
+             4. PÁGINA: COFRE DE SENHAS & CREDENCIAIS (PADRÃO ACBCSJ)
+             ==================================================================== -->
         <section id="view-senhas" class="page-view">
           
           <div class="card">
-            <div class="card-header">
+            <!-- Cabeçalho Executivo -->
+            <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
               <div class="card-title-group">
-                <div class="card-icon" style="background:#f5f3ff; color:#8b5cf6;">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <div class="card-icon" style="background:rgba(245, 158, 11, 0.12); color:#f59e0b;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 </div>
                 <div>
-                  <h3 class="card-title">Cofre de Senhas Protegido</h3>
-                  <span class="card-subtitle">Armazenamento seguro e criptografado de credenciais</span>
+                  <h3 class="card-title">🔐 Cofre de Senhas & Credenciais</h3>
+                  <span class="card-subtitle">Gerenciamento seguro de bancos, cartões, logins, e-mails e acessos</span>
                 </div>
               </div>
-              <button class="btn-header primary" onclick="app.openModal('modalNovaSenha')">
-                + Nova Senha
+              <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;">
+                <button type="button" class="btn-header" id="btnToggleAllSenhas" onclick="app.toggleSenhasRevelarTodas()" title="Revelar ou ocultar todas as senhas de uma vez">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <span id="btnToggleAllSenhasTxt">Revelar Senhas</span>
+                </button>
+                <button type="button" class="btn-header" onclick="app.exportarSenhasCSV()" title="Baixar planilha CSV com backup das senhas">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Exportar CSV</span>
+                </button>
+                <button type="button" class="btn-header primary" id="btnNovaSenhaContextual" onclick="app.abrirModalNovaSenhaContextual()">
+                  + Novo Registro
+                </button>
+              </div>
+            </div>
+
+            <!-- Métricas Resumo (Padrão ACBCSJ) -->
+            <div class="senhas-metrics-grid">
+              <div class="senhas-metric-card">
+                <div class="title">Total de Credenciais</div>
+                <div class="value" id="metricTotalSenhas" style="color: #60a5fa;">0</div>
+                <div class="subtext">Cadastradas no cofre</div>
+              </div>
+              <div class="senhas-metric-card">
+                <div class="title">Bancos & Cartões</div>
+                <div class="value" id="metricBancosCartoes" style="color: #f59e0b;">0</div>
+                <div class="subtext">Contas e cartões ativos</div>
+              </div>
+              <div class="senhas-metric-card">
+                <div class="title">Logins & Sites</div>
+                <div class="value" id="metricSitesLogins" style="color: #a855f7;">0</div>
+                <div class="subtext">Portais e serviços web</div>
+              </div>
+              <div class="senhas-metric-card">
+                <div class="title">E-mails & D. Tânia</div>
+                <div class="value" id="metricEmailsTania" style="color: #10b981;">0</div>
+                <div class="subtext">Caixas postais e familiares</div>
+              </div>
+            </div>
+
+            <!-- Navegação por Sub-abas (As 4 Tabelas Solicitadas) -->
+            <div class="senhas-subtabs-nav">
+              <button type="button" id="subtab-btn-bancos_cartoes" class="senhas-subtab-btn active" onclick="app.setSenhasAba('bancos_cartoes')">
+                <span>🏦 BANCOS e CARTÕES</span>
+                <span class="senhas-tab-count" id="countBancosCartoes">0</span>
+              </button>
+              <button type="button" id="subtab-btn-logins_sites" class="senhas-subtab-btn" onclick="app.setSenhasAba('logins_sites')">
+                <span>🌐 LOGINS e SENHAS DE SITES</span>
+                <span class="senhas-tab-count" id="countLoginsSites">0</span>
+              </button>
+              <button type="button" id="subtab-btn-emails" class="senhas-subtab-btn" onclick="app.setSenhasAba('emails')">
+                <span>✉️ EMAILS</span>
+                <span class="senhas-tab-count" id="countEmails">0</span>
+              </button>
+              <button type="button" id="subtab-btn-dona_tania" class="senhas-subtab-btn" onclick="app.setSenhasAba('dona_tania')">
+                <span>👵 SENHAS DONA TANIA</span>
+                <span class="senhas-tab-count" id="countDonaTania">0</span>
               </button>
             </div>
 
-            <!-- Barra de Busca -->
-            <div style="margin-bottom: 1.5rem;">
-              <div class="form-input-wrapper">
-                <span class="form-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                </span>
-                <input type="text" id="pwdSearchInput" class="form-input" placeholder="Pesquisar por serviço, conta, usuário ou observação...">
+            <!-- Toolbar: Barra de Busca, Filtro e Alternador Tabela/Cards -->
+            <div class="senhas-toolbar">
+              <div style="flex: 1; min-width: 250px; max-width: 450px;">
+                <div class="form-input-wrapper">
+                  <span class="form-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  </span>
+                  <input type="text" id="pwdSearchInput" class="form-input" placeholder="Pesquisar por banco, serviço, conta, login, pix...">
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+                <div class="senhas-view-toggle">
+                  <button type="button" id="btnViewTableSenhas" class="active" onclick="app.setSenhasViewMode('table')" title="Exibir em Tabela">
+                    📋 Tabela
+                  </button>
+                  <button type="button" id="btnViewCardsSenhas" onclick="app.setSenhasViewMode('cards')" title="Exibir em Cards">
+                    🎴 Cards
+                  </button>
+                </div>
               </div>
             </div>
 
-            <!-- Lista de Senhas -->
+            <!-- Container Dinâmico da Tabela Ativa / Cards -->
             <div id="passwordsListContainer"></div>
           </div>
 
@@ -2288,53 +2359,179 @@
     </div>
   </div>
 
-  <!-- Modal: Nova Senha (Padrão ACBCSJ) -->
-  <div id="modalNovaSenha" class="modal-overlay">
-    <div class="modal-dialog">
+  <!-- ====================================================================
+       MODAL 1: CADASTRAR / EDITAR BANCO & CARTÃO (8 COLUNAS)
+       ==================================================================== -->
+  <div id="modalBancoCartao" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 680px;">
       <div class="modal-header">
-        <h3 class="modal-title">Cadastrar Senha no Cofre</h3>
-        <button class="btn-close-modal" onclick="app.closeModal('modalNovaSenha')">✕</button>
+        <h3 class="modal-title" id="modalBancoCartaoTitulo">🏦 Cadastrar Banco & Cartão</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalBancoCartao')">✕</button>
       </div>
-      <form id="formNovaSenha">
+      <form id="formBancoCartao">
+        <input type="hidden" id="banco_id">
         <div class="modal-body">
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Serviço / Título</label>
-              <input type="text" id="pwd_service" class="form-input" required placeholder="Ex: Portal Bradesco, E-mail Pessoal">
+              <label class="form-label">Banco / Instituição *</label>
+              <input type="text" id="banco_nome" class="form-input" list="bancos_sugestoes" required placeholder="Ex: Bradesco, Nubank, Banco do Brasil...">
+              <datalist id="bancos_sugestoes">
+                <option value="Bradesco">
+                <option value="Nubank">
+                <option value="Banco do Brasil">
+                <option value="Caixa Econômica Federal">
+                <option value="Seven">
+                <option value="Mercado Pago">
+                <option value="Santander">
+                <option value="Itaú">
+                <option value="Inter">
+                <option value="C6 Bank">
+              </datalist>
             </div>
             <div class="form-group">
-              <label class="form-label">Categoria</label>
-              <select id="pwd_category" class="form-input">
-                <option value="Bancos">Bancos</option>
-                <option value="E-mails">E-mails</option>
-                <option value="Serviços & Portais">Serviços & Portais</option>
-                <option value="Trabalho">Trabalho</option>
-                <option value="Outros">Outros</option>
-              </select>
+              <label class="form-label">Tipo da Conta / Cartão *</label>
+              <input type="text" id="banco_tipo_conta" class="form-input" list="tipos_conta_sugestoes" required placeholder="Ex: Conta Corrente, Poupança, Cartão...">
+              <datalist id="tipos_conta_sugestoes">
+                <option value="Conta Corrente">
+                <option value="Conta Poupança">
+                <option value="Cartão de Crédito">
+                <option value="Conta Digital">
+                <option value="Conta Salário">
+                <option value="Investimentos / Corretora">
+              </datalist>
             </div>
           </div>
+
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Usuário / Login</label>
-              <input type="text" id="pwd_user" class="form-input" required placeholder="Ex: raphael@email.com ou CPF">
+              <label class="form-label">Senha Principal</label>
+              <div style="position: relative;">
+                <input type="password" id="banco_senha_principal" class="form-input" placeholder="Senha principal" style="padding-right: 38px;">
+                <button type="button" class="btn-eye-mini" onclick="app.toggleFieldVisibility('banco_senha_principal')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="Ver / Ocultar">👁️</button>
+              </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Senha</label>
-              <input type="text" id="pwd_pass" class="form-input" required placeholder="Digite a senha">
+              <label class="form-label">Letra ou Senha Auxiliar</label>
+              <div style="position: relative;">
+                <input type="password" id="banco_letra_auxiliar" class="form-input" placeholder="Ex: Letras de Acesso / Tabela" style="padding-right: 38px;">
+                <button type="button" class="btn-eye-mini" onclick="app.toggleFieldVisibility('banco_letra_auxiliar')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="Ver / Ocultar">👁️</button>
+              </div>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Endereço de Acesso (URL)</label>
-            <input type="url" id="pwd_url" class="form-input" placeholder="https://exemplo.com.br">
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Login / Agência / Conta</label>
+              <input type="text" id="banco_login" class="form-input" placeholder="Ex: Ag 1234 / Cc 56789-0 ou CPF">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Senha de Acesso (App / Web)</label>
+              <div style="position: relative;">
+                <input type="password" id="banco_senha" class="form-input" placeholder="Senha do app / internet banking" style="padding-right: 38px;">
+                <button type="button" class="btn-eye-mini" onclick="app.toggleFieldVisibility('banco_senha')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="Ver / Ocultar">👁️</button>
+              </div>
+            </div>
           </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Senha Auxiliar / Cartão / Token</label>
+              <div style="position: relative;">
+                <input type="password" id="banco_senha_auxiliar" class="form-input" placeholder="Senha de 4/6 dígitos do cartão ou token" style="padding-right: 38px;">
+                <button type="button" class="btn-eye-mini" onclick="app.toggleFieldVisibility('banco_senha_auxiliar')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="Ver / Ocultar">👁️</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Chave PIX</label>
+              <input type="text" id="banco_pix" class="form-input" placeholder="Ex: raphael_nilsen@hotmail.com ou CPF">
+            </div>
+          </div>
+
           <div class="form-group">
             <label class="form-label">Observações / Anotações</label>
-            <input type="text" id="pwd_notes" class="form-input" placeholder="Ex: Dica de recuperação, chave Pix associada">
+            <input type="text" id="banco_obs" class="form-input" placeholder="Ex: Limite especial, fatura vence dia 10, etc.">
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn-header" onclick="app.closeModal('modalNovaSenha')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Guardar Senha</button>
+          <button type="button" class="btn-header" onclick="app.closeModal('modalBancoCartao')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Guardar Banco / Cartão</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 2: CADASTRAR / EDITAR ACESSO GERAL (PADRÃO ACBCSJ)
+       ==================================================================== -->
+  <div id="modalSenhaGeral" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 620px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalSenhaGeralTitulo">🔐 Cadastrar Acesso / Senha</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalSenhaGeral')">✕</button>
+      </div>
+      <form id="formSenhaGeral">
+        <input type="hidden" id="geral_id">
+        <div class="modal-body">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Tabela de Destino *</label>
+              <select id="geral_tabela" class="form-input" required>
+                <option value="logins_sites">LOGINS e SENHAS DE SITES</option>
+                <option value="emails">EMAILS</option>
+                <option value="dona_tania">SENHAS DONA TANIA</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Serviço / Site / Título *</label>
+              <input type="text" id="geral_servico" class="form-input" required placeholder="Ex: Mercado Livre, Gmail, Gov.br...">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Categoria / Tipo</label>
+              <input type="text" id="geral_categoria" class="form-input" placeholder="Ex: Compras, Streaming, Redes Sociais, INSS...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status da Conta</label>
+              <select id="geral_status" class="form-input">
+                <option value="ativo">✅ Ativo (Em uso)</option>
+                <option value="desuso">❌ Em Desuso / Arquivo</option>
+                <option value="revisao">⚠️ Em Revisão</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Login / E-mail / Usuário *</label>
+              <input type="text" id="geral_login" class="form-input" required placeholder="Ex: seu_login ou email@dominio.com">
+            </div>
+            <div class="form-group">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+                <label class="form-label" style="margin-bottom:0;">Senha *</label>
+                <button type="button" onclick="app.gerarSenhaAleatoria('geral_senha')" style="font-size:0.75rem; color:#60a5fa; background:none; border:none; cursor:pointer; font-weight:600;">🎲 Gerar Senha</button>
+              </div>
+              <div style="position: relative;">
+                <input type="password" id="geral_senha" class="form-input" required placeholder="Digite ou gere a senha" style="padding-right: 38px;">
+                <button type="button" class="btn-eye-mini" onclick="app.toggleFieldVisibility('geral_senha')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="Ver / Ocultar">👁️</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Endereço de Acesso (URL / Site)</label>
+            <input type="url" id="geral_url" class="form-input" placeholder="https://exemplo.com.br">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Observações / Anotações / Dicas de Recuperação</label>
+            <input type="text" id="geral_obs" class="form-input" placeholder="Ex: E-mail de recuperação, perguntas de segurança, etc.">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalSenhaGeral')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Guardar Credencial</button>
         </div>
       </form>
     </div>

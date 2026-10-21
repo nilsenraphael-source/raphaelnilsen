@@ -1264,10 +1264,26 @@ class DataStore {
 
   // --- COFRE DE SENHAS ---
   addPassword(pwd) {
-    pwd.id = 'pwd_' + Date.now();
+    if (!pwd.id) pwd.id = 'pwd_' + Date.now();
+    if (!pwd.tabela) pwd.tabela = 'bancos_cartoes';
+    if (!pwd.criado_em) pwd.criado_em = new Date().toISOString();
     this.data.passwords.push(pwd);
     this.save();
     return pwd;
+  }
+
+  updatePassword(id, updatedFields) {
+    const idx = this.data.passwords.findIndex(p => p.id === id);
+    if (idx !== -1) {
+      this.data.passwords[idx] = {
+        ...this.data.passwords[idx],
+        ...updatedFields,
+        atualizado_em: new Date().toISOString()
+      };
+      this.save();
+      return this.data.passwords[idx];
+    }
+    return null;
   }
 
   deletePassword(id) {

@@ -292,15 +292,17 @@ class SupabaseService {
         const pwdRows = data.passwords.map(p => ({
           id: String(p.id),
           user_email: email,
-          servico: p.service || '',
-          categoria: p.category || '',
-          usuario: p.username || '',
-          senha: p.password || '',
-          url: p.url || '',
-          notas: p.notes || '',
+          servico: p.banco || p.service || p.servico || 'Credencial',
+          categoria: p.tabela || p.category || p.categoria || 'bancos_cartoes',
+          usuario: p.login || p.username || p.tipo_conta || '',
+          senha: p.senha_principal || p.password || p.senha || '',
+          url: p.pix || p.url || '',
+          notas: p.notes || p.observacoes || (typeof p === 'object' ? JSON.stringify(p) : ''),
           updated_at: nowIso
         }));
-        await this.client.from('cofre_senhas').upsert(pwdRows);
+        await this.client.from('cofre_senhas').upsert(pwdRows).catch(err => {
+          console.warn('[Supabase] Aviso ao sincronizar cofre_senhas:', err);
+        });
       }
 
       // 10. Sonhos e Metas

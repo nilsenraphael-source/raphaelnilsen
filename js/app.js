@@ -88,8 +88,11 @@ const app = {
   receitasSearch: '',
   activeTabCartao: 'todos', // Exibe todos os cartões cadastrados por padrão
   cardCalendarOffset: 0,
-  cardSearchQuery: '',
   activeTabInvest: 'bolsa',
+  senhasAbaAtiva: 'bancos_cartoes',
+  senhasViewMode: 'table',
+  senhasRevelarTodas: false,
+  senhasRevealedIds: new Set(),
 
   init() {
     this.bindEvents();
@@ -3871,79 +3874,749 @@ const app = {
   // =========================================================================
   // 8. MÓDULO COFRE DE SENHAS
   // =========================================================================
+  // =========================================================================
+  // 8. MÓDULO COFRE DE SENHAS (PADRÃO EXECUTIVO ACBCSJ - 4 TABELAS)
+  // =========================================================================
+
+  ensureInitialPasswords() {
+    if (!store.data.passwords || store.data.passwords.length === 0) {
+      store.data.passwords = [
+        // 1. BANCOS e CARTÕES (As 8 colunas solicitadas)
+        {
+          id: 'pwd_banco_1',
+          tabela: 'bancos_cartoes',
+          banco: 'Bradesco',
+          tipo_conta: 'Conta Corrente / Cartão Elo',
+          senha_principal: '1234',
+          letra_auxiliar: 'A B C D',
+          login: 'Ag 1234 / Cc 56789-0',
+          senha: '••••••••',
+          senha_auxiliar: 'Token 654321',
+          pix: 'raphael_nilsen@hotmail.com',
+          observacoes: 'Conta principal de movimentação bancária'
+        },
+        {
+          id: 'pwd_banco_2',
+          tabela: 'bancos_cartoes',
+          banco: 'Nubank',
+          tipo_conta: 'Conta Digital / Mastercard',
+          senha_principal: 'Nu@2026',
+          letra_auxiliar: 'Biometria Facial',
+          login: 'raphael_nilsen@hotmail.com',
+          senha: '••••••••',
+          senha_auxiliar: 'Senha 4 dígitos: 9876',
+          pix: 'Chave Aleatória',
+          observacoes: 'Cartão de crédito roxinho e caixinhas'
+        },
+        {
+          id: 'pwd_banco_3',
+          tabela: 'bancos_cartoes',
+          banco: 'Banco do Brasil',
+          tipo_conta: 'Conta Corrente',
+          senha_principal: 'BB2026@',
+          letra_auxiliar: 'Senha 8 dígitos',
+          login: 'Ag 4321 / Conta 12345-6',
+          senha: '••••••••',
+          senha_auxiliar: 'Senha Cartão (6 dígitos)',
+          pix: 'CPF',
+          observacoes: 'Acesso via App BB e Autoatendimento'
+        },
+        {
+          id: 'pwd_banco_4',
+          tabela: 'bancos_cartoes',
+          banco: 'Caixa Econômica Federal',
+          tipo_conta: 'Conta Poupança',
+          senha_principal: 'Caixa@123',
+          letra_auxiliar: 'Assinatura Eletrônica',
+          login: 'Usuário Internet Banking',
+          senha: '••••••••',
+          senha_auxiliar: 'Senha 4 dígitos',
+          pix: 'Celular',
+          observacoes: 'Poupança Caixa'
+        },
+        // 2. LOGINS e SENHAS DE SITES (Padrão ACBCSJ)
+        {
+          id: 'pwd_site_1',
+          tabela: 'logins_sites',
+          servico: 'MERCADO LIVRE',
+          url: 'https://www.mercadolivre.com.br',
+          categoria: 'Compras / Marketplace',
+          login: 'raphael_nilsen@hotmail.com',
+          senha: 'ML_Senha@2026',
+          status: 'ativo',
+          observacoes: 'Compras e entregas com frete Full'
+        },
+        {
+          id: 'pwd_site_2',
+          tabela: 'logins_sites',
+          servico: 'SHOPEE',
+          url: 'https://shopee.com.br',
+          categoria: 'Compras / Marketplace',
+          login: 'raphael_nilsen@hotmail.com',
+          senha: 'Shopee@Pass2026',
+          status: 'ativo',
+          observacoes: 'Compras de insumos e ferramentas'
+        },
+        // 3. EMAILS (Padrão ACBCSJ)
+        {
+          id: 'pwd_email_1',
+          tabela: 'emails',
+          servico: 'HOTMAIL / OUTLOOK',
+          url: 'https://outlook.live.com',
+          categoria: 'E-mail Principal',
+          login: 'raphael_nilsen@hotmail.com',
+          senha: 'Hotmail@Raphael2026',
+          status: 'ativo',
+          observacoes: 'E-mail principal para cadastros bancários e segurança'
+        },
+        {
+          id: 'pwd_email_2',
+          tabela: 'emails',
+          servico: 'GMAIL',
+          url: 'https://mail.google.com',
+          categoria: 'E-mail do Google',
+          login: 'raphael.nilsen@gmail.com',
+          senha: 'Gmail@Google2026',
+          status: 'ativo',
+          observacoes: 'E-mail Google Play, YouTube e serviços Android'
+        },
+        // 4. SENHAS DONA TANIA (Padrão ACBCSJ)
+        {
+          id: 'pwd_tania_1',
+          tabela: 'dona_tania',
+          servico: 'MEU INSS / GOV.BR',
+          url: 'https://meu.inss.gov.br',
+          categoria: 'Previdência / Governo',
+          login: 'CPF Dona Tânia',
+          senha: 'Tania@Gov2026',
+          status: 'ativo',
+          observacoes: 'Extrato de pagamento, benefício e comprovantes'
+        }
+      ];
+      store.save();
+    }
+  },
+
+  getTabelaItem(item) {
+    if (item.tabela) return item.tabela;
+    const cat = (item.category || item.categoria || '').toLowerCase();
+    if (cat.includes('banco') || cat.includes('cart')) return 'bancos_cartoes';
+    if (cat.includes('mail')) return 'emails';
+    if (cat.includes('tania') || cat.includes('dona')) return 'dona_tania';
+    return 'logins_sites';
+  },
+
+  setSenhasAba(aba) {
+    this.senhasAbaAtiva = aba;
+    const abas = ['bancos_cartoes', 'logins_sites', 'emails', 'dona_tania'];
+    abas.forEach(a => {
+      const btn = document.getElementById(`subtab-btn-${a}`);
+      if (btn) {
+        if (a === aba) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+    });
+    this.renderSenhas();
+  },
+
+  setSenhasViewMode(mode) {
+    this.senhasViewMode = mode;
+    const btnTable = document.getElementById('btnViewTableSenhas');
+    const btnCards = document.getElementById('btnViewCardsSenhas');
+    if (btnTable && btnCards) {
+      if (mode === 'table') {
+        btnTable.classList.add('active');
+        btnCards.classList.remove('active');
+      } else {
+        btnTable.classList.remove('active');
+        btnCards.classList.add('active');
+      }
+    }
+    this.renderSenhas();
+  },
+
+  toggleSenhasRevelarTodas() {
+    this.senhasRevelarTodas = !this.senhasRevelarTodas;
+    const btnTxt = document.getElementById('btnToggleAllSenhasTxt');
+    if (btnTxt) {
+      btnTxt.textContent = this.senhasRevelarTodas ? 'Ocultar Senhas' : 'Revelar Senhas';
+    }
+    this.renderSenhas();
+    this.showToast(this.senhasRevelarTodas ? '👁️ Todas as senhas foram reveladas.' : '🔒 Senhas ocultadas com segurança.', 'info');
+  },
+
+  toggleSenhasRevelarItem(id) {
+    if (!this.senhasRevealedIds) this.senhasRevealedIds = new Set();
+    if (this.senhasRevealedIds.has(id)) {
+      this.senhasRevealedIds.delete(id);
+    } else {
+      this.senhasRevealedIds.add(id);
+    }
+    this.renderSenhas();
+  },
+
+  toggleFieldVisibility(inputId) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    el.type = el.type === 'password' ? 'text' : 'password';
+  },
+
+  gerarSenhaAleatoria(targetInputId) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+    let pass = '';
+    for (let i = 0; i < 14; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const input = document.getElementById(targetInputId);
+    if (input) {
+      input.value = pass;
+      input.type = 'text';
+      this.showToast('🎲 Nova senha segura gerada!', 'success');
+    }
+  },
+
+  getBadgeBancoClass(bancoNome) {
+    const b = (bancoNome || '').toLowerCase();
+    if (b.includes('bradesco')) return 'bradesco';
+    if (b.includes('nu') || b.includes('nubank')) return 'nubank';
+    if (b.includes('brasil') || b.includes('bb')) return 'bb';
+    if (b.includes('caixa') || b.includes('cef')) return 'caixa';
+    if (b.includes('seven')) return 'seven';
+    return '';
+  },
+
+  getIconeServico(site, categoria) {
+    const nome = (site || '').toUpperCase();
+    const cat = (categoria || '').toLowerCase();
+    if (nome.includes('GMAIL') || nome.includes('GOOGLE')) return '📧';
+    if (nome.includes('OUTLOOK') || nome.includes('HOTMAIL')) return '✉️';
+    if (nome.includes('MERCADO LIVRE') || nome.includes('ML')) return '🛒';
+    if (nome.includes('SHOPEE')) return '🛍️';
+    if (nome.includes('INSTA') || nome.includes('FACEBOOK') || nome.includes('TIKTOK')) return '📱';
+    if (nome.includes('INSS') || nome.includes('GOV')) return '🏛️';
+    if (nome.includes('BANCO') || nome.includes('BRADESCO') || nome.includes('NUBANK') || nome.includes('CAIXA')) return '🏦';
+    if (cat.includes('mail')) return '✉️';
+    if (cat.includes('compra')) return '🛒';
+    if (cat.includes('social')) return '📱';
+    return '🔐';
+  },
+
+  exportarSenhasCSV() {
+    const list = store.data.passwords || [];
+    if (list.length === 0) {
+      this.showToast('Nenhuma senha cadastrada para exportar!', 'warning');
+      return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    csvContent += "TABELA;BANCO/SERVICO;TIPO/CATEGORIA;SENHA_PRINCIPAL;LETRA_AUXILIAR;LOGIN/USUARIO;SENHA;SENHA_AUXILIAR;PIX;URL;STATUS;OBSERVACOES\n";
+
+    list.forEach(p => {
+      const row = [
+        `"${(this.getTabelaItem(p) || '').replace(/"/g, '""')}"`,
+        `"${(p.banco || p.servico || p.service || '').replace(/"/g, '""')}"`,
+        `"${(p.tipo_conta || p.categoria || p.category || '').replace(/"/g, '""')}"`,
+        `"${(p.senha_principal || '').replace(/"/g, '""')}"`,
+        `"${(p.letra_auxiliar || '').replace(/"/g, '""')}"`,
+        `"${(p.login || p.username || '').replace(/"/g, '""')}"`,
+        `"${(p.senha || p.password || '').replace(/"/g, '""')}"`,
+        `"${(p.senha_auxiliar || '').replace(/"/g, '""')}"`,
+        `"${(p.pix || '').replace(/"/g, '""')}"`,
+        `"${(p.url || '').replace(/"/g, '""')}"`,
+        `"${(p.status || 'ativo').replace(/"/g, '""')}"`,
+        `"${(p.observacoes || p.notes || '').replace(/"/g, '""')}"`
+      ].join(";");
+      csvContent += row + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const dataHora = new Date().toISOString().split('T')[0];
+    link.setAttribute("download", `Cofre_Senhas_RaphaelNilsen_${dataHora}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    this.showToast('📥 Backup de senhas exportado em CSV com sucesso!', 'success');
+  },
+
+  abrirModalNovaSenhaContextual() {
+    if (this.senhasAbaAtiva === 'bancos_cartoes') {
+      this.abrirModalNovoBanco();
+    } else {
+      this.abrirModalNovaSenhaGeral(this.senhasAbaAtiva);
+    }
+  },
+
+  abrirModalNovoBanco() {
+    const form = document.getElementById('formBancoCartao');
+    if (form) form.reset();
+    const idEl = document.getElementById('banco_id');
+    if (idEl) idEl.value = '';
+    const titulo = document.getElementById('modalBancoCartaoTitulo');
+    if (titulo) titulo.textContent = '🏦 Cadastrar Banco & Cartão';
+    this.openModal('modalBancoCartao');
+  },
+
+  abrirModalNovaSenhaGeral(tabelaPadrao = 'logins_sites') {
+    const form = document.getElementById('formSenhaGeral');
+    if (form) form.reset();
+    const idEl = document.getElementById('geral_id');
+    if (idEl) idEl.value = '';
+    const tabEl = document.getElementById('geral_tabela');
+    if (tabEl) tabEl.value = tabelaPadrao;
+    const stEl = document.getElementById('geral_status');
+    if (stEl) stEl.value = 'ativo';
+    const titulo = document.getElementById('modalSenhaGeralTitulo');
+    if (titulo) titulo.textContent = '🔐 Cadastrar Acesso / Senha';
+    this.openModal('modalSenhaGeral');
+  },
+
+  editarSenha(id) {
+    const item = (store.data.passwords || []).find(p => p.id === id);
+    if (!item) {
+      this.showToast('Credencial não encontrada.', 'warning');
+      return;
+    }
+
+    const tab = this.getTabelaItem(item);
+    if (tab === 'bancos_cartoes') {
+      document.getElementById('banco_id').value = item.id;
+      document.getElementById('banco_nome').value = item.banco || item.service || item.servico || '';
+      document.getElementById('banco_tipo_conta').value = item.tipo_conta || item.categoria || 'Conta Corrente';
+      document.getElementById('banco_senha_principal').value = item.senha_principal || '';
+      document.getElementById('banco_letra_auxiliar').value = item.letra_auxiliar || '';
+      document.getElementById('banco_login').value = item.login || item.username || '';
+      document.getElementById('banco_senha').value = item.senha || item.password || '';
+      document.getElementById('banco_senha_auxiliar').value = item.senha_auxiliar || '';
+      document.getElementById('banco_pix').value = item.pix || '';
+      document.getElementById('banco_obs').value = item.observacoes || item.notes || '';
+      document.getElementById('modalBancoCartaoTitulo').textContent = `🏦 Editar: ${item.banco || item.service || 'Banco'}`;
+      this.openModal('modalBancoCartao');
+    } else {
+      document.getElementById('geral_id').value = item.id;
+      document.getElementById('geral_tabela').value = tab;
+      document.getElementById('geral_servico').value = item.servico || item.service || item.banco || '';
+      document.getElementById('geral_categoria').value = item.categoria || item.category || '';
+      document.getElementById('geral_status').value = item.status || 'ativo';
+      document.getElementById('geral_login').value = item.login || item.username || '';
+      document.getElementById('geral_senha').value = item.senha || item.password || '';
+      document.getElementById('geral_url').value = item.url || '';
+      document.getElementById('geral_obs').value = item.observacoes || item.notes || '';
+      document.getElementById('modalSenhaGeralTitulo').textContent = `🔐 Editar: ${item.servico || item.service || 'Acesso'}`;
+      this.openModal('modalSenhaGeral');
+    }
+  },
+
   renderSenhas() {
     const container = document.getElementById('passwordsListContainer');
     if (!container) return;
 
-    const searchTerm = (document.getElementById('pwdSearchInput')?.value || '').toLowerCase();
-    let list = store.data.passwords;
-    if (searchTerm) {
-      list = list.filter(p => 
-        (p.service && p.service.toLowerCase().includes(searchTerm)) ||
-        (p.username && p.username.toLowerCase().includes(searchTerm)) ||
-        (p.notes && p.notes.toLowerCase().includes(searchTerm))
-      );
+    this.ensureInitialPasswords();
+    if (!this.senhasAbaAtiva) this.senhasAbaAtiva = 'bancos_cartoes';
+    if (!this.senhasRevealedIds) this.senhasRevealedIds = new Set();
+
+    const allPasswords = store.data.passwords || [];
+
+    // Contagens
+    const countBancos = allPasswords.filter(p => this.getTabelaItem(p) === 'bancos_cartoes').length;
+    const countSites = allPasswords.filter(p => this.getTabelaItem(p) === 'logins_sites').length;
+    const countEmails = allPasswords.filter(p => this.getTabelaItem(p) === 'emails').length;
+    const countTania = allPasswords.filter(p => this.getTabelaItem(p) === 'dona_tania').length;
+
+    // Atualiza contadores no DOM
+    const elTot = document.getElementById('metricTotalSenhas');
+    const elBancos = document.getElementById('metricBancosCartoes');
+    const elSites = document.getElementById('metricSitesLogins');
+    const elEmailsTania = document.getElementById('metricEmailsTania');
+    if (elTot) elTot.textContent = allPasswords.length;
+    if (elBancos) elBancos.textContent = countBancos;
+    if (elSites) elSites.textContent = countSites;
+    if (elEmailsTania) elEmailsTania.textContent = countEmails + countTania;
+
+    const elCB = document.getElementById('countBancosCartoes');
+    const elCS = document.getElementById('countLoginsSites');
+    const elCE = document.getElementById('countEmails');
+    const elCD = document.getElementById('countDonaTania');
+    if (elCB) elCB.textContent = countBancos;
+    if (elCS) elCS.textContent = countSites;
+    if (elCE) elCE.textContent = countEmails;
+    if (elCD) elCD.textContent = countTania;
+
+    const search = (document.getElementById('pwdSearchInput')?.value || '').toLowerCase().trim();
+    let filtered = allPasswords.filter(p => this.getTabelaItem(p) === this.senhasAbaAtiva);
+
+    if (search) {
+      filtered = filtered.filter(p => {
+        const banco = (p.banco || p.service || p.servico || '').toLowerCase();
+        const tipo = (p.tipo_conta || p.categoria || p.category || '').toLowerCase();
+        const login = (p.login || p.username || '').toLowerCase();
+        const pix = (p.pix || '').toLowerCase();
+        const obs = (p.observacoes || p.notes || '').toLowerCase();
+        const url = (p.url || '').toLowerCase();
+        return banco.includes(search) || tipo.includes(search) || login.includes(search) || pix.includes(search) || obs.includes(search) || url.includes(search);
+      });
     }
 
-    container.innerHTML = list.length === 0 ? `
-      <div style="text-align: center; color: var(--text-muted); padding: 3rem; background: #fff; border-radius: var(--radius-lg); border: 1px dashed var(--border-strong);">
-        Nenhuma credencial encontrada no cofre.
-      </div>
-    ` : list.map(p => `
-      <div class="card" style="margin-bottom: 1rem;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
-          <div>
-            <span class="status-badge neutral" style="margin-bottom:0.4rem;">${p.category || 'Geral'}</span>
-            <h4 style="font-size:1.1rem; font-weight:800; color:var(--navy);">${p.service}</h4>
-            ${p.url ? `<a href="${p.url}" target="_blank" style="font-size:0.8rem; color:var(--primary);">${p.url}</a>` : ''}
-          </div>
-          <div class="table-actions">
-            <button class="btn-table-icon delete" title="Excluir" onclick="app.deletePassword('${p.id}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-          </div>
+    if (filtered.length === 0) {
+      const labelsAba = {
+        'bancos_cartoes': 'Bancos & Cartões',
+        'logins_sites': 'Logins e Senhas de Sites',
+        'emails': 'E-mails',
+        'dona_tania': 'Senhas Dona Tânia'
+      };
+      container.innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px dashed var(--border-strong);">
+          <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔐</div>
+          <h4 style="font-weight: 700; color: var(--navy); margin-bottom: 0.35rem;">Nenhum registro encontrado em ${labelsAba[this.senhasAbaAtiva] || 'Cofre'}</h4>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            ${search ? 'Nenhum resultado corresponde à sua pesquisa.' : 'Adicione a primeira credencial clicando no botão abaixo.'}
+          </p>
+          <button class="btn-primary" style="width: auto; padding: 0.5rem 1.25rem;" onclick="app.abrirModalNovaSenhaContextual()">
+            + Adicionar Registro
+          </button>
         </div>
-        <div class="form-grid-2" style="margin-top:1.25rem;">
-          <div>
-            <span class="form-label">Usuário / Login</span>
-            <div class="password-box">
-              <span style="flex:1; overflow:hidden; text-overflow:ellipsis;">${p.username || '-'}</span>
-              <button class="btn-table-icon" title="Copiar Usuário" onclick="app.copyToClipboard('${p.username}', 'Usuário copiado!')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              </button>
-            </div>
-          </div>
-          <div>
-            <span class="form-label">Senha</span>
-            <div class="password-box">
-              <span id="pwd_val_${p.id}" class="password-text" style="flex:1;">••••••••</span>
-              <button class="btn-table-icon" title="Ver / Ocultar" onclick="app.togglePasswordVisibility('${p.id}', '${p.password}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-              </button>
-              <button class="btn-table-icon" title="Copiar Senha" onclick="app.copyToClipboard('${p.password}', 'Senha copiada!')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        ${p.notes ? `<div style="margin-top:0.75rem; font-size:0.8rem; color:var(--text-muted); background:var(--bg-surface-alt); padding:0.5rem 0.75rem; border-radius:var(--radius-sm);"><strong>Obs:</strong> ${p.notes}</div>` : ''}
-      </div>
-    `).join('');
-  },
-
-  togglePasswordVisibility(id, clearValue) {
-    const el = document.getElementById(`pwd_val_${id}`);
-    if (el) {
-      if (el.textContent === '••••••••') {
-        el.textContent = clearValue;
-      } else {
-        el.textContent = '••••••••';
-      }
+      `;
+      return;
     }
+
+    // RENDERIZAÇÃO EM MODO CARDS
+    if (this.senhasViewMode === 'cards') {
+      let cardsHtml = '<div class="senhas-cards-grid">';
+      filtered.forEach(p => {
+        const isRevealed = this.senhasRevelarTodas || this.senhasRevealedIds.has(p.id);
+        const isBanco = this.senhasAbaAtiva === 'bancos_cartoes';
+        const icone = isBanco ? '🏦' : this.getIconeServico(p.servico || p.service || p.banco, p.categoria);
+        const titulo = p.banco || p.servico || p.service || 'Credencial';
+        const sub = p.tipo_conta || p.categoria || p.category || 'Geral';
+        const status = (p.status || 'ativo').toLowerCase();
+
+        cardsHtml += `
+          <div class="senhas-card-item">
+            <div class="senhas-card-header">
+              <div style="display:flex; align-items:center; gap:0.65rem;">
+                <span style="font-size:1.5rem;">${icone}</span>
+                <div>
+                  <h4 style="font-size:1rem; font-weight:800; color:var(--text-white); margin-bottom:0.2rem;">${escapeHtml(titulo)}</h4>
+                  <span class="status-badge neutral" style="font-size:0.7rem;">${escapeHtml(sub)}</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:0.35rem;">
+                <button class="btn-table-icon" title="Editar" onclick="app.editarSenha('${p.id}')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button class="btn-table-icon delete" title="Excluir" onclick="app.deletePassword('${p.id}')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="senhas-card-body">
+              ${isBanco ? `
+                <div class="senhas-card-row">
+                  <span class="senhas-card-label">Senha Principal:</span>
+                  <div class="credential-box password-box" style="min-width:130px;">
+                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_principal || '-') : '••••••••'}</span>
+                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_principal)}', 'Senha principal copiada!')">📋</button>
+                  </div>
+                </div>
+                ${p.letra_auxiliar ? `
+                  <div class="senhas-card-row">
+                    <span class="senhas-card-label">Letra / Auxiliar:</span>
+                    <div class="credential-box password-box" style="min-width:130px;">
+                      <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.letra_auxiliar) : '••••••••'}</span>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.letra_auxiliar)}', 'Letra auxiliar copiada!')">📋</button>
+                    </div>
+                  </div>
+                ` : ''}
+                <div class="senhas-card-row">
+                  <span class="senhas-card-label">Login / Conta:</span>
+                  <div class="credential-box" style="min-width:130px;">
+                    <span class="credential-text">${escapeHtml(p.login || p.username || '-')}</span>
+                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.login || p.username)}', 'Login copiado!')">📋</button>
+                  </div>
+                </div>
+                <div class="senhas-card-row">
+                  <span class="senhas-card-label">Senha App / Web:</span>
+                  <div class="credential-box password-box" style="min-width:130px;">
+                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : '••••••••'}</span>
+                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')">📋</button>
+                  </div>
+                </div>
+                ${p.senha_auxiliar ? `
+                  <div class="senhas-card-row">
+                    <span class="senhas-card-label">Senha Cartão / Token:</span>
+                    <div class="credential-box password-box" style="min-width:130px;">
+                      <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_auxiliar) : '••••••••'}</span>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_auxiliar)}', 'Senha auxiliar copiada!')">📋</button>
+                    </div>
+                  </div>
+                ` : ''}
+                ${p.pix ? `
+                  <div class="senhas-card-row">
+                    <span class="senhas-card-label">Chave PIX:</span>
+                    <div class="credential-box" style="min-width:130px;">
+                      <span class="credential-text" style="color:#60a5fa;">${escapeHtml(p.pix)}</span>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.pix)}', 'Chave PIX copiada!')">📋</button>
+                    </div>
+                  </div>
+                ` : ''}
+              ` : `
+                <div class="senhas-card-row">
+                  <span class="senhas-card-label">Login / Usuário:</span>
+                  <div class="credential-box" style="min-width:140px;">
+                    <span class="credential-text">${escapeHtml(p.login || p.username || '-')}</span>
+                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.login || p.username)}', 'Login copiado!')">📋</button>
+                  </div>
+                </div>
+                <div class="senhas-card-row">
+                  <span class="senhas-card-label">Senha:</span>
+                  <div class="credential-box password-box" style="min-width:140px;">
+                    <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : '••••••••'}</span>
+                    <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')">📋</button>
+                  </div>
+                </div>
+                <div class="senhas-card-row">
+                  <span class="senhas-card-label">Status:</span>
+                  <span class="badge-status ${status}">${status === 'ativo' ? 'Ativo' : status === 'desuso' ? 'Em Desuso' : 'Revisão'}</span>
+                </div>
+                ${p.url ? `
+                  <div class="senhas-card-row">
+                    <span class="senhas-card-label">Acesso:</span>
+                    <a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem; color:#60a5fa;">Abrir Site ↗</a>
+                  </div>
+                ` : ''}
+              `}
+            </div>
+
+            ${(p.observacoes || p.notes) ? `
+              <div style="font-size:0.75rem; color:var(--text-muted); background:var(--bg-surface-elevated); padding:0.4rem 0.65rem; border-radius:var(--radius-sm);">
+                <strong>Obs:</strong> ${escapeHtml(p.observacoes || p.notes)}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      });
+      cardsHtml += '</div>';
+      container.innerHTML = cardsHtml;
+      return;
+    }
+
+    // RENDERIZAÇÃO EM MODO TABELA (PADRÃO ACBCSJ)
+    let tableHtml = '<div class="senhas-table-wrapper"><table class="senhas-table senhas-table-bancos">';
+
+    if (this.senhasAbaAtiva === 'bancos_cartoes') {
+      // CABEÇALHO DAS 8 COLUNAS EXIGIDAS
+      tableHtml += `
+        <thead>
+          <tr>
+            <th>BANCO</th>
+            <th>TIPO DE CONTA</th>
+            <th>SENHA PRINCIPAL</th>
+            <th>LETRA / AUXILIAR</th>
+            <th>LOGIN</th>
+            <th>SENHA</th>
+            <th>SENHA AUXILIAR</th>
+            <th>PIX</th>
+            <th style="text-align:center;">AÇÕES</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      filtered.forEach(p => {
+        const isRevealed = this.senhasRevelarTodas || this.senhasRevealedIds.has(p.id);
+        const badgeClass = this.getBadgeBancoClass(p.banco || p.service || p.servico);
+        const icone = '🏦';
+
+        tableHtml += `
+          <tr>
+            <!-- 1. BANCO -->
+            <td>
+              <div style="display:flex; align-items:center; gap:0.4rem;">
+                <span class="badge-bank ${badgeClass}">${icone} ${escapeHtml(p.banco || p.service || p.servico || 'Banco')}</span>
+              </div>
+              ${p.observacoes ? `<div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem; line-height:1.2;">${escapeHtml(p.observacoes)}</div>` : ''}
+            </td>
+
+            <!-- 2. TIPO DA CONTA -->
+            <td>
+              <span class="status-badge neutral" style="font-size:0.72rem; line-height:1.2; display:inline-block;">
+                ${escapeHtml(p.tipo_conta || p.categoria || 'Conta Corrente')}
+              </span>
+            </td>
+
+            <!-- 3. SENHA PRINCIPAL -->
+            <td>
+              <div class="credential-box password-box">
+                <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_principal || '-') : (p.senha_principal ? '••••••••' : '-')}</span>
+                ${p.senha_principal ? `
+                  <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_principal)}', 'Senha principal copiada!')" title="Copiar Senha Principal">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- 4. LETRA OU SENHA AUXILIAR -->
+            <td>
+              <div class="credential-box password-box">
+                <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.letra_auxiliar || '-') : (p.letra_auxiliar ? '••••••••' : '-')}</span>
+                ${p.letra_auxiliar ? `
+                  <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.letra_auxiliar)}', 'Letra/Senha auxiliar copiada!')" title="Copiar Letra/Senha Auxiliar">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- 5. LOGIN -->
+            <td>
+              <div class="credential-box">
+                <span class="credential-text">${escapeHtml(p.login || p.username || '-')}</span>
+                ${p.login || p.username ? `
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.login || p.username)}', 'Login copiado!')" title="Copiar Login">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- 6. SENHA -->
+            <td>
+              <div class="credential-box password-box">
+                <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : (p.senha || p.password ? '••••••••' : '-')}</span>
+                ${p.senha || p.password ? `
+                  <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')" title="Copiar Senha">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- 7. SENHA AUXILIAR -->
+            <td>
+              <div class="credential-box password-box">
+                <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_auxiliar || '-') : (p.senha_auxiliar ? '••••••••' : '-')}</span>
+                ${p.senha_auxiliar ? `
+                  <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_auxiliar)}', 'Senha auxiliar copiada!')" title="Copiar Senha Auxiliar">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- 8. PIX -->
+            <td>
+              <div class="credential-box">
+                <span class="credential-text" style="color:#60a5fa;">${escapeHtml(p.pix || '-')}</span>
+                ${p.pix ? `
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.pix)}', 'Chave PIX copiada!')" title="Copiar Chave PIX">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- AÇÕES -->
+            <td style="text-align:center;">
+              <div style="display:flex; gap:0.4rem; justify-content:center;">
+                <button class="btn-table-icon" title="Editar" onclick="app.editarSenha('${p.id}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button class="btn-table-icon delete" title="Excluir" onclick="app.deletePassword('${p.id}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    } else {
+      // TABELAS DE SITES, EMAILS E DONA TANIA (PADRÃO ACBCSJ)
+      tableHtml += `
+        <thead>
+          <tr>
+            <th>SERVIÇO / CONTA</th>
+            <th>LOGIN / USUÁRIO</th>
+            <th>SENHA</th>
+            <th>STATUS</th>
+            <th>OBSERVAÇÕES</th>
+            <th style="text-align:center;">AÇÕES</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      filtered.forEach(p => {
+        const isRevealed = this.senhasRevelarTodas || this.senhasRevealedIds.has(p.id);
+        const icone = this.getIconeServico(p.servico || p.service || p.banco, p.categoria);
+        const status = (p.status || 'ativo').toLowerCase();
+        const statusLabel = status === 'ativo' ? 'Ativo' : status === 'desuso' ? 'Em Desuso' : 'Revisão';
+
+        tableHtml += `
+          <tr>
+            <!-- 1. SERVIÇO / CONTA -->
+            <td>
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <span style="font-size:1.3rem;">${icone}</span>
+                <div>
+                  <strong style="color:var(--text-white); font-size:0.9rem;">${escapeHtml(p.servico || p.service || p.banco || 'Acesso')}</strong>
+                  <div style="display:flex; gap:0.4rem; align-items:center; margin-top:0.2rem;">
+                    <span class="status-badge neutral" style="font-size:0.7rem; padding:0.15rem 0.4rem;">${escapeHtml(p.categoria || p.category || 'Geral')}</span>
+                    ${p.url ? `<a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem; color:#60a5fa; text-decoration:none;">Abrir Site ↗</a>` : ''}
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- 2. LOGIN / USUÁRIO -->
+            <td>
+              <div class="credential-box">
+                <span class="credential-text">${escapeHtml(p.login || p.username || '-')}</span>
+                ${p.login || p.username ? `
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.login || p.username)}', 'Login copiado!')" title="Copiar Login">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- 3. SENHA -->
+            <td>
+              <div class="credential-box password-box">
+                <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : (p.senha || p.password ? '••••••••' : '-')}</span>
+                ${p.senha || p.password ? `
+                  <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')" title="Copiar Senha">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- 4. STATUS -->
+            <td>
+              <span class="badge-status ${status}">${statusLabel}</span>
+            </td>
+
+            <!-- 5. OBSERVAÇÕES -->
+            <td>
+              <div style="font-size:0.8rem; color:var(--text-muted); max-width:260px; overflow:hidden; text-overflow:ellipsis;">
+                ${escapeHtml(p.observacoes || p.notes || '-')}
+              </div>
+            </td>
+
+            <!-- AÇÕES -->
+            <td style="text-align:center;">
+              <div style="display:flex; gap:0.4rem; justify-content:center;">
+                <button class="btn-table-icon" title="Editar" onclick="app.editarSenha('${p.id}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button class="btn-table-icon delete" title="Excluir" onclick="app.deletePassword('${p.id}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    tableHtml += '</tbody></table></div>';
+    container.innerHTML = tableHtml;
   },
 
   deletePassword(id) {
-    if (confirm('Deseja excluir esta credencial do cofre?')) {
+    if (confirm('Deseja excluir esta credencial do cofre com segurança?')) {
       store.deletePassword(id);
       this.renderSenhas();
       this.showToast('Credencial removida.', 'info');
@@ -4702,24 +5375,68 @@ const app = {
       });
     }
 
-    // Formulário Nova Senha
-    const formPwd = document.getElementById('formNovaSenha');
-    if (formPwd) {
-      formPwd.addEventListener('submit', (e) => {
+    // Formulário Banco e Cartão (8 Colunas)
+    const formBanco = document.getElementById('formBancoCartao');
+    if (formBanco) {
+      formBanco.addEventListener('submit', (e) => {
         e.preventDefault();
-        const pwd = {
-          service: document.getElementById('pwd_service').value,
-          category: document.getElementById('pwd_category').value,
-          username: document.getElementById('pwd_user').value,
-          password: document.getElementById('pwd_pass').value,
-          url: document.getElementById('pwd_url').value,
-          notes: document.getElementById('pwd_notes').value
+        const id = document.getElementById('banco_id')?.value;
+        const dados = {
+          tabela: 'bancos_cartoes',
+          banco: (document.getElementById('banco_nome')?.value || '').trim(),
+          tipo_conta: (document.getElementById('banco_tipo_conta')?.value || '').trim(),
+          senha_principal: (document.getElementById('banco_senha_principal')?.value || '').trim(),
+          letra_auxiliar: (document.getElementById('banco_letra_auxiliar')?.value || '').trim(),
+          login: (document.getElementById('banco_login')?.value || '').trim(),
+          senha: (document.getElementById('banco_senha')?.value || '').trim(),
+          senha_auxiliar: (document.getElementById('banco_senha_auxiliar')?.value || '').trim(),
+          pix: (document.getElementById('banco_pix')?.value || '').trim(),
+          observacoes: (document.getElementById('banco_obs')?.value || '').trim()
         };
-        store.addPassword(pwd);
-        this.closeModal('modalNovaSenha');
-        formPwd.reset();
+
+        if (id) {
+          store.updatePassword(id, dados);
+          this.showToast('✅ Banco / Cartão atualizado com sucesso!', 'success');
+        } else {
+          store.addPassword(dados);
+          this.showToast('🏦 Banco / Cartão cadastrado no cofre!', 'success');
+        }
+
+        this.closeModal('modalBancoCartao');
+        formBanco.reset();
         this.renderSenhas();
-        this.showToast('Senha guardada com segurança no cofre!', 'success');
+      });
+    }
+
+    // Formulário Senha Geral (Sites, Emails, Dona Tania - Padrão ACBCSJ)
+    const formGeral = document.getElementById('formSenhaGeral');
+    if (formGeral) {
+      formGeral.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('geral_id')?.value;
+        const tabDestino = document.getElementById('geral_tabela')?.value || 'logins_sites';
+        const dados = {
+          tabela: tabDestino,
+          servico: (document.getElementById('geral_servico')?.value || '').trim(),
+          categoria: (document.getElementById('geral_categoria')?.value || '').trim(),
+          status: document.getElementById('geral_status')?.value || 'ativo',
+          login: (document.getElementById('geral_login')?.value || '').trim(),
+          senha: (document.getElementById('geral_senha')?.value || '').trim(),
+          url: (document.getElementById('geral_url')?.value || '').trim(),
+          observacoes: (document.getElementById('geral_obs')?.value || '').trim()
+        };
+
+        if (id) {
+          store.updatePassword(id, dados);
+          this.showToast('✅ Credencial atualizada com sucesso!', 'success');
+        } else {
+          store.addPassword(dados);
+          this.showToast('🔐 Credencial guardada com sucesso no cofre!', 'success');
+        }
+
+        this.closeModal('modalSenhaGeral');
+        formGeral.reset();
+        this.renderSenhas();
       });
     }
 
