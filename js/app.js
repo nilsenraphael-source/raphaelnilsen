@@ -4783,6 +4783,7 @@ const app = {
                     <a href="${escapeHtml(p.url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem; color:#60a5fa;">Abrir Site ↗</a>
                   </div>
                 ` : ''}
+              `}
             </div>
 
             ${(p.observacoes || p.notes) ? `
