@@ -1900,7 +1900,7 @@ const app = {
           </div>
 
           <div class="notion-card-toolbar">
-            <div style="display:flex; align-items:center; gap:0.25rem;">
+            <div class="notion-year-nav">
               <button class="notion-icon-btn" title="Ano Anterior (${store.activeYear - 1})" onclick="app.prevYear()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
               </button>
@@ -1912,18 +1912,19 @@ const app = {
               </button>
             </div>
 
-            <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.1); margin: 0 0.35rem;"></div>
+            <div class="notion-toolbar-divider"></div>
 
-            <input type="text" 
-                   class="form-input" 
-                   style="height: 32px; font-size: 0.78rem; width: 140px; padding: 0.2rem 0.6rem;" 
-                   placeholder="🔍 Filtrar..." 
-                   value="${escapeHtml(this.cardSearchQuery || '')}" 
-                   oninput="app.filterCardSearch(this.value)">
+            <div class="notion-search-actions-row">
+              <input type="text" 
+                     class="form-input notion-card-search" 
+                     placeholder="🔍 Filtrar..." 
+                     value="${escapeHtml(this.cardSearchQuery || '')}" 
+                     oninput="app.filterCardSearch(this.value)">
 
-            <button class="notion-btn-blue" onclick="app.openModalNovaCompraCartao()">
-              Nova <span style="font-size:0.65rem; margin-left:2px;">▾</span>
-            </button>
+              <button class="notion-btn-blue" onclick="app.openModalNovaCompraCartao()">
+                + Nova Compra
+              </button>
+            </div>
           </div>
         </div>
 

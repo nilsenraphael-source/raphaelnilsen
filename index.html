@@ -438,11 +438,11 @@
                   <span class="card-subtitle">Exclusão, detalhes de parcelamento e total em aberto</span>
                 </div>
               </div>
-              <div style="display:flex; align-items:center; gap:0.75rem;">
-                <div style="font-size:0.85rem; font-weight:700; color:var(--text-secondary);">
-                  Total Aberto: <span id="totalOpenCardPurchases" style="color:var(--danger); font-size:1.05rem;">R$ 0,00</span>
+              <div class="card-header-actions-cartao">
+                <div class="card-header-stat-cartao">
+                  <span>Total Aberto:</span> <span id="totalOpenCardPurchases" style="color:var(--danger); font-size:1.05rem;">R$ 0,00</span>
                 </div>
-                <button class="btn-header primary" onclick="event.stopPropagation(); app.openModalNovaCompraCartao()">
+                <button class="btn-header primary btn-nova-compra-cartao" onclick="event.stopPropagation(); app.openModalNovaCompraCartao()">
                   + Nova Compra
                 </button>
               </div>
