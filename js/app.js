@@ -2302,26 +2302,27 @@ const app = {
 
       return `
         <div class="dream-card">
-          <!-- Thumbnail Compacta com Efeito e Informações -->
-          <div class="dream-card-thumb-wrapper">
-            <img src="${escapeHtml(displayImg)}" alt="${escapeHtml(d.title)}" class="dream-card-img" onerror="this.onerror=null; this.src='${defaultImg}'">
-            <div class="dream-card-thumb-overlay">
-              <span class="dream-badge-meta">
-                📅 Meta: ${formatDateBR(d.targetDate)}
-              </span>
-              <button type="button" class="dream-btn-change-photo" onclick="app.promptAlterarFotoSonho('${d.id}')" title="Trocar foto">
-                📷 Foto
-              </button>
-            </div>
-          </div>
-
           <div class="dream-card-body">
-            <!-- Título e Excluir -->
-            <div class="dream-card-title-row">
-              <h4 class="dream-card-title">${escapeHtml(d.title)}</h4>
-              <button class="btn-table-icon delete" title="Excluir Sonho" onclick="app.deleteDream('${d.id}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-              </button>
+            <!-- Topo: Foto Pequena Redimensionada + Título + Meta + Botão Excluir -->
+            <div class="dream-header-row">
+              <div class="dream-thumb-box">
+                <img src="${escapeHtml(displayImg)}" alt="${escapeHtml(d.title)}" class="dream-thumb-img" onerror="this.onerror=null; this.src='${defaultImg}'">
+                <button type="button" class="dream-btn-photo-mini" onclick="app.promptAlterarFotoSonho('${d.id}')" title="Trocar foto">
+                  📷
+                </button>
+              </div>
+
+              <div class="dream-header-info">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.4rem;">
+                  <h4 class="dream-card-title">${escapeHtml(d.title)}</h4>
+                  <button class="btn-table-icon delete" style="width:26px; height:26px; flex-shrink:0;" title="Excluir Sonho" onclick="app.deleteDream('${d.id}')">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </div>
+                <div class="dream-badge-meta">
+                  <span>📅 Meta:</span> <strong>${formatDateBR(d.targetDate)}</strong>
+                </div>
+              </div>
             </div>
 
             <!-- Barra de Progresso com Porcentagem -->

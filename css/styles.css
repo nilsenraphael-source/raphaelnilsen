@@ -4275,11 +4275,23 @@ select:focus {
 /* ==========================================================================
    ESTILOS: PÁGINA SONHOS & COMPRAS PLANEJADAS
    ========================================================================== */
+#dreamsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 400px));
+  gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  #dreamsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
 .dream-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -4294,69 +4306,95 @@ select:focus {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-.dream-card-thumb-wrapper {
-  position: relative;
-  width: 100%;
-  height: 140px;
-  background: #111827;
-  overflow: hidden;
+.dream-card-body {
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
-.dream-card-img {
+.dream-header-row {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.dream-thumb-box {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #111827;
+  border: 1px solid var(--border-light);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+.dream-thumb-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  display: block;
+  transition: transform 0.3s ease;
 }
 
-.dream-card:hover .dream-card-img {
-  transform: scale(1.04);
+.dream-card:hover .dream-thumb-img {
+  transform: scale(1.06);
 }
 
-.dream-card-thumb-overlay {
+.dream-btn-photo-mini {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(17, 24, 39, 0.85) 100%);
+  bottom: 3px;
+  right: 3px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 0.65rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.dream-btn-photo-mini:hover {
+  background: #2563eb;
+  border-color: #3b82f6;
+  transform: scale(1.08);
+}
+
+.dream-header-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 0.65rem 0.85rem;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dream-card-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-white);
+  line-height: 1.3;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dream-badge-meta {
-  font-size: 0.72rem;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  color: #e2e8f0;
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
 }
 
-.dream-btn-change-photo {
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 6px;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.72rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.dream-btn-change-photo:hover {
-  background: rgba(37, 99, 235, 0.8);
-  border-color: #3b82f6;
-}
-
-.dream-card-body {
-  padding: 1rem 1.15rem;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+.dream-badge-meta strong {
+  color: var(--text-primary);
 }
 
 .dream-card-title-row {
