@@ -852,6 +852,16 @@ class DataStore {
     dream.id = 'drm_' + Date.now();
     dream.value = Number(dream.value) || 0;
     dream.saved = Number(dream.saved) || 0;
+    dream.imageUrl = dream.imageUrl || '';
+    dream.deposits = Array.isArray(dream.deposits) ? dream.deposits : [];
+    if (dream.saved > 0 && dream.deposits.length === 0) {
+      dream.deposits.push({
+        id: 'dep_' + Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        value: dream.saved,
+        notes: 'Valor inicial'
+      });
+    }
     this.data.dreams.push(dream);
     this.save();
     return dream;
@@ -869,6 +879,49 @@ class DataStore {
     const d = this.data.dreams.find(item => item.id === id);
     if (d) {
       d.saved = Number(saved) || 0;
+      this.save();
+    }
+  }
+
+  addDreamDeposit(dreamId, deposit) {
+    const d = this.data.dreams.find(item => item.id === dreamId);
+    if (d) {
+      if (!Array.isArray(d.deposits)) {
+        d.deposits = [];
+        if (Number(d.saved) > 0) {
+          d.deposits.push({
+            id: 'dep_legacy_' + Date.now(),
+            date: new Date().toISOString().split('T')[0],
+            value: Number(d.saved),
+            notes: 'Valor acumulado inicial'
+          });
+        }
+      }
+      deposit.id = deposit.id || ('dep_' + Date.now());
+      deposit.value = Number(deposit.value) || 0;
+      deposit.date = deposit.date || new Date().toISOString().split('T')[0];
+      deposit.notes = deposit.notes || '';
+      d.deposits.push(deposit);
+      d.saved = d.deposits.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+      this.save();
+      return deposit;
+    }
+    return null;
+  }
+
+  deleteDreamDeposit(dreamId, depositId) {
+    const d = this.data.dreams.find(item => item.id === dreamId);
+    if (d && Array.isArray(d.deposits)) {
+      d.deposits = d.deposits.filter(dep => dep.id !== depositId);
+      d.saved = d.deposits.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
+      this.save();
+    }
+  }
+
+  updateDreamImage(dreamId, imageUrl) {
+    const d = this.data.dreams.find(item => item.id === dreamId);
+    if (d) {
+      d.imageUrl = imageUrl || '';
       this.save();
     }
   }

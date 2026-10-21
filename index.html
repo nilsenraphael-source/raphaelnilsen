@@ -2060,28 +2060,51 @@
   <div id="modalNovoSonho" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">Cadastrar Novo Sonho / Compra</h3>
+        <h3 class="modal-title">✨ Cadastrar Novo Sonho / Compra</h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalNovoSonho')">✕</button>
       </div>
       <form id="formNovoSonho">
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">Produto / Objetivo</label>
-            <input type="text" id="dream_title" class="form-input" required placeholder="Ex: Viagem de Férias, Carro Novo, Reforma">
+            <label class="form-label">Produto / Objetivo *</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" id="dream_title" class="form-input" required placeholder="Ex: Carro BMW X6, iPhone 16, Viagem Paris" onchange="app.autoBuscarFotoSonho()" style="flex:1;">
+              <button type="button" class="btn-header primary" onclick="app.autoBuscarFotoSonho()" style="white-space:nowrap; padding: 0 0.85rem;" title="Buscar foto na web automaticamente">
+                🔍 Buscar Foto
+              </button>
+            </div>
+            <span style="font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem; display:block;">
+              💡 Dica: Ao digitar o objetivo, o sistema busca automaticamente uma imagem na web.
+            </span>
           </div>
+
+          <!-- Preview da Imagem Encontrada -->
+          <div id="dreamImagePreviewContainer" style="margin-bottom: 1rem; display: none;">
+            <label class="form-label" style="font-size: 0.8rem;">Foto Selecionada na Web</label>
+            <div style="display:flex; align-items:center; gap:0.85rem; background:var(--bg-surface-alt); padding:0.6rem; border-radius:var(--radius-md); border:1px solid var(--border-light);">
+              <img id="dreamImagePreview" src="" alt="Foto do sonho" style="width:75px; height:50px; object-fit:cover; border-radius:6px; background:#1e293b;">
+              <div style="flex:1; overflow:hidden;">
+                <span id="dreamImageStatus" style="font-size:0.8rem; font-weight:600; color:var(--text-primary); display:block; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">Foto carregada</span>
+                <button type="button" onclick="app.toggleDreamCustomImage()" style="background:none; border:none; color:var(--primary); font-size:0.75rem; cursor:pointer; padding:0; text-decoration:underline;">
+                  Colar link de outra foto
+                </button>
+              </div>
+            </div>
+            <div id="dreamCustomImageDiv" style="display:none; margin-top:0.5rem;">
+              <input type="url" id="dream_custom_image_url" class="form-input" placeholder="Cole aqui o link da imagem (https://...)" onchange="app.setDreamCustomImage(this.value)">
+            </div>
+          </div>
+          <input type="hidden" id="dream_image_url">
+
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Valor Estimado (R$)</label>
+              <label class="form-label">Valor Estimado / Meta (R$) *</label>
               <input type="number" step="0.01" id="dream_val" class="form-input" required placeholder="0,00">
             </div>
             <div class="form-group">
-              <label class="form-label">Valor Já Guardado (R$)</label>
-              <input type="number" step="0.01" id="dream_saved" class="form-input" placeholder="0,00">
+              <label class="form-label">Meta (Prazo / Data Objetivo) *</label>
+              <input type="date" id="dream_date" class="form-input" required>
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Meta (Prazo / Data Objetivo)</label>
-            <input type="date" id="dream_date" class="form-input" required>
           </div>
         </div>
         <div class="modal-footer">
@@ -2089,6 +2112,66 @@
           <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Sonho</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Lançar Valor Guardado / Aportes Mensais -->
+  <div id="modalAporteSonho" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">💰 Lançar Valor Guardado</h3>
+          <span id="aporteModalSubtitle" style="font-size:0.8rem; color:var(--text-muted);">Meta / Objetivo</span>
+        </div>
+        <button class="btn-close-modal" onclick="app.closeModal('modalAporteSonho')">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Banner de Resumo da Meta & Saldo Faltante -->
+        <div id="aporteModalSummary" style="background:var(--bg-surface-alt); border-radius:var(--radius-md); padding:1rem; border:1px solid var(--border-light); margin-bottom:1.25rem;">
+          <!-- Preenchido dinamicamente via JS -->
+        </div>
+
+        <!-- Formulário de Novo Aporte -->
+        <form id="formAporteSonho" style="background:rgba(37,99,235,0.04); border:1px solid rgba(37,99,235,0.2); border-radius:var(--radius-md); padding:1rem; margin-bottom:1.25rem;">
+          <input type="hidden" id="aporte_dream_id">
+          <h4 style="font-size:0.9rem; font-weight:700; color:var(--primary); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.35rem;">
+            <span>➕ Novo Lançamento Guardado</span>
+          </h4>
+          <div class="form-grid-2">
+            <div class="form-group" style="margin-bottom:0.65rem;">
+              <label class="form-label" style="font-size:0.78rem;">Data do Lançamento *</label>
+              <input type="date" id="aporte_date" class="form-input" required>
+            </div>
+            <div class="form-group" style="margin-bottom:0.65rem;">
+              <label class="form-label" style="font-size:0.78rem;">Valor a Guardar (R$) *</label>
+              <input type="number" step="0.01" id="aporte_val" class="form-input" required placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0.85rem;">
+            <label class="form-label" style="font-size:0.78rem;">Mês de Referência ou Observação (Opcional)</label>
+            <input type="text" id="aporte_notes" class="form-input" placeholder="Ex: Outubro/2026, Economia do mês, Bônus...">
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%; justify-content:center; padding:0.6rem;">
+            Confirmar Lançamento e Abater do Faltante
+          </button>
+        </form>
+
+        <!-- Histórico de Lançamentos Realizados -->
+        <div>
+          <h4 style="font-size:0.88rem; font-weight:700; color:var(--text-white); margin-bottom:0.5rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>📋 Histórico de Lançamentos Guardados</span>
+            <span id="aporteHistoricoContador" style="font-size:0.75rem; color:var(--text-muted);">0 lançamentos</span>
+          </h4>
+          <div id="aporteHistoricoLista" style="max-height: 220px; overflow-y: auto;">
+            <!-- Preenchido dinamicamente -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-header" onclick="app.closeModal('modalAporteSonho')">Fechar</button>
+      </div>
     </div>
   </div>
 

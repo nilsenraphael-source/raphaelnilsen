@@ -2163,59 +2163,310 @@ const app = {
   // =========================================================================
   // 4. MÓDULO SONHOS / COMPRAS
   // =========================================================================
+  // SONHOS & COMPRAS PLANEJADAS (COM BUSCA DE IMAGENS E APORTES MENSAIS)
+  // =========================================================================
+  async fetchWebImage(query) {
+    if (!query || !query.trim()) return '';
+    const cleanQuery = query.trim()
+      .replace(/^(comprar|comprar um|comprar uma|meu sonho|sonho de|meta)\s+/i, '');
+
+    try {
+      // 1. Tentar Wikipedia em Inglês (amplo acervo fotográfico de marcas, modelos como BMW X6, produtos)
+      const resEn = await fetch(`https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&pithumbsize=600&generator=search&gsrsearch=${encodeURIComponent(cleanQuery)}&gsrlimit=3&origin=*`);
+      if (resEn.ok) {
+        const data = await resEn.json();
+        if (data.query && data.query.pages) {
+          const pages = Object.values(data.query.pages);
+          pages.sort((a, b) => (a.index || 99) - (b.index || 99));
+          for (const page of pages) {
+            if (page.thumbnail && page.thumbnail.source) {
+              return page.thumbnail.source;
+            }
+          }
+        }
+      }
+
+      // 2. Tentar Wikimedia Commons (arquivos diretos de fotos)
+      const resCommons = await fetch(`https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=${encodeURIComponent(cleanQuery)}&gsrlimit=3&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json&origin=*`);
+      if (resCommons.ok) {
+        const data = await resCommons.json();
+        if (data.query && data.query.pages) {
+          const pages = Object.values(data.query.pages);
+          for (const page of pages) {
+            if (page.imageinfo && page.imageinfo[0] && page.imageinfo[0].thumburl) {
+              return page.imageinfo[0].thumburl;
+            }
+          }
+        }
+      }
+
+      // 3. Fallback inteligente com renderização fotográfica
+      return `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanQuery + ' product realistic photography')}?width=600&height=400&nologo=true`;
+    } catch (e) {
+      console.warn('[Sonhos] Aviso na busca de imagem:', e);
+      return `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanQuery + ' product realistic photography')}?width=600&height=400&nologo=true`;
+    }
+  },
+
+  async autoBuscarFotoSonho() {
+    const titleInput = document.getElementById('dream_title');
+    const previewContainer = document.getElementById('dreamImagePreviewContainer');
+    const previewImg = document.getElementById('dreamImagePreview');
+    const statusText = document.getElementById('dreamImageStatus');
+    const hiddenUrl = document.getElementById('dream_image_url');
+
+    if (!titleInput || !titleInput.value.trim()) return;
+    const query = titleInput.value.trim();
+
+    if (previewContainer) previewContainer.style.display = 'block';
+    if (statusText) statusText.textContent = '🔍 Procurando foto na web...';
+
+    const imgUrl = await this.fetchWebImage(query);
+    if (imgUrl) {
+      if (previewImg) previewImg.src = imgUrl;
+      if (hiddenUrl) hiddenUrl.value = imgUrl;
+      if (statusText) statusText.textContent = '✨ Foto encontrada na web!';
+    } else {
+      if (statusText) statusText.textContent = 'Não encontramos foto automática. Você pode colar um link.';
+    }
+  },
+
+  toggleDreamCustomImage() {
+    const div = document.getElementById('dreamCustomImageDiv');
+    if (div) {
+      div.style.display = div.style.display === 'none' ? 'block' : 'none';
+      if (div.style.display === 'block') {
+        const inp = document.getElementById('dream_custom_image_url');
+        if (inp) inp.focus();
+      }
+    }
+  },
+
+  setDreamCustomImage(url) {
+    if (!url || !url.trim()) return;
+    const previewImg = document.getElementById('dreamImagePreview');
+    const hiddenUrl = document.getElementById('dream_image_url');
+    const statusText = document.getElementById('dreamImageStatus');
+
+    if (previewImg) previewImg.src = url.trim();
+    if (hiddenUrl) hiddenUrl.value = url.trim();
+    if (statusText) statusText.textContent = '🔗 Imagem personalizada definida!';
+  },
+
+  async promptAlterarFotoSonho(dreamId) {
+    const dream = store.data.dreams.find(d => d.id === dreamId);
+    if (!dream) return;
+
+    const opc = prompt(`Alterar foto de "${dream.title}":\nDigite o termo para buscar na web ou cole a URL direta da imagem:`, dream.title);
+    if (opc === null || !opc.trim()) return;
+
+    let novaUrl = opc.trim();
+    if (!novaUrl.startsWith('http://') && !novaUrl.startsWith('https://')) {
+      this.showToast('🔍 Buscando foto na web...', 'info');
+      novaUrl = await this.fetchWebImage(novaUrl);
+    }
+
+    if (novaUrl) {
+      store.updateDreamImage(dreamId, novaUrl);
+      this.renderSonhos();
+      this.showToast('Foto do objetivo atualizada com sucesso!', 'success');
+    }
+  },
+
   renderSonhos() {
     const grid = document.getElementById('dreamsGrid');
     if (!grid) return;
 
     grid.innerHTML = store.data.dreams.length === 0 ? `
-      <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem; background: #fff; border-radius: var(--radius-lg); border: 1px dashed var(--border-strong);">
-        Nenhum sonho ou meta cadastrada ainda. Clique em "+ Novo Sonho / Compra" para começar!
+      <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3.5rem 1rem; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px dashed var(--border-strong);">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🌟</div>
+        <h4 style="font-weight: 700; color: var(--navy); margin-bottom: 0.35rem;">Nenhum sonho ou meta cadastrada ainda</h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Cadastre objetivos como Carro, Casa, Viagem ou Equipamentos. O sistema busca fotos na internet e abate seus lançamentos guardados do valor faltante!
+        </p>
+        <button class="btn-primary" style="width: auto; padding: 0.5rem 1.25rem;" onclick="app.openModal('modalNovoSonho')">
+          + Cadastrar Primeiro Sonho
+        </button>
       </div>
     ` : store.data.dreams.map(d => {
       const target = Number(d.value) || 1;
-      const saved = Number(d.saved) || 0;
+      const deposits = Array.isArray(d.deposits) ? d.deposits : [];
+      const saved = deposits.length > 0 
+        ? deposits.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0)
+        : (Number(d.saved) || 0);
+
+      const remaining = Math.max(0, target - saved);
       const pct = Math.min(100, Math.round((saved / target) * 100));
+      const defaultImg = `https://image.pollinations.ai/prompt/${encodeURIComponent(d.title + ' realistic product photography')}?width=600&height=350&nologo=true`;
+      const displayImg = d.imageUrl || defaultImg;
 
       return `
-        <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
-          <div>
-            <div class="card-header" style="border-bottom:none; padding-bottom:0;">
-              <div>
-                <h4 style="font-size:1.1rem; font-weight:800; color:var(--navy);">${d.title}</h4>
-                <span style="font-size:0.8rem; color:var(--text-muted);">Meta: ${formatDateBR(d.targetDate)}</span>
-              </div>
-              <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteDream('${d.id}')">
+        <div class="dream-card">
+          <!-- Thumbnail Compacta com Efeito e Informações -->
+          <div class="dream-card-thumb-wrapper">
+            <img src="${escapeHtml(displayImg)}" alt="${escapeHtml(d.title)}" class="dream-card-img" onerror="this.onerror=null; this.src='${defaultImg}'">
+            <div class="dream-card-thumb-overlay">
+              <span class="dream-badge-meta">
+                📅 Meta: ${formatDateBR(d.targetDate)}
+              </span>
+              <button type="button" class="dream-btn-change-photo" onclick="app.promptAlterarFotoSonho('${d.id}')" title="Trocar foto">
+                📷 Foto
+              </button>
+            </div>
+          </div>
+
+          <div class="dream-card-body">
+            <!-- Título e Excluir -->
+            <div class="dream-card-title-row">
+              <h4 class="dream-card-title">${escapeHtml(d.title)}</h4>
+              <button class="btn-table-icon delete" title="Excluir Sonho" onclick="app.deleteDream('${d.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
-            <div style="margin: 1.25rem 0;">
-              <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:0.4rem;">
-                <span style="color:var(--text-secondary);">Guardado: <strong>${formatBRL(saved)}</strong></span>
-                <span style="font-weight:800; color:var(--primary);">${pct}%</span>
+
+            <!-- Barra de Progresso com Porcentagem -->
+            <div style="margin: 0.35rem 0 0.85rem 0;">
+              <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:0.35rem;">
+                <span style="color:var(--text-secondary); font-weight:600;">Progresso da Meta</span>
+                <span style="font-weight:800; color:${pct >= 100 ? '#10b981' : '#3b82f6'};">${pct}%</span>
               </div>
-              <div style="height: 10px; background-color: var(--bg-surface-alt); border-radius: 999px; overflow:hidden;">
-                <div style="height:100%; width:${pct}%; background:linear-gradient(90deg, #2563eb, #10b981); border-radius:999px; transition: width 0.4s ease;"></div>
-              </div>
-              <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">
-                <span>Faltam: ${formatBRL(Math.max(0, target - saved))}</span>
-                <span>Objetivo: ${formatBRL(target)}</span>
+              <div style="height: 10px; background-color: var(--bg-surface-alt); border-radius: 999px; overflow:hidden; border: 1px solid var(--border-light);">
+                <div style="height:100%; width:${pct}%; background:${pct >= 100 ? 'linear-gradient(90deg, #10b981, #059669)' : 'linear-gradient(90deg, #3b82f6, #10b981)'}; border-radius:999px; transition: width 0.4s ease;"></div>
               </div>
             </div>
+
+            <!-- Estatísticas Financeiras: Guardado e Faltam em destaque -->
+            <div class="dream-stat-grid">
+              <div class="dream-stat-box">
+                <span class="dream-stat-label">Total Guardado</span>
+                <span class="dream-stat-value saved">${formatBRL(saved)}</span>
+              </div>
+              <div class="dream-stat-box" style="text-align:right;">
+                <span class="dream-stat-label">Falta Guardar</span>
+                <span class="dream-stat-value remaining">${formatBRL(remaining)}</span>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78rem; color:var(--text-muted); margin-bottom:1rem; padding: 0 0.2rem;">
+              <span>Objetivo Final: <strong>${formatBRL(target)}</strong></span>
+              <span>${deposits.length} lançamento(s)</span>
+            </div>
+
+            <!-- Botão de Ação: Lançar Valor Guardado -->
+            <button class="btn-header primary" style="width:100%; justify-content:center; padding: 0.55rem 1rem; font-weight:700;" onclick="app.openModalAporte('${d.id}')">
+              💰 + Lançar Valor Guardado
+            </button>
           </div>
-          <button class="btn-header primary" style="width:100%; justify-content:center;" onclick="app.promptAddDreamProgress('${d.id}', '${d.title}', ${saved})">
-            Atualizar Valor Guardado
-          </button>
         </div>
       `;
     }).join('');
   },
 
-  promptAddDreamProgress(id, title, currentSaved) {
-    const val = prompt(`Valor total já guardado para "${title}":`, currentSaved);
-    if (val !== null && !isNaN(Number(val))) {
-      store.updateDreamProgress(id, Number(val));
+  openModalAporte(dreamId) {
+    const dream = store.data.dreams.find(d => d.id === dreamId);
+    if (!dream) return;
+
+    const modal = document.getElementById('modalAporteSonho');
+    if (!modal) return;
+
+    document.getElementById('aporte_dream_id').value = dream.id;
+    document.getElementById('aporteModalSubtitle').textContent = `🎯 Objetivo: ${dream.title}`;
+
+    // Preenche data com o dia de hoje
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('aporte_date').value = today;
+    document.getElementById('aporte_val').value = '';
+    document.getElementById('aporte_notes').value = '';
+
+    this.renderAporteModalContent(dream.id);
+    this.openModal('modalAporteSonho');
+  },
+
+  renderAporteModalContent(dreamId) {
+    const dream = store.data.dreams.find(d => d.id === dreamId);
+    if (!dream) return;
+
+    const target = Number(dream.value) || 0;
+    const deposits = Array.isArray(dream.deposits) ? dream.deposits : [];
+    const saved = deposits.length > 0 
+      ? deposits.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0)
+      : (Number(dream.saved) || 0);
+
+    const remaining = Math.max(0, target - saved);
+    const pct = Math.min(100, Math.round((saved / (target || 1)) * 100));
+
+    // Resumo
+    const summaryEl = document.getElementById('aporteModalSummary');
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
+          <div>
+            <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Meta Total</span>
+            <div style="font-size:1.05rem; font-weight:800; color:var(--text-white);">${formatBRL(target)}</div>
+          </div>
+          <div style="text-align:center;">
+            <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted);">Total Guardado</span>
+            <div style="font-size:1.05rem; font-weight:800; color:#34d399;">${formatBRL(saved)}</div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.05em; color:#f87171;">Falta Guardar</span>
+            <div style="font-size:1.15rem; font-weight:900; color:#fb923c;">${formatBRL(remaining)}</div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">
+            <span>Concluído: <strong>${pct}%</strong></span>
+            <span>${pct >= 100 ? '🎉 META ALCANÇADA!' : `Faltam ${formatBRL(remaining)}`}</span>
+          </div>
+          <div style="height:8px; background:var(--bg-surface); border-radius:999px; overflow:hidden;">
+            <div style="height:100%; width:${pct}%; background:${pct >= 100 ? '#10b981' : 'linear-gradient(90deg, #3b82f6, #10b981)'}; border-radius:999px;"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Lista de Histórico
+    const counterEl = document.getElementById('aporteHistoricoContador');
+    if (counterEl) counterEl.textContent = `${deposits.length} lançamento(s)`;
+
+    const listaEl = document.getElementById('aporteHistoricoLista');
+    if (listaEl) {
+      if (deposits.length === 0) {
+        listaEl.innerHTML = `
+          <div style="text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.85rem; background:var(--bg-surface-alt); border-radius:var(--radius-sm);">
+            Nenhum lançamento guardado ainda. Lance seu primeiro valor acima!
+          </div>
+        `;
+      } else {
+        const sorted = [...deposits].reverse();
+        listaEl.innerHTML = sorted.map(dep => `
+          <div class="dream-deposit-item">
+            <div style="display:flex; align-items:center; gap:0.65rem;">
+              <span style="background:rgba(16,185,129,0.15); color:#34d399; font-weight:700; font-size:0.72rem; padding:0.2rem 0.45rem; border-radius:4px;">
+                ${formatDateBR(dep.date)}
+              </span>
+              <span style="color:var(--text-primary); font-size:0.82rem;">
+                ${escapeHtml(dep.notes || 'Lançamento')}
+              </span>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.65rem;">
+              <strong style="color:#34d399; font-size:0.9rem;">+ ${formatBRL(dep.value)}</strong>
+              <button type="button" class="btn-table-icon delete" style="width:22px; height:22px;" title="Excluir lançamento" onclick="app.deleteAporte('${dream.id}', '${dep.id}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  },
+
+  deleteAporte(dreamId, depositId) {
+    if (confirm('Deseja excluir este lançamento guardado? O saldo faltante será recalculado.')) {
+      store.deleteDreamDeposit(dreamId, depositId);
+      this.renderAporteModalContent(dreamId);
       this.renderSonhos();
-      this.showToast('Progresso do sonho atualizado!', 'success');
+      this.showToast('Lançamento removido e saldo faltante recalculado.', 'info');
     }
   },
 
@@ -4644,9 +4895,23 @@ const app = {
         this.prepareModalNovoRendimentoBolsa();
       } else if (modalId === 'modalNovoRendimentoNubank') {
         this.prepareModalNovoRendimentoNubank();
+      } else if (modalId === 'modalNovoSonho') {
+        this.prepararModalNovoSonho();
       }
       modal.classList.add('active');
+      document.body.classList.add('modal-open');
     }
+  },
+
+  prepararModalNovoSonho() {
+    const form = document.getElementById('formNovoSonho');
+    if (form) form.reset();
+    const prev = document.getElementById('dreamImagePreviewContainer');
+    if (prev) prev.style.display = 'none';
+    const hidden = document.getElementById('dream_image_url');
+    if (hidden) hidden.value = '';
+    const customDiv = document.getElementById('dreamCustomImageDiv');
+    if (customDiv) customDiv.style.display = 'none';
   },
 
   updateSupabaseModalUI() {
@@ -4782,14 +5047,6 @@ const app = {
     mSelect.value = String(sMonth);
     if (ySelect) ySelect.value = String(sYear);
     if (hintEl) hintEl.textContent = hint;
-  },
-
-  openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.add('active');
-      document.body.classList.add('modal-open');
-    }
   },
 
   closeModal(modalId) {
@@ -5226,19 +5483,71 @@ const app = {
     // Formulário Novo Sonho
     const formDream = document.getElementById('formNovoSonho');
     if (formDream) {
-      formDream.addEventListener('submit', (e) => {
+      formDream.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const title = document.getElementById('dream_title').value.trim();
+        let imageUrl = document.getElementById('dream_image_url').value.trim();
+
+        // Se o usuário não clicou em buscar antes, busca agora automaticamente
+        if (!imageUrl && title) {
+          this.showToast('🔍 Buscando foto na web...', 'info');
+          imageUrl = await this.fetchWebImage(title);
+        }
+
         const dream = {
-          title: document.getElementById('dream_title').value,
-          value: document.getElementById('dream_val').value,
-          saved: document.getElementById('dream_saved').value || 0,
-          targetDate: document.getElementById('dream_date').value
+          title: title,
+          value: Number(document.getElementById('dream_val').value) || 0,
+          targetDate: document.getElementById('dream_date').value,
+          imageUrl: imageUrl || '',
+          deposits: []
         };
+
         store.addDream(dream);
         this.closeModal('modalNovoSonho');
         formDream.reset();
+        const prevContainer = document.getElementById('dreamImagePreviewContainer');
+        if (prevContainer) prevContainer.style.display = 'none';
         this.renderSonhos();
-        this.showToast('Novo objetivo planejado cadastrado!', 'success');
+        this.showToast('✨ Novo sonho cadastrado com foto da internet!', 'success');
+      });
+    }
+
+    // Formulário Lançamento de Valor Guardado / Aporte
+    const formAporte = document.getElementById('formAporteSonho');
+    if (formAporte) {
+      formAporte.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const dreamId = document.getElementById('aporte_dream_id').value;
+        const val = Number(document.getElementById('aporte_val').value) || 0;
+        const date = document.getElementById('aporte_date').value;
+        const notes = document.getElementById('aporte_notes').value.trim();
+
+        if (!dreamId) return;
+        if (val <= 0) {
+          this.showToast('Por favor, informe um valor válido para guardar.', 'warning');
+          return;
+        }
+
+        store.addDreamDeposit(dreamId, {
+          date: date || new Date().toISOString().split('T')[0],
+          value: val,
+          notes: notes || 'Lançamento guardado'
+        });
+
+        // Limpa campos do aporte mantendo a data de hoje
+        document.getElementById('aporte_val').value = '';
+        document.getElementById('aporte_notes').value = '';
+
+        // Atualiza a visualização do modal (saldo faltante abatido!) e a tela de sonhos
+        this.renderAporteModalContent(dreamId);
+        this.renderSonhos();
+
+        const dream = store.data.dreams.find(d => d.id === dreamId);
+        const target = Number(dream?.value) || 0;
+        const totalSaved = dream?.deposits?.reduce((acc, c) => acc + (Number(c.value) || 0), 0) || 0;
+        const remaining = Math.max(0, target - totalSaved);
+
+        this.showToast(`💰 Lançamento de ${formatBRL(val)} guardado! Saldo restante: ${formatBRL(remaining)}.`, 'success');
       });
     }
 
