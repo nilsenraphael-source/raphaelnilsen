@@ -1464,7 +1464,7 @@ textarea.form-input {
   background-color: rgba(255, 255, 255, 0.02);
 }
 
-/* LINHA INTEIRA VERDE QUANDO O STATUS FOR PAGO */
+/* LINHA INTEIRA VERDE QUANDO O STATUS FOR PAGO E VALOR REALIZADO <= VALOR PREVISTO */
 .notion-data-table tbody tr.row-paid,
 .data-table tbody tr.row-paid {
   background-color: rgba(16, 185, 129, 0.15) !important;
@@ -1483,22 +1483,33 @@ textarea.form-input {
   color: #ecfdf5 !important;
 }
 
-.notion-data-table tbody tr.row-paid .renda-row-content strong {
+.notion-data-table tbody tr.row-paid .renda-row-content strong,
+.data-table tbody tr.row-paid td strong {
   color: #34d399 !important;
 }
 
-.notion-data-table tbody tr.row-paid .currency-symbol {
+.notion-data-table tbody tr.row-paid .currency-symbol,
+.data-table tbody tr.row-paid .currency-symbol {
   color: #34d399 !important;
 }
 
 .notion-data-table tbody tr.row-paid .sheet-inline-input,
-.notion-data-table tbody tr.row-paid .sheet-inline-select {
+.data-table tbody tr.row-paid .sheet-inline-input,
+.notion-data-table tbody tr.row-paid .sheet-inline-select,
+.data-table tbody tr.row-paid .sheet-inline-select {
   background: rgba(16, 185, 129, 0.1) !important;
   border-color: rgba(16, 185, 129, 0.35) !important;
   color: #ffffff !important;
 }
 
-.notion-data-table tbody tr.row-paid .sheet-value-input {
+.notion-data-table tbody tr.row-paid .sheet-inline-input:focus,
+.data-table tbody tr.row-paid .sheet-inline-input:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3) !important;
+}
+
+.notion-data-table tbody tr.row-paid .sheet-value-input,
+.data-table tbody tr.row-paid .sheet-value-input {
   color: #34d399 !important;
   font-weight: 800 !important;
 }
@@ -1508,6 +1519,65 @@ textarea.form-input {
   border-color: #10b981 !important;
   color: #ffffff !important;
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* LINHA INTEIRA VERMELHA QUANDO O VALOR REALIZADO FOR MAIOR QUE O PREVISTO */
+.notion-data-table tbody tr.row-paid-danger,
+.data-table tbody tr.row-paid-danger {
+  background-color: rgba(220, 38, 38, 0.22) !important;
+  border-left: 4px solid #ef4444 !important;
+  box-shadow: inset 0 0 16px rgba(239, 68, 68, 0.15) !important;
+  transition: all var(--transition-fast);
+}
+
+.notion-data-table tbody tr.row-paid-danger:hover,
+.data-table tbody tr.row-paid-danger:hover {
+  background-color: rgba(220, 38, 38, 0.32) !important;
+}
+
+.notion-data-table tbody tr.row-paid-danger td,
+.data-table tbody tr.row-paid-danger td {
+  color: #fee2e2 !important;
+}
+
+.notion-data-table tbody tr.row-paid-danger .renda-row-content strong,
+.data-table tbody tr.row-paid-danger td strong {
+  color: #ffffff !important;
+}
+
+.notion-data-table tbody tr.row-paid-danger .currency-symbol,
+.data-table tbody tr.row-paid-danger .currency-symbol {
+  color: #fca5a5 !important;
+}
+
+.notion-data-table tbody tr.row-paid-danger .sheet-inline-input,
+.data-table tbody tr.row-paid-danger .sheet-inline-input,
+.notion-data-table tbody tr.row-paid-danger .sheet-inline-select,
+.data-table tbody tr.row-paid-danger .sheet-inline-select {
+  background: rgba(220, 38, 38, 0.16) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #ffffff !important;
+}
+
+.notion-data-table tbody tr.row-paid-danger .sheet-inline-input:focus,
+.data-table tbody tr.row-paid-danger .sheet-inline-input:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.35) !important;
+}
+
+.notion-data-table tbody tr.row-paid-danger .sheet-value-input,
+.data-table tbody tr.row-paid-danger .sheet-value-input {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+.notion-data-table tbody tr.row-paid-danger .status-badge.paid,
+.data-table tbody tr.row-paid-danger .status-badge.paid {
+  background-color: rgba(239, 68, 68, 0.35) !important;
+  border-color: #ef4444 !important;
+  color: #fee2e2 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.45);
 }
 
 .notion-data-table tfoot td {

@@ -433,11 +433,7 @@ class DataStore {
       if (!this.data.months[m]) return;
       if (!this.data.months[m].revenues) this.data.months[m].revenues = [];
 
-      let itemDate = date;
-      if (!itemDate && value > 0) {
-        const mStr = String(m).padStart(2, '0');
-        itemDate = `${year}-${mStr}-05`;
-      }
+      let itemDate = date || '';
 
       const revItem = {
         id: 'rev_' + Date.now() + '_' + m + '_' + Math.random().toString(36).substr(2, 4),
@@ -731,6 +727,13 @@ class DataStore {
     if (!m || !m.fixedExpenses) return;
     m.fixedExpenses.forEach(e => {
       e.status = status;
+      if (status === 'Pago') {
+        if (!e.valuePaid || Number(e.valuePaid) === 0) {
+          e.valuePaid = e.valueExpected;
+        }
+      } else {
+        e.valuePaid = 0;
+      }
     });
     this.save();
   }

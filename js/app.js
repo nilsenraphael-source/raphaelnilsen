@@ -1218,7 +1218,12 @@ const app = {
               ` : m.fixedExpenses.map(e => {
                 const isPaid = (e.status === 'Pago');
                 const valExp = Number(e.valueExpected) || 0;
-                const valPaid = Number(e.valuePaid) || 0;
+                let valPaid = Number(e.valuePaid) || 0;
+
+                // Se já está pago e o valor realizado não foi preenchido, assume o valor previsto
+                if (isPaid && valPaid === 0) {
+                  valPaid = valExp;
+                }
 
                 // Cálculo de vencimento por dia e alerta de atraso
                 const dDay = Number(e.dueDay) || (e.dueDate ? parseInt(e.dueDate.split('-')[2], 10) : 1);
@@ -1266,13 +1271,30 @@ const app = {
                   statusBadgeTitle = 'Vence hoje! Clique para marcar como paga';
                 }
 
+                // Linha verde quando status for Pago e valor realizado <= previsto;
+                // Preenchimento todo vermelho se o valor realizado for maior que o valor previsto
+                let rowClass = '';
+                if (isPaid) {
+                  rowClass = (valPaid > valExp) ? 'row-paid-danger' : 'row-paid';
+                }
+
                 return `
-                <tr class="${isPaid ? 'row-paid' : ''}">
+                <tr class="${rowClass}">
                   <td><strong>${e.description}</strong></td>
                   <td>Dia ${dDay}</td>
                   <td style="color: var(--text-secondary); font-weight: 600;">${formatBRL(valExp)}</td>
-                  <td style="color: ${isPaid ? 'var(--success)' : (valPaid > 0 ? 'var(--text-primary)' : 'var(--text-muted)')}; font-weight: 700;">
-                    ${isPaid ? formatBRL(valPaid > 0 ? valPaid : valExp) : (valPaid > 0 ? formatBRL(valPaid) : '—')}
+                  <td>
+                    <div style="display:flex; align-items:center; gap:0.35rem;">
+                      <span class="currency-symbol" style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">R$</span>
+                      <input type="text" inputmode="decimal" 
+                             class="sheet-inline-input sheet-value-input ${valPaid > 0 ? 'has-value' : ''}" 
+                             value="${valPaid > 0 ? formatMoneyDisplay(valPaid) : ''}" 
+                             placeholder="0,00" 
+                             title="Altere o valor realizado diretamente na tabela (ex: 150,00)"
+                             onfocus="this.select()"
+                             onblur="app.handleInlineFixedExpenseValueBlur(this, ${this.activeMonth}, '${e.id}')"
+                             onkeydown="if(event.key==='Enter') this.blur()">
+                    </div>
                   </td>
                   <td>
                     <button class="status-badge ${statusBadgeClass}" style="cursor:pointer; border:none;" onclick="app.toggleFixedExpenseStatus(${this.activeMonth}, '${e.id}')" title="${statusBadgeTitle}">
@@ -1497,11 +1519,7 @@ const app = {
 
     const dateInp = document.getElementById('rev_date');
     if (dateInp) {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      dateInp.value = `${yyyy}-${mm}-${dd}`;
+      dateInp.value = '';
     }
 
     this.openModal('modalNovaReceita');
@@ -1539,12 +1557,53 @@ const app = {
     }, 150);
   },
 
+  handleInlineFixedExpenseValueBlur(inputEl, monthNum, id) {
+    if (!inputEl) return;
+    const num = parseMoney(inputEl.value);
+    inputEl.value = num > 0 ? formatMoneyDisplay(num) : '';
+    if (num > 0) inputEl.classList.add('has-value');
+    else inputEl.classList.remove('has-value');
+    this.updateFixedExpenseField(monthNum, id, 'valuePaid', num);
+  },
+
   updateFixedExpenseField(monthNum, id, field, value) {
     const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
     if (!expense) return;
+
+    if (field === 'valuePaid') {
+      const newVal = typeof value === 'number' ? value : parseMoney(value);
+      expense.valuePaid = newVal;
+
+      if (newVal > 0 && expense.status !== 'Pago') {
+        expense.status = 'Pago';
+      } else if (newVal === 0 && expense.status === 'Pago') {
+        expense.status = 'Pendente';
+      }
+
+      store.save();
+      this.renderMeses();
+      this.renderResumo();
+
+      const valExp = Number(expense.valueExpected) || 0;
+      if (expense.status === 'Pago' && newVal > valExp) {
+        this.showToast(`Valor realizado: ${formatBRL(newVal)} (Acima do previsto!)`, 'warning');
+      } else if (expense.status === 'Pago') {
+        this.showToast(`Valor realizado atualizado: ${formatBRL(newVal)}`, 'success');
+      } else {
+        this.showToast('Valor realizado removido (Despesa marcada como Pendente).', 'info');
+      }
+      return;
+    }
+
+    if (field === 'bank') {
+      expense.bank = value;
+      store.save();
+      this.showToast('Banco atualizado!', 'info');
+      return;
+    }
+
     expense[field] = value;
     store.save();
-    this.showToast('Banco atualizado!', 'info');
   },
 
   formatMoneyInputElement(inputEl) {
@@ -1726,11 +1785,16 @@ const app = {
   },
 
   toggleFixedExpenseStatus(monthNum, id) {
-    const expense = store.data.months[monthNum].fixedExpenses.find(e => e.id === id);
+    const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
     if (expense) {
-      expense.status = expense.status === 'Pago' ? 'Pendente' : 'Pago';
-      if (expense.status === 'Pago' && (!expense.valuePaid || Number(expense.valuePaid) === 0)) {
-        expense.valuePaid = expense.valueExpected;
+      if (expense.status === 'Pago') {
+        expense.status = 'Pendente';
+        expense.valuePaid = 0;
+      } else {
+        expense.status = 'Pago';
+        if (!expense.valuePaid || Number(expense.valuePaid) === 0) {
+          expense.valuePaid = expense.valueExpected;
+        }
       }
       store.save();
       this.renderMeses();
