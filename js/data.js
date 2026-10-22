@@ -83,6 +83,20 @@ const INITIAL_DATABASE = {
   // 8. Cofre de Senhas
   passwords: [],
 
+  // 9. Mapeando B3 (Levantamento Online de Dividendos & Carteira)
+  mapeandoB3: {
+    lastUpdated: null,
+    assets: [
+      { id: 'b3_1', ticker: 'MXRF11', name: 'Maxi Renda FII', type: 'FII', price: 9.42, lastDiv: 0.10, div12m: 1.19, dy: 12.63, shares: 0 },
+      { id: 'b3_2', ticker: 'KISU11', name: 'Kilima FIC de FII', type: 'FII', price: 6.20, lastDiv: 0.07, div12m: 0.83, dy: 13.39, shares: 0 },
+      { id: 'b3_3', ticker: 'BTCI11', name: 'BTG Pactual Crédito Imob.', type: 'FII', price: 9.06, lastDiv: 0.10, div12m: 1.17, dy: 12.91, shares: 0 },
+      { id: 'b3_4', ticker: 'XPML11', name: 'XP Malls FII', type: 'FII', price: 104.30, lastDiv: 0.92, div12m: 11.07, dy: 10.61, shares: 0 },
+      { id: 'b3_5', ticker: 'BBAS3', name: 'Banco do Brasil ON', type: 'Ação', price: 23.88, lastDiv: 0.22, div12m: 2.65, dy: 11.10, shares: 0 },
+      { id: 'b3_6', ticker: 'TAEE3', name: 'Taesa ON', type: 'Ação', price: 14.80, lastDiv: 0.25, div12m: 1.00, dy: 6.76, shares: 0 },
+      { id: 'b3_7', ticker: 'UA1111', name: 'Ativo Carteira (Personalizado)', type: 'FII', price: 10.00, lastDiv: 0.10, div12m: 1.20, dy: 12.00, shares: 0 }
+    ]
+  },
+
   // Configurações do Sistema
   settings: {
     userName: 'Raphael Nilsen',
@@ -200,6 +214,14 @@ class DataStore {
           merged.years[this.activeYear] = createEmptyMonths();
         }
         merged.months = merged.years[this.activeYear];
+
+        // Mapeando B3: garante estrutura e ativos iniciais
+        if (!merged.mapeandoB3 || typeof merged.mapeandoB3 !== 'object' || !Array.isArray(merged.mapeandoB3.assets)) {
+          merged.mapeandoB3 = JSON.parse(JSON.stringify(INITIAL_DATABASE.mapeandoB3));
+        } else if (merged.mapeandoB3.assets.length === 0) {
+          merged.mapeandoB3.assets = JSON.parse(JSON.stringify(INITIAL_DATABASE.mapeandoB3.assets));
+        }
+
         return merged;
       }
     } catch (e) {
@@ -1353,6 +1375,70 @@ class DataStore {
     if (typeof window !== 'undefined' && window.supabaseService) {
       window.supabaseService.deleteRowFromTable('cofre_senhas', id);
     }
+  }
+
+  // --- MAPEANDO B3 ---
+  getMapeandoB3() {
+    if (!this.data.mapeandoB3 || !Array.isArray(this.data.mapeandoB3.assets)) {
+      this.data.mapeandoB3 = JSON.parse(JSON.stringify(INITIAL_DATABASE.mapeandoB3));
+      this.save();
+    }
+    return this.data.mapeandoB3;
+  }
+
+  updateMapeandoB3Asset(id, data) {
+    const b3 = this.getMapeandoB3();
+    const item = b3.assets.find(a => a.id === id);
+    if (!item) return null;
+    Object.assign(item, data);
+    if (data.price !== undefined || data.div12m !== undefined) {
+      const p = Number(item.price) || 0;
+      const d = Number(item.div12m) || 0;
+      item.dy = p > 0 ? Number(((d / p) * 100).toFixed(2)) : 0;
+    }
+    this.save();
+    return item;
+  }
+
+  addMapeandoB3Asset(asset) {
+    const b3 = this.getMapeandoB3();
+    const newAsset = {
+      id: 'b3_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      ticker: (asset.ticker || '').toUpperCase().trim(),
+      name: (asset.name || asset.ticker || '').trim(),
+      type: asset.type || (asset.ticker?.endsWith('11') ? 'FII' : 'Ação'),
+      price: Number(asset.price) || 0,
+      lastDiv: Number(asset.lastDiv) || 0,
+      div12m: Number(asset.div12m) || 0,
+      dy: (Number(asset.price) > 0 && Number(asset.div12m) > 0) ? Number(((Number(asset.div12m) / Number(asset.price)) * 100).toFixed(2)) : 0,
+      shares: Number(asset.shares) || 0
+    };
+    b3.assets.push(newAsset);
+    this.save();
+    return newAsset;
+  }
+
+  deleteMapeandoB3Asset(id) {
+    const b3 = this.getMapeandoB3();
+    b3.assets = b3.assets.filter(a => a.id !== id);
+    this.save();
+  }
+
+  saveMapeandoB3OnlineData(updatedList, timestamp = new Date().toISOString()) {
+    const b3 = this.getMapeandoB3();
+    b3.lastUpdated = timestamp;
+    updatedList.forEach(up => {
+      const existing = b3.assets.find(a => a.id === up.id || a.ticker.toUpperCase() === up.ticker.toUpperCase());
+      if (existing) {
+        if (up.price !== undefined && up.price > 0) existing.price = Number(up.price);
+        if (up.lastDiv !== undefined && up.lastDiv > 0) existing.lastDiv = Number(up.lastDiv);
+        if (up.div12m !== undefined && up.div12m > 0) existing.div12m = Number(up.div12m);
+        if (up.name && (!existing.name || existing.name === existing.ticker)) existing.name = up.name;
+        if (existing.price > 0 && existing.div12m > 0) {
+          existing.dy = Number(((existing.div12m / existing.price) * 100).toFixed(2));
+        }
+      }
+    });
     this.save();
   }
 

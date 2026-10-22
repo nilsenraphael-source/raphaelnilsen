@@ -4972,6 +4972,171 @@ select:focus {
   }
 }
 
+/* ==========================================================================
+   MAPEANDO B3: LEVANTAMENTO ONLINE DE DIVIDENDOS & CARTEIRA
+   ========================================================================== */
+.b3-dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8));
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius-lg, 14px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.b3-tag-live {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #34d399;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  letter-spacing: 0.6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.b3-spinning {
+  display: inline-block;
+  animation: b3Spin 1s linear infinite;
+}
+
+@keyframes b3Spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.b3-type-pill {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.b3-type-pill.fii {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+}
+
+.b3-type-pill.ação,
+.b3-type-pill.acao {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.b3-type-pill.fiagro {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.b3-type-pill.etf,
+.b3-type-pill.bdr {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.b3-rank-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+}
+
+.b3-rank-pill.gold {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.45);
+}
+
+.b3-rank-pill.silver {
+  background: rgba(226, 232, 240, 0.18);
+  color: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.4);
+}
+
+.b3-rank-pill.bronze {
+  background: rgba(217, 119, 6, 0.2);
+  color: #fdba74;
+  border: 1px solid rgba(217, 119, 6, 0.4);
+}
+
+.b3-magic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.b3-inline-shares-input {
+  width: 75px;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1.5px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.2rem;
+  transition: all 0.2s ease;
+}
+
+.b3-inline-shares-input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  background: #0f172a;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+}
+
+.b3-sim-card.winner {
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+}
+
+.b3-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+@media (max-width: 768px) {
+  .b3-dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+  }
+  .b3-main-title {
+    font-size: 1.35rem !important;
+  }
+  .b3-metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+
 
 
 

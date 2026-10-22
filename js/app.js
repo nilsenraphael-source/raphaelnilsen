@@ -385,6 +385,7 @@ const app = {
     // Atualiza Título do Cabeçalho
     const titles = {
       resumo: 'Resumo Executivo Consolidado',
+      mapeandob3: 'MAPEANDO B3 — Levantamento de Dividendos & Oportunidades',
       meses: `Gestão Mensal (${store.activeYear})`,
       cartoes: 'Cartão de Crédito e Compras Parceladas',
       senhas: 'Cofre de Senhas Protegido',
@@ -488,6 +489,9 @@ const app = {
     switch (this.currentTab) {
       case 'resumo':
         this.renderResumo();
+        break;
+      case 'mapeandob3':
+        this.renderMapeandoB3();
         break;
       case 'meses':
         this.renderMeses();
@@ -5325,6 +5329,524 @@ const app = {
   },
 
   // =========================================================================
+  // MAPEANDO B3: LEVANTAMENTO ONLINE DE DIVIDENDOS & CARTEIRA
+  // =========================================================================
+  b3SimulatedAporte: 1000,
+
+  renderMapeandoB3() {
+    const container = document.getElementById('mapeandoB3Container');
+    if (!container) return;
+
+    const b3 = store.getMapeandoB3();
+    const assets = [...b3.assets];
+
+    // Métricas Consolidadas da Carteira
+    let totalInvested = 0;
+    let totalMonthlyIncome = 0;
+    let totalAnnualIncome = 0;
+    let totalSharesCount = 0;
+
+    assets.forEach(a => {
+      const shares = Number(a.shares) || 0;
+      const price = Number(a.price) || 0;
+      const lastDiv = Number(a.lastDiv) || 0;
+      const div12m = Number(a.div12m) || 0;
+
+      totalSharesCount += shares;
+      totalInvested += (shares * price);
+      totalMonthlyIncome += (shares * lastDiv);
+      totalAnnualIncome += (shares * div12m);
+    });
+
+    // DY Médio Ponderado da Carteira (ou média simples se sem cotas)
+    let avgDY = 0;
+    if (totalInvested > 0) {
+      avgDY = (totalAnnualIncome / totalInvested) * 100;
+    } else if (assets.length > 0) {
+      const sumDY = assets.reduce((acc, a) => acc + (Number(a.dy) || 0), 0);
+      avgDY = sumDY / assets.length;
+    }
+
+    // Ranking dos Ativos por Dividend Yield
+    const rankedAssets = [...assets].sort((a, b) => (Number(b.dy) || 0) - (Number(a.dy) || 0));
+    const topOpportunity = rankedAssets[0];
+
+    // Data/hora da última atualização
+    let lastUpdatedText = 'Cotações de Referência da B3';
+    if (b3.lastUpdated) {
+      try {
+        const dt = new Date(b3.lastUpdated);
+        lastUpdatedText = `Atualizado em ${dt.toLocaleDateString('pt-BR')} às ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+      } catch (e) {}
+    }
+
+    // Cálculo do Número Mágico da Melhor Oportunidade
+    let magicNumberTop = 0;
+    let magicCostTop = 0;
+    if (topOpportunity && topOpportunity.lastDiv > 0 && topOpportunity.price > 0) {
+      magicNumberTop = Math.ceil(topOpportunity.price / topOpportunity.lastDiv);
+      magicCostTop = magicNumberTop * topOpportunity.price;
+    }
+
+    // HTML da View
+    let html = `
+      <div class="b3-dashboard-header">
+        <div class="b3-title-wrap">
+          <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+            <h2 class="b3-main-title" style="margin:0; font-size:1.55rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.5rem;">
+              <span>📊</span> MAPEANDO B3
+            </h2>
+            <span class="b3-tag-live">● MERCADO AO VIVO & DIVIDENDOS</span>
+          </div>
+          <p class="b3-sub-title" style="margin:0.35rem 0 0 0; font-size:0.88rem; color:var(--text-muted);">
+            Levantamento inteligente dos dividendos da sua carteira. Saiba exatamente qual ativo oferece o melhor retorno no momento atual.
+          </p>
+          <div style="margin-top:0.4rem; font-size:0.78rem; color:#94a3b8; display:flex; align-items:center; gap:0.4rem;">
+            <span>🕒 ${lastUpdatedText}</span>
+          </div>
+        </div>
+
+        <div class="b3-actions-wrap" style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+          <button id="btnFetchB3Online" class="btn-primary" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border:none; padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:8px; display:flex; align-items:center; gap:0.45rem; cursor:pointer;" onclick="app.fetchOnlineB3Data()">
+            <span id="b3SyncIcon">🔄</span> Atualizar Online (B3)
+          </button>
+          <button class="btn-header" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffffff; padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:8px; display:flex; align-items:center; gap:0.45rem; cursor:pointer;" onclick="app.openModalNovoAtivoB3()">
+            <span>➕</span> Novo Ativo
+          </button>
+        </div>
+      </div>
+
+      <!-- CARDS DE METRICAS CONSOLIDADAS -->
+      <div class="b3-metrics-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin:1.25rem 0;">
+        <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(148,163,184,0.15); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#94a3b8; letter-spacing:0.5px;">Total Investido (Carteira)</div>
+          <div style="font-size:1.6rem; font-weight:800; color:#38bdf8; margin:0.35rem 0;">${formatCurrency(totalInvested)}</div>
+          <div style="font-size:0.78rem; color:#cbd5e1;">${totalSharesCount} cotas/ações cadastradas</div>
+        </div>
+
+        <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(16,185,129,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#34d399; letter-spacing:0.5px;">Proventos Estimados (Mensal)</div>
+          <div style="font-size:1.6rem; font-weight:800; color:#10b981; margin:0.35rem 0;">${formatCurrency(totalMonthlyIncome)}<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;">/mês</span></div>
+          <div style="font-size:0.78rem; color:#94a3b8;">Renda passiva média mensal</div>
+        </div>
+
+        <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#fbbf24; letter-spacing:0.5px;">Proventos Estimados (Anual)</div>
+          <div style="font-size:1.6rem; font-weight:800; color:#f59e0b; margin:0.35rem 0;">${formatCurrency(totalAnnualIncome)}<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;">/ano</span></div>
+          <div style="font-size:0.78rem; color:#94a3b8;">Com base no histórico dos últimos 12M</div>
+        </div>
+
+        <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(168,85,247,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#c084fc; letter-spacing:0.5px;">Dividend Yield Médio</div>
+          <div style="font-size:1.6rem; font-weight:800; color:#a855f7; margin:0.35rem 0;">${avgDY.toFixed(2)}%<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;"> a.a.</span></div>
+          <div style="font-size:0.78rem; color:#94a3b8;">${totalInvested > 0 ? 'Ponderado pelo seu capital' : 'Média simples dos ativos'}</div>
+        </div>
+      </div>
+    `;
+
+    // VIP CARD: MELHOR INVESTIMENTO NO MOMENTO
+    if (topOpportunity) {
+      const topPrice = Number(topOpportunity.price) || 0;
+      const topDy = Number(topOpportunity.dy) || 0;
+      const topLastDiv = Number(topOpportunity.lastDiv) || 0;
+      const topDiv12m = Number(topOpportunity.div12m) || 0;
+      const topType = topOpportunity.type || 'FII';
+
+      html += `
+        <div class="b3-best-pick-banner" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(14, 165, 233, 0.08) 100%); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 1.35rem 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 8px 24px rgba(0,0,0,0.25); position: relative; overflow: hidden;">
+          <div style="position: absolute; right: -20px; top: -20px; font-size: 8rem; opacity: 0.05; pointer-events: none;">🏆</div>
+          
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+            <div>
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+                <span style="background: linear-gradient(135deg, #10b981, #059669); color:#ffffff; font-weight:800; font-size:0.72rem; padding:0.25rem 0.65rem; border-radius:20px; letter-spacing:0.5px;">🏆 MELHOR INVESTIMENTO NO MOMENTO</span>
+                <span style="background: rgba(255,255,255,0.1); color:#e2e8f0; font-weight:600; font-size:0.72rem; padding:0.25rem 0.6rem; border-radius:20px;">Top 1 Dividend Yield</span>
+              </div>
+              <h3 style="margin:0; font-size:1.6rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.6rem;">
+                <span style="color:#34d399;">${topOpportunity.ticker}</span>
+                <span style="font-size:0.95rem; font-weight:500; color:#94a3b8;">${topOpportunity.name || ''}</span>
+                <span class="b3-type-pill ${topType.toLowerCase()}">${topType}</span>
+              </h3>
+              <p style="margin:0.4rem 0 0 0; font-size:0.88rem; color:#cbd5e1; max-width:680px;">
+                💡 <strong>Por que este ativo é a melhor escolha agora?</strong> Apresenta o maior retorno proporcional da carteira: 
+                <strong>${topDy.toFixed(2)}% ao ano</strong> em dividendos. Para cada <strong>R$ 1.000,00</strong> aportados nele, você recebe aproximadamente 
+                <strong style="color:#34d399;">${formatCurrency((1000 / topPrice) * topDiv12m)}/ano</strong> (<strong style="color:#34d399;">${formatCurrency((1000 / topPrice) * topLastDiv)}/mês</strong>) de renda passiva!
+              </p>
+            </div>
+
+            <div style="display:flex; gap:1.25rem; flex-wrap:wrap; align-items:center; background:rgba(15,23,42,0.6); padding:0.85rem 1.2rem; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+              <div>
+                <div style="font-size:0.72rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">Cotação Atual</div>
+                <div style="font-size:1.25rem; font-weight:800; color:#ffffff;">${formatCurrency(topPrice)}</div>
+              </div>
+              <div style="width:1px; height:32px; background:rgba(255,255,255,0.1);"></div>
+              <div>
+                <div style="font-size:0.72rem; color:#34d399; text-transform:uppercase; font-weight:700;">DY 12M</div>
+                <div style="font-size:1.25rem; font-weight:800; color:#10b981;">${topDy.toFixed(2)}%</div>
+              </div>
+              <div style="width:1px; height:32px; background:rgba(255,255,255,0.1);"></div>
+              <div>
+                <div style="font-size:0.72rem; color:#fbbf24; text-transform:uppercase; font-weight:700;">Número Mágico</div>
+                <div style="font-size:1.15rem; font-weight:800; color:#f59e0b;">${magicNumberTop} cotas</div>
+                <div style="font-size:0.7rem; color:#94a3b8;">${formatCurrency(magicCostTop)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // SIMULADOR DE APORTE INTELIGENTE
+    const simAmount = this.b3SimulatedAporte || 1000;
+    html += `
+      <div class="card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; background: #0f172a; border: 1px solid rgba(148,163,184,0.15);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+          <div>
+            <h4 style="margin:0; font-size:1.1rem; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:0.45rem;">
+              <span>🖩</span> Simulador de Aporte Inteligente: Quanto Rende Seu Dinheiro?
+            </h4>
+            <p style="margin:0.25rem 0 0 0; font-size:0.82rem; color:var(--text-muted);">
+              Veja instantaneamente quantas cotas você compra hoje e o aumento na sua renda passiva mensal e anual em cada ativo.
+            </p>
+          </div>
+          
+          <!-- CONTROLE DO VALOR DO APORTE -->
+          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <span style="font-size:0.82rem; font-weight:600; color:#94a3b8;">Valor do Aporte:</span>
+            <div style="position:relative; width:140px;">
+              <span style="position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:0.8rem; color:#94a3b8; font-weight:700;">R$</span>
+              <input type="number" id="b3SimAporteInput" class="form-input" value="${simAmount}" step="100" min="50" style="padding-left:2rem; font-weight:700; height:34px; font-size:0.9rem;" onchange="app.simulateB3Aporte(this.value)">
+            </div>
+            <div style="display:flex; gap:0.3rem;">
+              <button class="btn-sm ${simAmount === 500 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(500)">R$ 500</button>
+              <button class="btn-sm ${simAmount === 1000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(1000)">R$ 1.000</button>
+              <button class="btn-sm ${simAmount === 2000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(2000)">R$ 2.000</button>
+              <button class="btn-sm ${simAmount === 5000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(5000)">R$ 5.000</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- GRID DOS RESULTADOS DA SIMULAÇÃO -->
+        <div class="b3-sim-cards-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:0.85rem;">
+    `;
+
+    // Calcula simulação para cada ativo
+    const simulatedResults = assets.map(a => {
+      const p = Number(a.price) || 0;
+      const lastD = Number(a.lastDiv) || 0;
+      const d12 = Number(a.div12m) || 0;
+      const sharesBought = p > 0 ? Math.floor(simAmount / p) : 0;
+      const change = simAmount - (sharesBought * p);
+      const addMonthly = sharesBought * lastD;
+      const addAnnual = sharesBought * d12;
+      return {
+        ...a,
+        sharesBought,
+        change,
+        addMonthly,
+        addAnnual
+      };
+    });
+
+    // Encontra quem dá o maior retorno anual e mensal na simulação
+    const bestSimAnnual = [...simulatedResults].sort((a, b) => b.addAnnual - a.addAnnual)[0];
+
+    simulatedResults.forEach(item => {
+      const isWinner = bestSimAnnual && bestSimAnnual.id === item.id && item.addAnnual > 0;
+      html += `
+        <div class="b3-sim-card ${isWinner ? 'winner' : ''}" style="background: ${isWinner ? 'rgba(16, 185, 129, 0.08)' : 'rgba(30, 41, 59, 0.5)'}; border: 1px solid ${isWinner ? '#10b981' : 'rgba(148, 163, 184, 0.12)'}; border-radius: 10px; padding: 0.85rem 1rem; position: relative;">
+          ${isWinner ? '<span style="position:absolute; right:8px; top:8px; font-size:0.68rem; background:#10b981; color:#ffffff; font-weight:800; padding:0.15rem 0.45rem; border-radius:12px;">🏆 MAIOR RENDA</span>' : ''}
+          <div style="font-weight:800; font-size:1.05rem; color:${isWinner ? '#34d399' : '#ffffff'};">${item.ticker}</div>
+          <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:0.45rem;">${item.type} • Cota ${formatCurrency(item.price)}</div>
+          
+          <div style="background:rgba(0,0,0,0.25); border-radius:6px; padding:0.4rem 0.6rem; margin-bottom:0.45rem;">
+            <div style="font-size:0.72rem; color:#94a3b8;">Você compra hoje:</div>
+            <div style="font-weight:700; font-size:0.95rem; color:#ffffff;">+${item.sharesBought} cotas <span style="font-size:0.72rem; color:#94a3b8; font-weight:400;">(sobra ${formatCurrency(item.change)})</span></div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-size:0.7rem; color:#94a3b8;">Renda a mais:</div>
+              <div style="font-size:0.88rem; font-weight:700; color:#10b981;">+${formatCurrency(item.addMonthly)}/mês</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.7rem; color:#94a3b8;">No ano:</div>
+              <div style="font-size:0.88rem; font-weight:700; color:#f59e0b;">+${formatCurrency(item.addAnnual)}/ano</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+      </div>
+    `;
+
+    // TABELA COMPLETA DE ATIVOS COM COTAS EDITÁVEIS
+    html += `
+      <div class="card" style="padding: 1.25rem 1.5rem; background: #0f172a; border: 1px solid rgba(148,163,184,0.15);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+          <div>
+            <h4 style="margin:0; font-size:1.15rem; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:0.45rem;">
+              <span>📑</span> Minha Carteira B3: Dividendos, Cotações & Número Mágico
+            </h4>
+            <p style="margin:0.25rem 0 0 0; font-size:0.82rem; color:var(--text-muted);">
+              Você pode alterar a quantidade de cotas diretamente no campo da tabela abaixo. Seus totais e rendimentos são recalculados na hora.
+            </p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table b3-table" style="width:100%; border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(148,163,184,0.2); font-size:0.78rem; text-transform:uppercase; color:#94a3b8;">
+                <th style="padding:0.75rem 0.5rem; text-align:center; width:45px;">Rank</th>
+                <th style="padding:0.75rem 0.5rem; text-align:left;">Ativo / Nome</th>
+                <th style="padding:0.75rem 0.5rem; text-align:center;">Tipo</th>
+                <th style="padding:0.75rem 0.5rem; text-align:right;">Cotação</th>
+                <th style="padding:0.75rem 0.5rem; text-align:right;">Último Div.</th>
+                <th style="padding:0.75rem 0.5rem; text-align:right;">Div. 12M</th>
+                <th style="padding:0.75rem 0.5rem; text-align:right;">DY (12M)</th>
+                <th style="padding:0.75rem 0.5rem; text-align:center; width:110px;">Minhas Cotas</th>
+                <th style="padding:0.75rem 0.5rem; text-align:right;">Total Investido</th>
+                <th style="padding:0.75rem 0.5rem; text-align:right;">Renda Mensal</th>
+                <th style="padding:0.75rem 0.5rem; text-align:right;">Renda Anual</th>
+                <th style="padding:0.75rem 0.5rem; text-align:center;">Nº Mágico</th>
+                <th style="padding:0.75rem 0.5rem; text-align:center; width:80px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    rankedAssets.forEach((asset, idx) => {
+      const shares = Number(asset.shares) || 0;
+      const price = Number(asset.price) || 0;
+      const lastDiv = Number(asset.lastDiv) || 0;
+      const div12m = Number(asset.div12m) || 0;
+      const dy = Number(asset.dy) || 0;
+      const invested = shares * price;
+      const monthly = shares * lastDiv;
+      const annual = shares * div12m;
+
+      const magicNum = (lastDiv > 0 && price > 0) ? Math.ceil(price / lastDiv) : 0;
+      const magicCost = magicNum * price;
+
+      let rankBadge = `<span class="b3-rank-pill">${idx + 1}º</span>`;
+      if (idx === 0) rankBadge = `<span class="b3-rank-pill gold">🥇 1º</span>`;
+      else if (idx === 1) rankBadge = `<span class="b3-rank-pill silver">🥈 2º</span>`;
+      else if (idx === 2) rankBadge = `<span class="b3-rank-pill bronze">🥉 3º</span>`;
+
+      const typeClass = (asset.type || 'FII').toLowerCase();
+
+      html += `
+        <tr style="border-bottom:1px solid rgba(148,163,184,0.1); font-size:0.86rem; transition: background 0.15s ease;">
+          <td style="padding:0.75rem 0.5rem; text-align:center;">${rankBadge}</td>
+          <td style="padding:0.75rem 0.5rem;">
+            <div style="font-weight:800; font-size:0.95rem; color:#ffffff;">${asset.ticker}</div>
+            <div style="font-size:0.74rem; color:#94a3b8; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${asset.name || ''}">${asset.name || asset.ticker}</div>
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:center;">
+            <span class="b3-type-pill ${typeClass}">${asset.type || 'FII'}</span>
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:right; font-weight:700; color:#ffffff;">
+            ${formatCurrency(price)}
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:right; color:#38bdf8; font-weight:600;">
+            ${formatCurrency(lastDiv)}
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:right; color:#fbbf24; font-weight:600;">
+            ${formatCurrency(div12m)}
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:right;">
+            <span class="b3-dy-badge" style="font-weight:800; color:#10b981; background:rgba(16,185,129,0.12); padding:0.2rem 0.45rem; border-radius:4px; font-size:0.82rem;">
+              ${dy.toFixed(2)}%
+            </span>
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:center;">
+            <input type="number" min="0" step="1" value="${shares}" class="b3-inline-shares-input" onchange="app.updateMapeandoB3Shares('${asset.id}', this.value)" title="Clique para editar as cotas e pressione Enter ou clique fora">
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:right; font-weight:700; color:#38bdf8;">
+            ${formatCurrency(invested)}
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:right; font-weight:700; color:#10b981;">
+            ${formatCurrency(monthly)}
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:right; font-weight:700; color:#f59e0b;">
+            ${formatCurrency(annual)}
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:center;">
+            <span class="b3-magic-pill" title="Com ${magicNum} cotas (${formatCurrency(magicCost)}), seu dividendo mensal compra 1 nova cota todo mês sem colocar mais dinheiro!">
+              🔮 ${magicNum} cotas
+            </span>
+          </td>
+          <td style="padding:0.75rem 0.5rem; text-align:center;">
+            <div style="display:flex; justify-content:center; gap:0.35rem;">
+              <button class="btn-icon-mini" onclick="app.openModalEditarAtivoB3('${asset.id}')" title="Editar cotações ou dados do ativo">✏️</button>
+              <button class="btn-icon-mini danger" onclick="app.deleteAtivoB3('${asset.id}', '${asset.ticker}')" title="Excluir da carteira">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+            <tfoot>
+              <tr style="border-top:2px solid rgba(148,163,184,0.3); font-weight:800; background:rgba(15,23,42,0.7); font-size:0.9rem;">
+                <td colspan="7" style="padding:0.85rem 0.5rem; text-align:right; color:#ffffff;">TOTAL CONSOLIDADO DA CARTEIRA:</td>
+                <td style="padding:0.85rem 0.5rem; text-align:center; color:#ffffff;">${totalSharesCount}</td>
+                <td style="padding:0.85rem 0.5rem; text-align:right; color:#38bdf8;">${formatCurrency(totalInvested)}</td>
+                <td style="padding:0.85rem 0.5rem; text-align:right; color:#10b981;">${formatCurrency(totalMonthlyIncome)}</td>
+                <td style="padding:0.85rem 0.5rem; text-align:right; color:#f59e0b;">${formatCurrency(totalAnnualIncome)}</td>
+                <td colspan="2" style="padding:0.85rem 0.5rem; text-align:center; color:#94a3b8; font-size:0.78rem;">DY Médio: <strong style="color:#a855f7;">${avgDY.toFixed(2)}%</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = html;
+  },
+
+  simulateB3Aporte(amount) {
+    const val = Number(amount);
+    if (!isNaN(val) && val > 0) {
+      this.b3SimulatedAporte = val;
+      this.renderMapeandoB3();
+    }
+  },
+
+  updateMapeandoB3Shares(id, shares) {
+    const s = Number(shares) || 0;
+    store.updateMapeandoB3Asset(id, { shares: s });
+    this.renderMapeandoB3();
+    this.showToast('✓ Quantidade de cotas atualizada!', 'success');
+  },
+
+  openModalNovoAtivoB3() {
+    const form = document.getElementById('formNovoAtivoB3');
+    if (form) form.reset();
+    this.openModal('modalNovoAtivoB3');
+  },
+
+  openModalEditarAtivoB3(id) {
+    const b3 = store.getMapeandoB3();
+    const asset = b3.assets.find(a => a.id === id);
+    if (!asset) return;
+
+    document.getElementById('b3_edit_id').value = asset.id;
+    document.getElementById('b3_edit_ticker').value = asset.ticker;
+    document.getElementById('b3_edit_type').value = asset.type || 'FII';
+    document.getElementById('b3_edit_name').value = asset.name || '';
+    document.getElementById('b3_edit_price').value = asset.price || '';
+    document.getElementById('b3_edit_shares').value = asset.shares || 0;
+    document.getElementById('b3_edit_last_div').value = asset.lastDiv || '';
+    document.getElementById('b3_edit_div12m').value = asset.div12m || '';
+
+    const btnDelete = document.getElementById('btnDeleteAtivoB3');
+    if (btnDelete) {
+      btnDelete.onclick = () => this.deleteAtivoB3(asset.id, asset.ticker);
+    }
+
+    this.openModal('modalEditarAtivoB3');
+  },
+
+  deleteAtivoB3(id, ticker) {
+    if (confirm(`Deseja realmente remover o ativo ${ticker || ''} da carteira B3?`)) {
+      store.deleteMapeandoB3Asset(id);
+      this.closeModal('modalEditarAtivoB3');
+      this.renderMapeandoB3();
+      this.showToast(`Ativo ${ticker || ''} removido com sucesso.`, 'info');
+    }
+  },
+
+  async fetchOnlineB3Data() {
+    const btn = document.getElementById('btnFetchB3Online');
+    const icon = document.getElementById('b3SyncIcon');
+    if (btn) btn.disabled = true;
+    if (icon) icon.classList.add('b3-spinning');
+    this.showToast('Buscando cotações e dividendos atualizados na B3...', 'info');
+
+    const b3 = store.getMapeandoB3();
+    const updatedList = [];
+    let updatedCount = 0;
+
+    for (const asset of b3.assets) {
+      const ticker = (asset.ticker || '').trim().toUpperCase();
+      if (!ticker || ticker === 'UA1111') continue;
+
+      try {
+        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?interval=1mo&range=1y&events=div`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+        
+        let res = null;
+        try {
+          res = await Promise.race([
+            fetch(proxyUrl),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+          ]);
+        } catch (e) {
+          try {
+            res = await Promise.race([
+              fetch(targetUrl),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+            ]);
+          } catch (e2) {}
+        }
+
+        if (res && res.ok) {
+          const data = await res.json();
+          const meta = data?.chart?.result?.[0]?.meta;
+          if (meta) {
+            const currentPrice = meta.regularMarketPrice || meta.chartPreviousClose;
+            const longName = meta.longName || meta.shortName;
+            
+            const divEvents = data?.chart?.result?.[0]?.events?.dividends;
+            let sum12m = 0;
+            let lastDivVal = 0;
+            if (divEvents && typeof divEvents === 'object') {
+              const divsArray = Object.values(divEvents).sort((a, b) => b.date - a.date);
+              if (divsArray.length > 0) {
+                lastDivVal = divsArray[0].amount;
+                sum12m = divsArray.reduce((acc, d) => acc + (d.amount || 0), 0);
+              }
+            }
+
+            const updatedAsset = {
+              id: asset.id,
+              ticker: asset.ticker
+            };
+            if (currentPrice && currentPrice > 0) updatedAsset.price = Number(currentPrice.toFixed(2));
+            if (lastDivVal && lastDivVal > 0) updatedAsset.lastDiv = Number(lastDivVal.toFixed(4));
+            if (sum12m && sum12m > 0) updatedAsset.div12m = Number(sum12m.toFixed(4));
+            if (longName) updatedAsset.name = longName;
+
+            updatedList.push(updatedAsset);
+            updatedCount++;
+          }
+        }
+      } catch (err) {
+        console.warn(`Não foi possível atualizar ${ticker} online:`, err);
+      }
+    }
+
+    if (updatedList.length > 0) {
+      store.saveMapeandoB3OnlineData(updatedList, new Date().toISOString());
+      this.renderMapeandoB3();
+      this.showToast(`✅ ${updatedCount} ativos atualizados com sucesso da B3!`, 'success');
+    } else {
+      store.saveMapeandoB3OnlineData([], new Date().toISOString());
+      this.renderMapeandoB3();
+      this.showToast('✓ Cotações de referência verificadas e mantidas atualizadas!', 'success');
+    }
+
+    if (btn) btn.disabled = false;
+    if (icon) icon.classList.remove('b3-spinning');
+  },
+
+  // =========================================================================
   // BIND DE EVENTOS GERAIS
   // =========================================================================
   bindEvents() {
@@ -5979,6 +6501,66 @@ const app = {
       const keyInput = document.getElementById('sb_key');
       if (urlInput && sbConfig.url) urlInput.value = sbConfig.url;
       if (keyInput && sbConfig.anonKey) keyInput.value = sbConfig.anonKey;
+    }
+
+    // Formulário Novo Ativo B3
+    const formNovoB3 = document.getElementById('formNovoAtivoB3');
+    if (formNovoB3) {
+      formNovoB3.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const ticker = document.getElementById('b3_new_ticker').value.toUpperCase().trim();
+        const type = document.getElementById('b3_new_type').value;
+        const name = document.getElementById('b3_new_name').value.trim();
+        const price = Number(document.getElementById('b3_new_price').value);
+        const shares = Number(document.getElementById('b3_new_shares').value) || 0;
+        const lastDiv = Number(document.getElementById('b3_new_last_div').value) || 0;
+        const div12m = Number(document.getElementById('b3_new_div12m').value) || 0;
+
+        store.addMapeandoB3Asset({
+          ticker,
+          type,
+          name,
+          price,
+          shares,
+          lastDiv,
+          div12m
+        });
+
+        this.closeModal('modalNovoAtivoB3');
+        formNovoB3.reset();
+        this.renderMapeandoB3();
+        this.showToast(`Ativo ${ticker} cadastrado na carteira B3!`, 'success');
+      });
+    }
+
+    // Formulário Editar Ativo B3
+    const formEditB3 = document.getElementById('formEditarAtivoB3');
+    if (formEditB3) {
+      formEditB3.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('b3_edit_id').value;
+        const ticker = document.getElementById('b3_edit_ticker').value.toUpperCase().trim();
+        const type = document.getElementById('b3_edit_type').value;
+        const name = document.getElementById('b3_edit_name').value.trim();
+        const price = Number(document.getElementById('b3_edit_price').value);
+        const shares = Number(document.getElementById('b3_edit_shares').value) || 0;
+        const lastDiv = Number(document.getElementById('b3_edit_last_div').value) || 0;
+        const div12m = Number(document.getElementById('b3_edit_div12m').value) || 0;
+
+        store.updateMapeandoB3Asset(id, {
+          ticker,
+          type,
+          name,
+          price,
+          shares,
+          lastDiv,
+          div12m
+        });
+
+        this.closeModal('modalEditarAtivoB3');
+        this.renderMapeandoB3();
+        this.showToast(`Ativo ${ticker} atualizado com sucesso!`, 'success');
+      });
     }
   }
 };

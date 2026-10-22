@@ -21,7 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Estilos Executivos -->
-  <link rel="stylesheet" href="css/styles.css?v=20261017j">
+  <link rel="stylesheet" href="css/styles.css?v=20261022b3">
 
   <!-- Chart.js para Gráficos Interativos de Investimentos -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -161,6 +161,13 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           </span>
           <span>Resumo</span>
+        </div>
+
+        <div class="nav-item" data-tab="mapeandob3">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </span>
+          <span>MAPEANDO B3</span>
         </div>
       </nav>
 
@@ -347,6 +354,13 @@
             </div>
           </div>
 
+        </section>
+
+        <!-- ====================================================================
+             1.1 PÁGINA: MAPEANDO B3 (LEVANTAMENTO ONLINE DE DIVIDENDOS & CARTEIRA)
+             ==================================================================== -->
+        <section id="view-mapeandob3" class="page-view">
+          <div id="mapeandoB3Container"></div>
         </section>
 
         <!-- ====================================================================
@@ -2623,6 +2637,134 @@
     </div>
   </div>
 
+  <!-- Modal: Novo Ativo Mapeando B3 -->
+  <div id="modalNovoAtivoB3" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">📈 Adicionar Ativo à Carteira B3</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalNovoAtivoB3')">✕</button>
+      </div>
+      <form id="formNovoAtivoB3">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Ticker / Código *</label>
+              <input type="text" id="b3_new_ticker" class="form-input" required placeholder="Ex: MXRF11, BBAS3" style="text-transform: uppercase; font-weight:700;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo de Ativo *</label>
+              <select id="b3_new_type" class="form-select" required>
+                <option value="FII">Fundo Imobiliário (FII)</option>
+                <option value="Ação">Ação (B3)</option>
+                <option value="Fiagro">Fiagro</option>
+                <option value="ETF">ETF</option>
+                <option value="BDR">BDR</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nome do Ativo / Razão Social</label>
+            <input type="text" id="b3_new_name" class="form-input" placeholder="Ex: Maxi Renda Fundo de Investimento Imob.">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Preço Atual (R$) *</label>
+              <input type="number" step="0.01" min="0.01" id="b3_new_price" class="form-input" required placeholder="Ex: 9.42">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Minhas Cotas na Carteira</label>
+              <input type="number" step="1" min="0" id="b3_new_shares" class="form-input" placeholder="0" value="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Último Dividendo Pago (R$)</label>
+              <input type="number" step="0.0001" min="0" id="b3_new_last_div" class="form-input" placeholder="Ex: 0.10">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dividendos 12 Meses (R$) *</label>
+              <input type="number" step="0.0001" min="0" id="b3_new_div12m" class="form-input" required placeholder="Ex: 1.19">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalNovoAtivoB3')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Cadastrar Ativo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Editar Ativo Mapeando B3 -->
+  <div id="modalEditarAtivoB3" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Editar Ativo B3</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalEditarAtivoB3')">✕</button>
+      </div>
+      <form id="formEditarAtivoB3">
+        <input type="hidden" id="b3_edit_id">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Ticker / Código *</label>
+              <input type="text" id="b3_edit_ticker" class="form-input" required style="text-transform: uppercase; font-weight:700;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo de Ativo *</label>
+              <select id="b3_edit_type" class="form-select" required>
+                <option value="FII">Fundo Imobiliário (FII)</option>
+                <option value="Ação">Ação (B3)</option>
+                <option value="Fiagro">Fiagro</option>
+                <option value="ETF">ETF</option>
+                <option value="BDR">BDR</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nome do Ativo</label>
+            <input type="text" id="b3_edit_name" class="form-input">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Preço Atual (R$) *</label>
+              <input type="number" step="0.01" min="0.01" id="b3_edit_price" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Minhas Cotas na Carteira</label>
+              <input type="number" step="1" min="0" id="b3_edit_shares" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Último Dividendo Pago (R$)</label>
+              <input type="number" step="0.0001" min="0" id="b3_edit_last_div" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dividendos 12 Meses (R$) *</label>
+              <input type="number" step="0.0001" min="0" id="b3_edit_div12m" class="form-input" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="display:flex; justify-content:space-between;">
+          <button type="button" class="btn-danger-outline" id="btnDeleteAtivoB3" style="border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.1); border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer;">Excluir Ativo</button>
+          <div style="display:flex; gap:0.5rem;">
+            <button type="button" class="btn-header" onclick="app.closeModal('modalEditarAtivoB3')">Cancelar</button>
+            <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Alterações</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal: Configuração do Supabase (Cofre na Nuvem) -->
   <div id="modalConfigSupabase" class="modal-overlay">
     <div class="modal-dialog">
@@ -2743,8 +2885,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261021login"></script>
-  <script src="js/supabase.js?v=20261021login"></script>
-  <script src="js/app.js?v=20261021login"></script>
+  <script src="js/data.js?v=20261022b3"></script>
+  <script src="js/supabase.js?v=20261022b3"></script>
+  <script src="js/app.js?v=20261022b3"></script>
 </body>
 </html>
