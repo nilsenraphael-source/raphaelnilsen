@@ -776,12 +776,21 @@ class DataStore {
     const totalRevenuesPending = m.revenues.filter(r => r.status === 'Pendente').reduce((acc, r) => acc + (Number(r.value) || 0), 0);
 
     const fixedExpected = m.fixedExpenses.reduce((acc, e) => acc + (Number(e.valueExpected) || 0), 0);
-    const totalFixed = m.fixedExpenses.reduce((acc, e) => acc + (e.status === 'Pago' ? (Number(e.valuePaid) || Number(e.valueExpected) || 0) : (Number(e.valueExpected) || 0)), 0);
-    const fixedPaid = m.fixedExpenses.filter(e => e.status === 'Pago').reduce((acc, e) => acc + (Number(e.valuePaid) || Number(e.valueExpected) || 0), 0);
+    const totalFixed = m.fixedExpenses.reduce((acc, e) => {
+      if (e.status === 'Pago') {
+        const vp = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : (Number(e.valueExpected) || 0);
+        return acc + vp;
+      }
+      return acc + (Number(e.valueExpected) || 0);
+    }, 0);
+    const fixedPaid = m.fixedExpenses.filter(e => e.status === 'Pago').reduce((acc, e) => {
+      const vp = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : (Number(e.valueExpected) || 0);
+      return acc + vp;
+    }, 0);
     const fixedPending = m.fixedExpenses.filter(e => e.status !== 'Pago').reduce((acc, e) => acc + (Number(e.valueExpected) || 0), 0);
     const fixedCount = m.fixedExpenses.length;
     const fixedPaidCount = m.fixedExpenses.filter(e => e.status === 'Pago').length;
-    const fixedPct = fixedCount === 0 ? 100 : (totalFixed > 0 ? Math.min(100, Math.round((fixedPaid / totalFixed) * 100)) : (fixedPaidCount === fixedCount ? 100 : 0));
+    const fixedPct = fixedCount === 0 ? 100 : Math.round((fixedPaidCount / fixedCount) * 100);
 
     const totalVariable = m.variableExpenses.reduce((acc, e) => acc + (Number(e.value) || 0), 0);
     

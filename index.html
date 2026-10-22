@@ -1737,17 +1737,17 @@
       <form id="formNovaDespesaFixa">
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">Conta / Descrição *</label>
-            <input type="text" id="fix_desc" class="form-input" required placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
+            <label class="form-label">Conta / Descrição</label>
+            <input type="text" id="fix_desc" class="form-input" placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
           </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Dia do Vencimento *</label>
-              <input type="number" id="fix_due_day" min="1" max="31" class="form-input" required placeholder="Ex: 10" style="font-weight: 700; font-size: 1.05rem;">
+              <label class="form-label">Dia do Vencimento</label>
+              <input type="number" id="fix_due_day" min="1" max="31" class="form-input" placeholder="Ex: 10" style="font-weight: 700; font-size: 1.05rem;">
             </div>
             <div class="form-group">
-              <label class="form-label">Valor Previsto (R$) *</label>
-              <input type="text" inputmode="decimal" id="fix_val_exp" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
+              <label class="form-label">Valor Previsto (R$)</label>
+              <input type="text" inputmode="decimal" id="fix_val_exp" class="form-input" placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
           </div>
           <div class="form-grid-2">
@@ -1818,16 +1818,16 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Conta / Descrição</label>
-            <input type="text" id="edit_fix_desc" class="form-input" required placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
+            <input type="text" id="edit_fix_desc" class="form-input" placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
           </div>
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label">Dia do Vencimento</label>
-              <input type="number" id="edit_fix_due_day" min="1" max="31" class="form-input" required placeholder="Ex: 10" style="font-weight: 700;">
+              <input type="number" id="edit_fix_due_day" min="1" max="31" class="form-input" placeholder="Ex: 10" style="font-weight: 700;">
             </div>
             <div class="form-group">
               <label class="form-label">Valor Previsto (R$)</label>
-              <input type="text" inputmode="decimal" id="edit_fix_val_exp" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
+              <input type="text" inputmode="decimal" id="edit_fix_val_exp" class="form-input" placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
           </div>
           <div class="form-grid-2">
@@ -2885,8 +2885,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261022b3"></script>
-  <script src="js/supabase.js?v=20261022b3"></script>
-  <script src="js/app.js?v=20261022b3"></script>
+  <script src="js/data.js?v=20261022b3_fix"></script>
+  <script src="js/supabase.js?v=20261022b3_fix"></script>
+  <script src="js/app.js?v=20261022b3_fix"></script>
 </body>
 </html>

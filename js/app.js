@@ -1222,12 +1222,7 @@ const app = {
               ` : m.fixedExpenses.map(e => {
                 const isPaid = (e.status === 'Pago');
                 const valExp = Number(e.valueExpected) || 0;
-                let valPaid = Number(e.valuePaid) || 0;
-
-                // Se já está pago e o valor realizado não foi preenchido, assume o valor previsto
-                if (isPaid && valPaid === 0) {
-                  valPaid = valExp;
-                }
+                let valPaid = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : 0;
 
                 // Cálculo de vencimento por dia e alerta de atraso
                 const dDay = Number(e.dueDay) || (e.dueDate ? parseInt(e.dueDate.split('-')[2], 10) : 1);
@@ -1291,10 +1286,10 @@ const app = {
                     <div style="display:flex; align-items:center; gap:0.35rem;">
                       <span class="currency-symbol" style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">R$</span>
                       <input type="text" inputmode="decimal" 
-                             class="sheet-inline-input sheet-value-input ${valPaid > 0 ? 'has-value' : ''}" 
-                             value="${valPaid > 0 ? formatMoneyDisplay(valPaid) : ''}" 
+                             class="sheet-inline-input sheet-value-input ${(isPaid || valPaid > 0) ? 'has-value' : ''}" 
+                             value="${isPaid ? formatMoneyDisplay(valPaid) : (valPaid > 0 ? formatMoneyDisplay(valPaid) : '')}" 
                              placeholder="0,00" 
-                             title="Altere o valor realizado diretamente na tabela (ex: 150,00)"
+                             title="Altere o valor realizado diretamente na tabela (ex: 0,00 ou 150,00)"
                              onfocus="this.select()"
                              onblur="app.handleInlineFixedExpenseValueBlur(this, ${this.activeMonth}, '${e.id}')"
                              onkeydown="if(event.key==='Enter') this.blur()">
@@ -1563,10 +1558,26 @@ const app = {
 
   handleInlineFixedExpenseValueBlur(inputEl, monthNum, id) {
     if (!inputEl) return;
-    const num = parseMoney(inputEl.value);
-    inputEl.value = num > 0 ? formatMoneyDisplay(num) : '';
-    if (num > 0) inputEl.classList.add('has-value');
-    else inputEl.classList.remove('has-value');
+    const raw = (inputEl.value || '').trim();
+    const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
+    if (!expense) return;
+
+    if (raw === '') {
+      if (expense.status === 'Pago') {
+        inputEl.value = '0,00';
+        inputEl.classList.add('has-value');
+        this.updateFixedExpenseField(monthNum, id, 'valuePaid', 0);
+      } else {
+        inputEl.value = '';
+        inputEl.classList.remove('has-value');
+        this.updateFixedExpenseField(monthNum, id, 'valuePaid', 0);
+      }
+      return;
+    }
+
+    const num = parseMoney(raw);
+    inputEl.value = formatMoneyDisplay(num);
+    inputEl.classList.add('has-value');
     this.updateFixedExpenseField(monthNum, id, 'valuePaid', num);
   },
 
@@ -1578,11 +1589,11 @@ const app = {
       const newVal = typeof value === 'number' ? value : parseMoney(value);
       expense.valuePaid = newVal;
 
+      // Se o usuário digitou um valor positivo e não estava Pago, marca como Pago
       if (newVal > 0 && expense.status !== 'Pago') {
         expense.status = 'Pago';
-      } else if (newVal === 0 && expense.status === 'Pago') {
-        expense.status = 'Pendente';
       }
+      // Se newVal === 0 e status for Pago, MANTÉM PAGO (autorizado pagamento de outra forma com custo R$ 0,00)
 
       store.save();
       this.renderMeses();
@@ -1592,9 +1603,9 @@ const app = {
       if (expense.status === 'Pago' && newVal > valExp) {
         this.showToast(`Valor realizado: ${formatBRL(newVal)} (Acima do previsto!)`, 'warning');
       } else if (expense.status === 'Pago') {
-        this.showToast(`Valor realizado atualizado: ${formatBRL(newVal)}`, 'success');
+        this.showToast(`Valor realizado: ${formatBRL(newVal)} (Status: Pago)`, 'success');
       } else {
-        this.showToast('Valor realizado removido (Despesa marcada como Pendente).', 'info');
+        this.showToast(`Valor realizado atualizado: ${formatBRL(newVal)}`, 'info');
       }
       return;
     }
@@ -1780,8 +1791,8 @@ const app = {
     document.getElementById('edit_fix_desc').value = expense.description || '';
     const dDay = expense.dueDay || (expense.dueDate ? parseInt(expense.dueDate.split('-')[2], 10) : 1);
     document.getElementById('edit_fix_due_day').value = dDay;
-    document.getElementById('edit_fix_val_exp').value = formatMoneyDisplay(expense.valueExpected);
-    document.getElementById('edit_fix_val_paid').value = expense.valuePaid ? formatMoneyDisplay(expense.valuePaid) : '';
+    document.getElementById('edit_fix_val_exp').value = formatMoneyDisplay(expense.valueExpected || 0);
+    document.getElementById('edit_fix_val_paid').value = (expense.valuePaid !== undefined && expense.valuePaid !== null && expense.valuePaid !== '') ? formatMoneyDisplay(expense.valuePaid) : '';
     document.getElementById('edit_fix_status').value = expense.status || 'Pendente';
     document.getElementById('edit_fix_bank').value = expense.bank || '';
 
@@ -1793,11 +1804,10 @@ const app = {
     if (expense) {
       if (expense.status === 'Pago') {
         expense.status = 'Pendente';
-        expense.valuePaid = 0;
       } else {
         expense.status = 'Pago';
-        if (!expense.valuePaid || Number(expense.valuePaid) === 0) {
-          expense.valuePaid = expense.valueExpected;
+        if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '') {
+          expense.valuePaid = expense.valueExpected || 0;
         }
       }
       store.save();
@@ -6019,14 +6029,17 @@ const app = {
     if (formFix) {
       formFix.addEventListener('submit', (e) => {
         e.preventDefault();
-        const desc = document.getElementById('fix_desc').value.trim();
-        const dueDay = Math.min(31, Math.max(1, parseInt(document.getElementById('fix_due_day').value, 10) || 1));
-        const valExpected = parseMoney(document.getElementById('fix_val_exp').value);
+        const desc = document.getElementById('fix_desc').value.trim() || 'Despesa Fixa';
+        const dueDayInput = document.getElementById('fix_due_day').value.trim();
+        const dueDay = dueDayInput ? Math.min(31, Math.max(1, parseInt(dueDayInput, 10) || 10)) : 10;
+        const valExpected = parseMoney(document.getElementById('fix_val_exp').value) || 0;
         const valPaidRaw = document.getElementById('fix_val_paid').value.trim();
-        const status = document.getElementById('fix_status').value;
-        let valPaid = parseMoney(valPaidRaw);
-        if (status === 'Pago' && !valPaidRaw) {
-          valPaid = valExpected;
+        const status = document.getElementById('fix_status').value || 'Pendente';
+        let valPaid = 0;
+        if (valPaidRaw !== '') {
+          valPaid = parseMoney(valPaidRaw);
+        } else if (status === 'Pago') {
+          valPaid = 0;
         }
 
         // Seleção de Meses (idêntico ao Rendimento / Receita)
@@ -6066,14 +6079,17 @@ const app = {
         e.preventDefault();
         const monthNum = Number(document.getElementById('edit_fix_month').value) || this.activeMonth;
         const id = document.getElementById('edit_fix_id').value;
-        const desc = document.getElementById('edit_fix_desc').value.trim();
-        const dueDay = Math.min(31, Math.max(1, parseInt(document.getElementById('edit_fix_due_day').value, 10) || 1));
-        const valExpected = parseMoney(document.getElementById('edit_fix_val_exp').value);
+        const desc = document.getElementById('edit_fix_desc').value.trim() || 'Despesa Fixa';
+        const dueDayInput = document.getElementById('edit_fix_due_day').value.trim();
+        const dueDay = dueDayInput ? Math.min(31, Math.max(1, parseInt(dueDayInput, 10) || 10)) : 10;
+        const valExpected = parseMoney(document.getElementById('edit_fix_val_exp').value) || 0;
         const valPaidRaw = document.getElementById('edit_fix_val_paid').value.trim();
-        const status = document.getElementById('edit_fix_status').value;
-        let valPaid = parseMoney(valPaidRaw);
-        if (status === 'Pago' && !valPaidRaw) {
-          valPaid = valExpected;
+        const status = document.getElementById('edit_fix_status').value || 'Pendente';
+        let valPaid = 0;
+        if (valPaidRaw !== '') {
+          valPaid = parseMoney(valPaidRaw);
+        } else if (status === 'Pago') {
+          valPaid = 0;
         }
 
         const updated = {
