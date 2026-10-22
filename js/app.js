@@ -8,6 +8,7 @@ function formatBRL(val) {
   const num = Number(val) || 0;
   return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
+const formatCurrency = formatBRL;
 
 // Formatador Monetário Brasileiro para Inputs e Planilha (ex: 200 -> "200,00", 1500.5 -> "1.500,50")
 function formatMoneyDisplay(val) {
@@ -5347,381 +5348,393 @@ const app = {
     const container = document.getElementById('mapeandoB3Container');
     if (!container) return;
 
-    const b3 = store.getMapeandoB3();
-    const assets = [...b3.assets];
+    try {
+      const b3 = store.getMapeandoB3();
+      const assets = (b3 && Array.isArray(b3.assets)) ? [...b3.assets] : [];
 
-    // Ranking dos Ativos por Dividend Yield Real dos últimos 12 meses
-    const rankedAssets = [...assets].sort((a, b) => (Number(b.dy) || 0) - (Number(a.dy) || 0));
-    const topOpportunity = rankedAssets[0];
+      // Ranking dos Ativos por Dividend Yield Real dos últimos 12 meses
+      const rankedAssets = [...assets].sort((a, b) => (Number(b.dy) || 0) - (Number(a.dy) || 0));
+      const topOpportunity = rankedAssets[0];
 
-    // Média de DY do radar
-    let avgDY = 0;
-    if (assets.length > 0) {
-      const sumDY = assets.reduce((acc, a) => acc + (Number(a.dy) || 0), 0);
-      avgDY = sumDY / assets.length;
-    }
-
-    // Data/hora da última atualização
-    let lastUpdatedText = 'Cotações de Referência da B3';
-    if (b3.lastUpdated) {
-      try {
-        const dt = new Date(b3.lastUpdated);
-        lastUpdatedText = `Atualizado em ${dt.toLocaleDateString('pt-BR')} às ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-      } catch (e) {}
-    }
-
-    // Métricas do Top 1 (Melhor Opção Hoje)
-    let topPrice = 0, topDy = 0, topLastDiv = 0, topDiv12m = 0, topType = 'FII', topChange = 0;
-    let magicNumberTop = 0, magicCostTop = 0, monthlyTop1000 = 0, annualTop1000 = 0;
-
-    if (topOpportunity) {
-      topPrice = Number(topOpportunity.price) || 0;
-      topDy = Number(topOpportunity.dy) || 0;
-      topLastDiv = Number(topOpportunity.lastDiv) || 0;
-      topDiv12m = Number(topOpportunity.div12m) || 0;
-      topType = topOpportunity.type || 'FII';
-      topChange = Number(topOpportunity.change) || 0;
-
-      if (topPrice > 0 && topLastDiv > 0) {
-        magicNumberTop = Math.ceil(topPrice / topLastDiv);
-        magicCostTop = magicNumberTop * topPrice;
-        monthlyTop1000 = (1000 / topPrice) * topLastDiv;
-        annualTop1000 = (1000 / topPrice) * topDiv12m;
+      // Média de DY do radar
+      let avgDY = 0;
+      if (assets.length > 0) {
+        const sumDY = assets.reduce((acc, a) => acc + (Number(a.dy) || 0), 0);
+        avgDY = sumDY / assets.length;
       }
-    }
 
-    // HTML da View
-    let html = `
-      <div class="b3-dashboard-header">
-        <div class="b3-title-wrap">
-          <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-            <h2 class="b3-main-title" style="margin:0; font-size:1.55rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.5rem;">
-              <span>📊</span> MAPEANDO B3
-            </h2>
-            <span class="b3-tag-live">● RADAR ONLINE DE OPORTUNIDADES</span>
+      // Data/hora da última atualização
+      let lastUpdatedText = 'Cotações de Referência da B3';
+      if (b3 && b3.lastUpdated) {
+        try {
+          const dt = new Date(b3.lastUpdated);
+          lastUpdatedText = `Atualizado em ${dt.toLocaleDateString('pt-BR')} às ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+        } catch (e) {}
+      }
+
+      // Métricas do Top 1 (Melhor Opção Hoje)
+      let topPrice = 0, topDy = 0, topLastDiv = 0, topDiv12m = 0, topType = 'FII', topChange = 0;
+      let magicNumberTop = 0, magicCostTop = 0, monthlyTop1000 = 0, annualTop1000 = 0;
+
+      if (topOpportunity) {
+        topPrice = Number(topOpportunity.price) || 0;
+        topDy = Number(topOpportunity.dy) || 0;
+        topLastDiv = Number(topOpportunity.lastDiv) || 0;
+        topDiv12m = Number(topOpportunity.div12m) || 0;
+        topType = topOpportunity.type || 'FII';
+        topChange = Number(topOpportunity.change) || 0;
+
+        if (topPrice > 0 && topLastDiv > 0) {
+          magicNumberTop = Math.ceil(topPrice / topLastDiv);
+          magicCostTop = magicNumberTop * topPrice;
+          monthlyTop1000 = (1000 / topPrice) * topLastDiv;
+          annualTop1000 = (1000 / topPrice) * topDiv12m;
+        }
+      }
+
+      // HTML da View
+      let html = `
+        <div class="b3-dashboard-header">
+          <div class="b3-title-wrap">
+            <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+              <h2 class="b3-main-title" style="margin:0; font-size:1.55rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.5rem;">
+                <span>📊</span> MAPEANDO B3
+              </h2>
+              <span class="b3-tag-live">● RADAR ONLINE DE OPORTUNIDADES</span>
+            </div>
+            <p class="b3-sub-title" style="margin:0.35rem 0 0 0; font-size:0.88rem; color:var(--text-muted);">
+              Levantamento online de cotações e dividendos da B3. Ranking automático da melhor opção para comprar hoje com o seu dinheiro.
+            </p>
+            <div style="margin-top:0.4rem; font-size:0.78rem; color:#94a3b8; display:flex; align-items:center; gap:0.4rem;">
+              <span>🕒 ${lastUpdatedText}</span>
+            </div>
           </div>
-          <p class="b3-sub-title" style="margin:0.35rem 0 0 0; font-size:0.88rem; color:var(--text-muted);">
-            Levantamento online de cotações e dividendos da B3. Ranking automático da melhor opção para comprar hoje com o seu dinheiro.
-          </p>
-          <div style="margin-top:0.4rem; font-size:0.78rem; color:#94a3b8; display:flex; align-items:center; gap:0.4rem;">
-            <span>🕒 ${lastUpdatedText}</span>
+
+          <div class="b3-actions-wrap" style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+            <button id="btnFetchB3Online" class="btn-primary" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border:none; padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:8px; display:flex; align-items:center; gap:0.45rem; cursor:pointer;" onclick="app.fetchOnlineB3Data()">
+              <span id="b3SyncIcon">🔄</span> Atualizar Cotações Online
+            </button>
+            <button class="btn-header" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffffff; padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:8px; display:flex; align-items:center; gap:0.45rem; cursor:pointer;" onclick="app.openModalNovoAtivoB3()">
+              <span>➕</span> Monitorar Novo Ativo
+            </button>
           </div>
         </div>
 
-        <div class="b3-actions-wrap" style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
-          <button id="btnFetchB3Online" class="btn-primary" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border:none; padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:8px; display:flex; align-items:center; gap:0.45rem; cursor:pointer;" onclick="app.fetchOnlineB3Data()">
-            <span id="b3SyncIcon">🔄</span> Atualizar Cotações Online
-          </button>
-          <button class="btn-header" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffffff; padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:8px; display:flex; align-items:center; gap:0.45rem; cursor:pointer;" onclick="app.openModalNovoAtivoB3()">
-            <span>➕</span> Monitorar Novo Ativo
-          </button>
+        <!-- CARDS DE METRICAS DO RADAR DE MERCADO -->
+        <div class="b3-metrics-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin:1.25rem 0;">
+          <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(148,163,184,0.15); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+            <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#94a3b8; letter-spacing:0.5px;">Ativos Monitorados</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#38bdf8; margin:0.35rem 0;">${assets.length} Ativos</div>
+            <div style="font-size:0.78rem; color:#cbd5e1;">Ações & Fundos Imobiliários da B3</div>
+          </div>
+
+          <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(16,185,129,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+            <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#34d399; letter-spacing:0.5px;">Melhor Dividend Yield Hoje</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#10b981; margin:0.35rem 0;">${topDy.toFixed(2)}%<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;"> a.a.</span></div>
+            <div style="font-size:0.78rem; color:#94a3b8;">Líder de Retorno: <strong style="color:#34d399;">${topOpportunity ? topOpportunity.ticker : '-'}</strong></div>
+          </div>
+
+          <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+            <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#fbbf24; letter-spacing:0.5px;">Maior Renda p/ R$ 1.000</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#f59e0b; margin:0.35rem 0;">${formatBRL(monthlyTop1000)}<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;">/mês</span></div>
+            <div style="font-size:0.78rem; color:#94a3b8;">${formatBRL(annualTop1000)}/ano com ${topOpportunity ? topOpportunity.ticker : '-'}</div>
+          </div>
+
+          <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(168,85,247,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
+            <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#c084fc; letter-spacing:0.5px;">Média DY do Radar</div>
+            <div style="font-size:1.6rem; font-weight:800; color:#a855f7; margin:0.35rem 0;">${avgDY.toFixed(2)}%<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;"> a.a.</span></div>
+            <div style="font-size:0.78rem; color:#94a3b8;">Média geral dos proventos monitorados</div>
+          </div>
         </div>
-      </div>
+      `;
 
-      <!-- CARDS DE METRICAS DO RADAR DE MERCADO -->
-      <div class="b3-metrics-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin:1.25rem 0;">
-        <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(148,163,184,0.15); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#94a3b8; letter-spacing:0.5px;">Ativos Monitorados</div>
-          <div style="font-size:1.6rem; font-weight:800; color:#38bdf8; margin:0.35rem 0;">${assets.length} Ativos</div>
-          <div style="font-size:0.78rem; color:#cbd5e1;">Ações & Fundos Imobiliários da B3</div>
-        </div>
+      // VIP CARD: MELHOR OPÇÃO PARA COMPRAR HOJE
+      if (topOpportunity) {
+        const topChangeBadge = topChange !== 0 ? `
+          <span style="font-size:0.8rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; background:${topChange > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${topChange > 0 ? '#34d399' : '#f87171'};">
+            ${topChange > 0 ? '▲ +' : '▼ '}${topChange.toFixed(2)}% hoje
+          </span>
+        ` : '';
 
-        <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(16,185,129,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#34d399; letter-spacing:0.5px;">Melhor Dividend Yield Hoje</div>
-          <div style="font-size:1.6rem; font-weight:800; color:#10b981; margin:0.35rem 0;">${topDy.toFixed(2)}%<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;"> a.a.</span></div>
-          <div style="font-size:0.78rem; color:#94a3b8;">Líder de Retorno: <strong style="color:#34d399;">${topOpportunity ? topOpportunity.ticker : '-'}</strong></div>
-        </div>
-
-        <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#fbbf24; letter-spacing:0.5px;">Maior Renda p/ R$ 1.000</div>
-          <div style="font-size:1.6rem; font-weight:800; color:#f59e0b; margin:0.35rem 0;">${formatCurrency(monthlyTop1000)}<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;">/mês</span></div>
-          <div style="font-size:0.78rem; color:#94a3b8;">${formatCurrency(annualTop1000)}/ano com ${topOpportunity ? topOpportunity.ticker : '-'}</div>
-        </div>
-
-        <div class="b3-metric-card" style="background:linear-gradient(145deg, #1e293b, #0f172a); border:1px solid rgba(168,85,247,0.25); border-radius:12px; padding:1.15rem 1.25rem; box-shadow:0 4px 15px rgba(0,0,0,0.2);">
-          <div style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:#c084fc; letter-spacing:0.5px;">Média DY do Radar</div>
-          <div style="font-size:1.6rem; font-weight:800; color:#a855f7; margin:0.35rem 0;">${avgDY.toFixed(2)}%<span style="font-size:0.85rem; font-weight:500; color:#94a3b8;"> a.a.</span></div>
-          <div style="font-size:0.78rem; color:#94a3b8;">Média geral dos proventos monitorados</div>
-        </div>
-      </div>
-    `;
-
-    // VIP CARD: MELHOR OPÇÃO PARA COMPRAR HOJE
-    if (topOpportunity) {
-      const topChangeBadge = topChange !== 0 ? `
-        <span style="font-size:0.8rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; background:${topChange > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${topChange > 0 ? '#34d399' : '#f87171'};">
-          ${topChange > 0 ? '▲ +' : '▼ '}${topChange.toFixed(2)}% hoje
-        </span>
-      ` : '';
-
-      html += `
-        <div class="b3-best-pick-banner" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(14, 165, 233, 0.09) 100%); border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 14px; padding: 1.35rem 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 8px 24px rgba(0,0,0,0.25); position: relative; overflow: hidden;">
-          <div style="position: absolute; right: -20px; top: -20px; font-size: 8rem; opacity: 0.05; pointer-events: none;">🏆</div>
-          
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
-            <div>
-              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
-                <span style="background: linear-gradient(135deg, #10b981, #059669); color:#ffffff; font-weight:800; font-size:0.75rem; padding:0.25rem 0.75rem; border-radius:20px; letter-spacing:0.5px;">🏆 MELHOR OPÇÃO PARA COMPRAR HOJE</span>
-                <span style="background: rgba(255,255,255,0.1); color:#e2e8f0; font-weight:600; font-size:0.72rem; padding:0.25rem 0.6rem; border-radius:20px;">Top 1 Dividend Yield B3</span>
-                ${topChangeBadge}
+        html += `
+          <div class="b3-best-pick-banner" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(14, 165, 233, 0.09) 100%); border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 14px; padding: 1.35rem 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 8px 24px rgba(0,0,0,0.25); position: relative; overflow: hidden;">
+            <div style="position: absolute; right: -20px; top: -20px; font-size: 8rem; opacity: 0.05; pointer-events: none;">🏆</div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+              <div>
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+                  <span style="background: linear-gradient(135deg, #10b981, #059669); color:#ffffff; font-weight:800; font-size:0.75rem; padding:0.25rem 0.75rem; border-radius:20px; letter-spacing:0.5px;">🏆 MELHOR OPÇÃO PARA COMPRAR HOJE</span>
+                  <span style="background: rgba(255,255,255,0.1); color:#e2e8f0; font-weight:600; font-size:0.72rem; padding:0.25rem 0.6rem; border-radius:20px;">Top 1 Dividend Yield B3</span>
+                  ${topChangeBadge}
+                </div>
+                <h3 style="margin:0; font-size:1.65rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.6rem;">
+                  <span style="color:#34d399;">${topOpportunity.ticker}</span>
+                  <span style="font-size:0.95rem; font-weight:500; color:#94a3b8;">${topOpportunity.name || ''}</span>
+                  <span class="b3-type-pill ${topType.toLowerCase()}">${topType}</span>
+                </h3>
+                <p style="margin:0.4rem 0 0 0; font-size:0.9rem; color:#cbd5e1; max-width:700px; line-height:1.45;">
+                  💡 <strong>Por que este ativo é a melhor escolha hoje se você tem dinheiro?</strong><br>
+                  Ele entrega a maior rentabilidade em dividendos do seu radar: <strong style="color:#34d399;">${topDy.toFixed(2)}% ao ano</strong>. 
+                  Com a cotação atual de <strong>${formatBRL(topPrice)}</strong>, cada <strong>R$ 1.000,00</strong> que você comprar hoje colocam aproximadamente 
+                  <strong style="color:#34d399;">${formatBRL(monthlyTop1000)}/mês</strong> (<strong style="color:#34d399;">${formatBRL(annualTop1000)}/ano</strong>) 
+                  de renda passiva limpa direto na sua conta!
+                </p>
               </div>
-              <h3 style="margin:0; font-size:1.65rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.6rem;">
-                <span style="color:#34d399;">${topOpportunity.ticker}</span>
-                <span style="font-size:0.95rem; font-weight:500; color:#94a3b8;">${topOpportunity.name || ''}</span>
-                <span class="b3-type-pill ${topType.toLowerCase()}">${topType}</span>
-              </h3>
-              <p style="margin:0.4rem 0 0 0; font-size:0.9rem; color:#cbd5e1; max-width:700px; line-height:1.45;">
-                💡 <strong>Por que este ativo é a melhor escolha hoje se você tem dinheiro?</strong><br>
-                Ele entrega a maior rentabilidade em dividendos do seu radar: <strong style="color:#34d399;">${topDy.toFixed(2)}% ao ano</strong>. 
-                Com a cotação atual de <strong>${formatCurrency(topPrice)}</strong>, cada <strong>R$ 1.000,00</strong> que você comprar hoje colocam aproximadamente 
-                <strong style="color:#34d399;">${formatCurrency(monthlyTop1000)}/mês</strong> (<strong style="color:#34d399;">${formatCurrency(annualTop1000)}/ano</strong>) 
-                de renda passiva limpa direto na sua conta!
+
+              <div style="display:flex; gap:1.25rem; flex-wrap:wrap; align-items:center; background:rgba(15,23,42,0.65); padding:0.85rem 1.25rem; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
+                <div>
+                  <div style="font-size:0.72rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">Cotação Atual</div>
+                  <div style="font-size:1.25rem; font-weight:800; color:#ffffff;">${formatBRL(topPrice)}</div>
+                </div>
+                <div style="width:1px; height:32px; background:rgba(255,255,255,0.1);"></div>
+                <div>
+                  <div style="font-size:0.72rem; color:#34d399; text-transform:uppercase; font-weight:700;">Dividend Yield</div>
+                  <div style="font-size:1.25rem; font-weight:800; color:#10b981;">${topDy.toFixed(2)}%</div>
+                </div>
+                <div style="width:1px; height:32px; background:rgba(255,255,255,0.1);"></div>
+                <div>
+                  <div style="font-size:0.72rem; color:#fbbf24; text-transform:uppercase; font-weight:700;">Número Mágico</div>
+                  <div style="font-size:1.15rem; font-weight:800; color:#f59e0b;">${magicNumberTop} cotas</div>
+                  <div style="font-size:0.7rem; color:#94a3b8;">${formatBRL(magicCostTop)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // SIMULADOR DE APORTE: "SE EU TENHO DINHEIRO HOJE PARA COMPRAR..."
+      const simAmount = this.b3SimulatedAporte || 1000;
+      html += `
+        <div class="card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; background: #0f172a; border: 1px solid rgba(148,163,184,0.15);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+            <div>
+              <h4 style="margin:0; font-size:1.1rem; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:0.45rem;">
+                <span>🖩</span> Simulador: Se Eu Tenho Dinheiro Hoje, Onde Rende Mais?
+              </h4>
+              <p style="margin:0.25rem 0 0 0; font-size:0.82rem; color:var(--text-muted);">
+                Informe quanto dinheiro você tem disponível para investir hoje e veja a comparação de rendimento em cada opção.
               </p>
             </div>
-
-            <div style="display:flex; gap:1.25rem; flex-wrap:wrap; align-items:center; background:rgba(15,23,42,0.65); padding:0.85rem 1.25rem; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
-              <div>
-                <div style="font-size:0.72rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">Cotação Atual</div>
-                <div style="font-size:1.25rem; font-weight:800; color:#ffffff;">${formatCurrency(topPrice)}</div>
+            
+            <!-- CONTROLE DO VALOR DO APORTE -->
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              <span style="font-size:0.82rem; font-weight:600; color:#94a3b8;">Tenho para comprar:</span>
+              <div style="position:relative; width:140px;">
+                <span style="position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:0.8rem; color:#94a3b8; font-weight:700;">R$</span>
+                <input type="number" id="b3SimAporteInput" class="form-input" value="${simAmount}" step="100" min="50" style="padding-left:2rem; font-weight:700; height:34px; font-size:0.9rem;" onchange="app.simulateB3Aporte(this.value)">
               </div>
-              <div style="width:1px; height:32px; background:rgba(255,255,255,0.1);"></div>
-              <div>
-                <div style="font-size:0.72rem; color:#34d399; text-transform:uppercase; font-weight:700;">Dividend Yield</div>
-                <div style="font-size:1.25rem; font-weight:800; color:#10b981;">${topDy.toFixed(2)}%</div>
-              </div>
-              <div style="width:1px; height:32px; background:rgba(255,255,255,0.1);"></div>
-              <div>
-                <div style="font-size:0.72rem; color:#fbbf24; text-transform:uppercase; font-weight:700;">Número Mágico</div>
-                <div style="font-size:1.15rem; font-weight:800; color:#f59e0b;">${magicNumberTop} cotas</div>
-                <div style="font-size:0.7rem; color:#94a3b8;">${formatCurrency(magicCostTop)}</div>
+              <div style="display:flex; gap:0.3rem;">
+                <button class="btn-sm ${simAmount === 200 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(200)">R$ 200</button>
+                <button class="btn-sm ${simAmount === 500 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(500)">R$ 500</button>
+                <button class="btn-sm ${simAmount === 1000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(1000)">R$ 1.000</button>
+                <button class="btn-sm ${simAmount === 2000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(2000)">R$ 2.000</button>
+                <button class="btn-sm ${simAmount === 5000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(5000)">R$ 5.000</button>
               </div>
             </div>
           </div>
+
+          <!-- GRID DOS RESULTADOS DA SIMULAÇÃO -->
+          <div class="b3-sim-cards-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:0.85rem;">
+      `;
+
+      // Calcula simulação para cada ativo
+      const simulatedResults = assets.map(a => {
+        const p = Number(a.price) || 0;
+        const lastD = Number(a.lastDiv) || 0;
+        const d12 = Number(a.div12m) || 0;
+        const sharesBought = p > 0 ? Math.floor(simAmount / p) : 0;
+        const change = simAmount - (sharesBought * p);
+        const addMonthly = sharesBought * lastD;
+        const addAnnual = sharesBought * d12;
+        return {
+          ...a,
+          sharesBought,
+          change,
+          addMonthly,
+          addAnnual
+        };
+      });
+
+      const bestSimAnnual = [...simulatedResults].sort((a, b) => b.addAnnual - a.addAnnual)[0];
+
+      simulatedResults.forEach(item => {
+        const isWinner = bestSimAnnual && bestSimAnnual.id === item.id && item.addAnnual > 0;
+        html += `
+          <div class="b3-sim-card ${isWinner ? 'winner' : ''}" style="background: ${isWinner ? 'rgba(16, 185, 129, 0.08)' : 'rgba(30, 41, 59, 0.5)'}; border: 1px solid ${isWinner ? '#10b981' : 'rgba(148, 163, 184, 0.12)'}; border-radius: 10px; padding: 0.85rem 1rem; position: relative;">
+            ${isWinner ? '<span style="position:absolute; right:8px; top:8px; font-size:0.68rem; background:#10b981; color:#ffffff; font-weight:800; padding:0.15rem 0.45rem; border-radius:12px;">🏆 MAIOR RENDA</span>' : ''}
+            <div style="font-weight:800; font-size:1.05rem; color:${isWinner ? '#34d399' : '#ffffff'};">${item.ticker}</div>
+            <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:0.45rem;">${item.type} • Cota ${formatBRL(item.price)}</div>
+            
+            <div style="background:rgba(0,0,0,0.25); border-radius:6px; padding:0.4rem 0.6rem; margin-bottom:0.45rem;">
+              <div style="font-size:0.72rem; color:#94a3b8;">Você compra hoje:</div>
+              <div style="font-weight:700; font-size:0.95rem; color:#ffffff;">+${item.sharesBought} cotas <span style="font-size:0.72rem; color:#94a3b8; font-weight:400;">(sobra ${formatBRL(item.change)})</span></div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div style="font-size:0.7rem; color:#94a3b8;">Renda mensal:</div>
+                <div style="font-size:0.88rem; font-weight:700; color:#10b981;">+${formatBRL(item.addMonthly)}/mês</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.7rem; color:#94a3b8;">No ano:</div>
+                <div style="font-size:0.88rem; font-weight:700; color:#f59e0b;">+${formatBRL(item.addAnnual)}/ano</div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+
+      // TABELA COMPLETA: RANKING DAS MELHORES OPÇÕES DE COMPRA B3
+      html += `
+        <div class="card" style="padding: 1.25rem 1.5rem; background: #0f172a; border: 1px solid rgba(148,163,184,0.15);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+            <div>
+              <h4 style="margin:0; font-size:1.15rem; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:0.45rem;">
+                <span>📑</span> Ranking de Oportunidades B3: Qual Comprar Hoje?
+              </h4>
+              <p style="margin:0.25rem 0 0 0; font-size:0.82rem; color:var(--text-muted);">
+                Ranqueado automaticamente do maior para o menor retorno em dividendos. Veja o rendimento projetado para cada R$ 1.000 investidos.
+              </p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table b3-table" style="width:100%; border-collapse:collapse;">
+              <thead>
+                <tr style="border-bottom:1px solid rgba(148,163,184,0.2); font-size:0.78rem; text-transform:uppercase; color:#94a3b8;">
+                  <th style="padding:0.75rem 0.5rem; text-align:center; width:55px;">Rank</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:left;">Ativo / Empresa</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:center;">Tipo</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:right;">Cotação Atual</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:center;">Variação Hoje</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:right;">Último Div.</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:right;">Div. 12M</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:right;">DY (12M)</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:right;">Renda p/ R$ 1.000</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:center;">Nº Mágico</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:center;">Classificação</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:center; width:80px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+
+      rankedAssets.forEach((asset, idx) => {
+        const price = Number(asset.price) || 0;
+        const lastDiv = Number(asset.lastDiv) || 0;
+        const div12m = Number(asset.div12m) || 0;
+        const dy = Number(asset.dy) || 0;
+        const change = Number(asset.change) || 0;
+
+        const rendaMensal1000 = price > 0 ? (1000 / price) * lastDiv : 0;
+        const rendaAnual1000 = price > 0 ? (1000 / price) * div12m : 0;
+
+        const magicNum = (lastDiv > 0 && price > 0) ? Math.ceil(price / lastDiv) : 0;
+        const magicCost = magicNum * price;
+
+        let rankBadge = `<span class="b3-rank-pill">${idx + 1}º</span>`;
+        let classification = `<span style="font-size:0.75rem; color:#94a3b8;">Alternativa</span>`;
+
+        if (idx === 0) {
+          rankBadge = `<span class="b3-rank-pill gold">🥇 1º</span>`;
+          classification = `<span style="font-size:0.75rem; font-weight:800; color:#10b981; background:rgba(16,185,129,0.15); padding:0.2rem 0.5rem; border-radius:4px;">🔥 1ª Escolha de Compra</span>`;
+        } else if (idx === 1) {
+          rankBadge = `<span class="b3-rank-pill silver">🥈 2º</span>`;
+          classification = `<span style="font-size:0.75rem; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.12); padding:0.2rem 0.5rem; border-radius:4px;">⭐ Excelente Opção</span>`;
+        } else if (idx === 2) {
+          rankBadge = `<span class="b3-rank-pill bronze">🥉 3º</span>`;
+          classification = `<span style="font-size:0.75rem; font-weight:700; color:#fbbf24; background:rgba(251,191,36,0.12); padding:0.2rem 0.5rem; border-radius:4px;">👍 Ótimo Retorno</span>`;
+        } else if (dy >= 10) {
+          classification = `<span style="font-size:0.75rem; font-weight:600; color:#c084fc; background:rgba(192,132,252,0.1); padding:0.2rem 0.5rem; border-radius:4px;">Bom Rendimento</span>`;
+        }
+
+        const typeClass = (asset.type || 'FII').toLowerCase();
+        const changeClass = change > 0 ? 'color:#34d399;' : change < 0 ? 'color:#f87171;' : 'color:#94a3b8;';
+        const changeText = change > 0 ? `▲ +${change.toFixed(2)}%` : change < 0 ? `▼ ${change.toFixed(2)}%` : '0.00%';
+
+        html += `
+          <tr style="border-bottom:1px solid rgba(148,163,184,0.1); font-size:0.86rem; transition: background 0.15s ease;">
+            <td style="padding:0.75rem 0.5rem; text-align:center;">${rankBadge}</td>
+            <td style="padding:0.75rem 0.5rem;">
+              <div style="font-weight:800; font-size:0.95rem; color:#ffffff;">${asset.ticker}</div>
+              <div style="font-size:0.74rem; color:#94a3b8; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${asset.name || ''}">${asset.name || asset.ticker}</div>
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:center;">
+              <span class="b3-type-pill ${typeClass}">${asset.type || 'FII'}</span>
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:right; font-weight:700; color:#ffffff;">
+              ${formatBRL(price)}
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:center; font-weight:600; ${changeClass}">
+              ${changeText}
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:right; color:#38bdf8; font-weight:600;">
+              ${formatBRL(lastDiv)}
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:right; color:#fbbf24; font-weight:600;">
+              ${formatBRL(div12m)}
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:right;">
+              <span class="b3-dy-badge" style="font-weight:800; color:#10b981; background:rgba(16,185,129,0.12); padding:0.25rem 0.55rem; border-radius:4px; font-size:0.85rem;">
+                ${dy.toFixed(2)}%
+              </span>
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:right;">
+              <div style="font-weight:700; color:#10b981; font-size:0.85rem;">${formatBRL(rendaMensal1000)}/mês</div>
+              <div style="font-size:0.72rem; color:#94a3b8;">${formatBRL(rendaAnual1000)}/ano</div>
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:center;">
+              <span class="b3-magic-pill" title="Com ${magicNum} cotas (${formatBRL(magicCost)}), seu dividendo mensal compra 1 nova cota todo mês sem colocar mais dinheiro!">
+                🔮 ${magicNum} cotas
+              </span>
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:center;">
+              ${classification}
+            </td>
+            <td style="padding:0.75rem 0.5rem; text-align:center;">
+              <div style="display:flex; justify-content:center; gap:0.35rem;">
+                <button class="btn-icon-mini" onclick="app.openModalEditarAtivoB3('${asset.id}')" title="Editar cotações ou dados do ativo">✏️</button>
+                <button class="btn-icon-mini danger" onclick="app.deleteAtivoB3('${asset.id}', '${asset.ticker}')" title="Remover do radar">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += `
+              </tbody>
+              <tfoot>
+                <tr style="border-top:2px solid rgba(148,163,184,0.3); font-weight:800; background:rgba(15,23,42,0.7); font-size:0.9rem;">
+                  <td colspan="7" style="padding:0.85rem 0.5rem; text-align:right; color:#ffffff;">MÉDIA DO RADAR B3:</td>
+                  <td style="padding:0.85rem 0.5rem; text-align:right; color:#10b981;">${avgDY.toFixed(2)}% a.a.</td>
+                  <td colspan="4" style="padding:0.85rem 0.5rem; text-align:left; color:#94a3b8; font-size:0.8rem;">
+                    Melhor opção para aporte hoje: <strong style="color:#34d399;">${topOpportunity ? topOpportunity.ticker : '-'}</strong> (${topDy.toFixed(2)}% a.a.)
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+    } catch (err) {
+      console.error('[MapeandoB3] Erro ao renderizar tela:', err);
+      container.innerHTML = `
+        <div class="card" style="padding: 2.5rem; text-align: center; background: #0f172a; border: 1px solid rgba(239, 68, 68, 0.3);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">⚠️</div>
+          <h3 style="color: #f87171; margin: 0 0 0.5rem 0;">Não foi possível carregar o Radar B3</h3>
+          <p style="color: #94a3b8; font-size: 0.9rem; max-width: 500px; margin: 0 auto 1.5rem auto;">${err.message}</p>
+          <button class="btn-primary" onclick="app.renderMapeandoB3()" style="width: auto; padding: 0.6rem 1.5rem;">Tentar Novamente</button>
         </div>
       `;
     }
-
-    // SIMULADOR DE APORTE: "SE EU TENHO DINHEIRO HOJE PARA COMPRAR..."
-    const simAmount = this.b3SimulatedAporte || 1000;
-    html += `
-      <div class="card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; background: #0f172a; border: 1px solid rgba(148,163,184,0.15);">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
-          <div>
-            <h4 style="margin:0; font-size:1.1rem; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:0.45rem;">
-              <span>🖩</span> Simulador: Se Eu Tenho Dinheiro Hoje, Onde Rende Mais?
-            </h4>
-            <p style="margin:0.25rem 0 0 0; font-size:0.82rem; color:var(--text-muted);">
-              Informe quanto dinheiro você tem disponível para investir hoje e veja a comparação de rendimento em cada opção.
-            </p>
-          </div>
-          
-          <!-- CONTROLE DO VALOR DO APORTE -->
-          <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-            <span style="font-size:0.82rem; font-weight:600; color:#94a3b8;">Tenho para comprar:</span>
-            <div style="position:relative; width:140px;">
-              <span style="position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:0.8rem; color:#94a3b8; font-weight:700;">R$</span>
-              <input type="number" id="b3SimAporteInput" class="form-input" value="${simAmount}" step="100" min="50" style="padding-left:2rem; font-weight:700; height:34px; font-size:0.9rem;" onchange="app.simulateB3Aporte(this.value)">
-            </div>
-            <div style="display:flex; gap:0.3rem;">
-              <button class="btn-sm ${simAmount === 200 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(200)">R$ 200</button>
-              <button class="btn-sm ${simAmount === 500 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(500)">R$ 500</button>
-              <button class="btn-sm ${simAmount === 1000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(1000)">R$ 1.000</button>
-              <button class="btn-sm ${simAmount === 2000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(2000)">R$ 2.000</button>
-              <button class="btn-sm ${simAmount === 5000 ? 'btn-primary' : 'btn-header'}" style="padding:0.2rem 0.55rem; font-size:0.75rem;" onclick="app.simulateB3Aporte(5000)">R$ 5.000</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- GRID DOS RESULTADOS DA SIMULAÇÃO -->
-        <div class="b3-sim-cards-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:0.85rem;">
-    `;
-
-    // Calcula simulação para cada ativo
-    const simulatedResults = assets.map(a => {
-      const p = Number(a.price) || 0;
-      const lastD = Number(a.lastDiv) || 0;
-      const d12 = Number(a.div12m) || 0;
-      const sharesBought = p > 0 ? Math.floor(simAmount / p) : 0;
-      const change = simAmount - (sharesBought * p);
-      const addMonthly = sharesBought * lastD;
-      const addAnnual = sharesBought * d12;
-      return {
-        ...a,
-        sharesBought,
-        change,
-        addMonthly,
-        addAnnual
-      };
-    });
-
-    const bestSimAnnual = [...simulatedResults].sort((a, b) => b.addAnnual - a.addAnnual)[0];
-
-    simulatedResults.forEach(item => {
-      const isWinner = bestSimAnnual && bestSimAnnual.id === item.id && item.addAnnual > 0;
-      html += `
-        <div class="b3-sim-card ${isWinner ? 'winner' : ''}" style="background: ${isWinner ? 'rgba(16, 185, 129, 0.08)' : 'rgba(30, 41, 59, 0.5)'}; border: 1px solid ${isWinner ? '#10b981' : 'rgba(148, 163, 184, 0.12)'}; border-radius: 10px; padding: 0.85rem 1rem; position: relative;">
-          ${isWinner ? '<span style="position:absolute; right:8px; top:8px; font-size:0.68rem; background:#10b981; color:#ffffff; font-weight:800; padding:0.15rem 0.45rem; border-radius:12px;">🏆 MAIOR RENDA</span>' : ''}
-          <div style="font-weight:800; font-size:1.05rem; color:${isWinner ? '#34d399' : '#ffffff'};">${item.ticker}</div>
-          <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:0.45rem;">${item.type} • Cota ${formatCurrency(item.price)}</div>
-          
-          <div style="background:rgba(0,0,0,0.25); border-radius:6px; padding:0.4rem 0.6rem; margin-bottom:0.45rem;">
-            <div style="font-size:0.72rem; color:#94a3b8;">Você compra hoje:</div>
-            <div style="font-weight:700; font-size:0.95rem; color:#ffffff;">+${item.sharesBought} cotas <span style="font-size:0.72rem; color:#94a3b8; font-weight:400;">(sobra ${formatCurrency(item.change)})</span></div>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div>
-              <div style="font-size:0.7rem; color:#94a3b8;">Renda mensal:</div>
-              <div style="font-size:0.88rem; font-weight:700; color:#10b981;">+${formatCurrency(item.addMonthly)}/mês</div>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:0.7rem; color:#94a3b8;">No ano:</div>
-              <div style="font-size:0.88rem; font-weight:700; color:#f59e0b;">+${formatCurrency(item.addAnnual)}/ano</div>
-            </div>
-          </div>
-        </div>
-      `;
-    });
-
-    html += `
-        </div>
-      </div>
-    `;
-
-    // TABELA COMPLETA: RANKING DAS MELHORES OPÇÕES DE COMPRA B3
-    html += `
-      <div class="card" style="padding: 1.25rem 1.5rem; background: #0f172a; border: 1px solid rgba(148,163,184,0.15);">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
-          <div>
-            <h4 style="margin:0; font-size:1.15rem; font-weight:700; color:#ffffff; display:flex; align-items:center; gap:0.45rem;">
-              <span>📑</span> Ranking de Oportunidades B3: Qual Comprar Hoje?
-            </h4>
-            <p style="margin:0.25rem 0 0 0; font-size:0.82rem; color:var(--text-muted);">
-              Ranqueado automaticamente do maior para o menor retorno em dividendos. Veja o rendimento projetado para cada R$ 1.000 investidos.
-            </p>
-          </div>
-        </div>
-
-        <div class="table-responsive">
-          <table class="data-table b3-table" style="width:100%; border-collapse:collapse;">
-            <thead>
-              <tr style="border-bottom:1px solid rgba(148,163,184,0.2); font-size:0.78rem; text-transform:uppercase; color:#94a3b8;">
-                <th style="padding:0.75rem 0.5rem; text-align:center; width:55px;">Rank</th>
-                <th style="padding:0.75rem 0.5rem; text-align:left;">Ativo / Empresa</th>
-                <th style="padding:0.75rem 0.5rem; text-align:center;">Tipo</th>
-                <th style="padding:0.75rem 0.5rem; text-align:right;">Cotação Atual</th>
-                <th style="padding:0.75rem 0.5rem; text-align:center;">Variação Hoje</th>
-                <th style="padding:0.75rem 0.5rem; text-align:right;">Último Div.</th>
-                <th style="padding:0.75rem 0.5rem; text-align:right;">Div. 12M</th>
-                <th style="padding:0.75rem 0.5rem; text-align:right;">DY (12M)</th>
-                <th style="padding:0.75rem 0.5rem; text-align:right;">Renda p/ R$ 1.000</th>
-                <th style="padding:0.75rem 0.5rem; text-align:center;">Nº Mágico</th>
-                <th style="padding:0.75rem 0.5rem; text-align:center;">Classificação</th>
-                <th style="padding:0.75rem 0.5rem; text-align:center; width:80px;">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-    `;
-
-    rankedAssets.forEach((asset, idx) => {
-      const price = Number(asset.price) || 0;
-      const lastDiv = Number(asset.lastDiv) || 0;
-      const div12m = Number(asset.div12m) || 0;
-      const dy = Number(asset.dy) || 0;
-      const change = Number(asset.change) || 0;
-
-      const rendaMensal1000 = price > 0 ? (1000 / price) * lastDiv : 0;
-      const rendaAnual1000 = price > 0 ? (1000 / price) * div12m : 0;
-
-      const magicNum = (lastDiv > 0 && price > 0) ? Math.ceil(price / lastDiv) : 0;
-      const magicCost = magicNum * price;
-
-      let rankBadge = `<span class="b3-rank-pill">${idx + 1}º</span>`;
-      let classification = `<span style="font-size:0.75rem; color:#94a3b8;">Alternativa</span>`;
-
-      if (idx === 0) {
-        rankBadge = `<span class="b3-rank-pill gold">🥇 1º</span>`;
-        classification = `<span style="font-size:0.75rem; font-weight:800; color:#10b981; background:rgba(16,185,129,0.15); padding:0.2rem 0.5rem; border-radius:4px;">🔥 1ª Escolha de Compra</span>`;
-      } else if (idx === 1) {
-        rankBadge = `<span class="b3-rank-pill silver">🥈 2º</span>`;
-        classification = `<span style="font-size:0.75rem; font-weight:700; color:#38bdf8; background:rgba(56,189,248,0.12); padding:0.2rem 0.5rem; border-radius:4px;">⭐ Excelente Opção</span>`;
-      } else if (idx === 2) {
-        rankBadge = `<span class="b3-rank-pill bronze">🥉 3º</span>`;
-        classification = `<span style="font-size:0.75rem; font-weight:700; color:#fbbf24; background:rgba(251,191,36,0.12); padding:0.2rem 0.5rem; border-radius:4px;">👍 Ótimo Retorno</span>`;
-      } else if (dy >= 10) {
-        classification = `<span style="font-size:0.75rem; font-weight:600; color:#c084fc; background:rgba(192,132,252,0.1); padding:0.2rem 0.5rem; border-radius:4px;">Bom Rendimento</span>`;
-      }
-
-      const typeClass = (asset.type || 'FII').toLowerCase();
-      const changeClass = change > 0 ? 'color:#34d399;' : change < 0 ? 'color:#f87171;' : 'color:#94a3b8;';
-      const changeText = change > 0 ? `▲ +${change.toFixed(2)}%` : change < 0 ? `▼ ${change.toFixed(2)}%` : '0.00%';
-
-      html += `
-        <tr style="border-bottom:1px solid rgba(148,163,184,0.1); font-size:0.86rem; transition: background 0.15s ease;">
-          <td style="padding:0.75rem 0.5rem; text-align:center;">${rankBadge}</td>
-          <td style="padding:0.75rem 0.5rem;">
-            <div style="font-weight:800; font-size:0.95rem; color:#ffffff;">${asset.ticker}</div>
-            <div style="font-size:0.74rem; color:#94a3b8; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${asset.name || ''}">${asset.name || asset.ticker}</div>
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:center;">
-            <span class="b3-type-pill ${typeClass}">${asset.type || 'FII'}</span>
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:right; font-weight:700; color:#ffffff;">
-            ${formatCurrency(price)}
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:center; font-weight:600; ${changeClass}">
-            ${changeText}
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:right; color:#38bdf8; font-weight:600;">
-            ${formatCurrency(lastDiv)}
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:right; color:#fbbf24; font-weight:600;">
-            ${formatCurrency(div12m)}
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:right;">
-            <span class="b3-dy-badge" style="font-weight:800; color:#10b981; background:rgba(16,185,129,0.12); padding:0.25rem 0.55rem; border-radius:4px; font-size:0.85rem;">
-              ${dy.toFixed(2)}%
-            </span>
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:right;">
-            <div style="font-weight:700; color:#10b981; font-size:0.85rem;">${formatCurrency(rendaMensal1000)}/mês</div>
-            <div style="font-size:0.72rem; color:#94a3b8;">${formatCurrency(rendaAnual1000)}/ano</div>
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:center;">
-            <span class="b3-magic-pill" title="Com ${magicNum} cotas (${formatCurrency(magicCost)}), seu dividendo mensal compra 1 nova cota todo mês sem colocar mais dinheiro!">
-              🔮 ${magicNum} cotas
-            </span>
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:center;">
-            ${classification}
-          </td>
-          <td style="padding:0.75rem 0.5rem; text-align:center;">
-            <div style="display:flex; justify-content:center; gap:0.35rem;">
-              <button class="btn-icon-mini" onclick="app.openModalEditarAtivoB3('${asset.id}')" title="Editar cotações ou dados do ativo">✏️</button>
-              <button class="btn-icon-mini danger" onclick="app.deleteAtivoB3('${asset.id}', '${asset.ticker}')" title="Remover do radar">🗑️</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    });
-
-    html += `
-            </tbody>
-            <tfoot>
-              <tr style="border-top:2px solid rgba(148,163,184,0.3); font-weight:800; background:rgba(15,23,42,0.7); font-size:0.9rem;">
-                <td colspan="7" style="padding:0.85rem 0.5rem; text-align:right; color:#ffffff;">MÉDIA DO RADAR B3:</td>
-                <td style="padding:0.85rem 0.5rem; text-align:right; color:#10b981;">${avgDY.toFixed(2)}% a.a.</td>
-                <td colspan="4" style="padding:0.85rem 0.5rem; text-align:left; color:#94a3b8; font-size:0.8rem;">
-                  Melhor opção para aporte hoje: <strong style="color:#34d399;">${topOpportunity ? topOpportunity.ticker : '-'}</strong> (${topDy.toFixed(2)}% a.a.)
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-    `;
-
-    container.innerHTML = html;
   },
 
   simulateB3Aporte(amount) {

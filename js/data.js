@@ -1387,7 +1387,7 @@ class DataStore {
 
   // --- MAPEANDO B3 (RADAR ONLINE DE DIVIDENDOS & OPORTUNIDADES B3) ---
   getMapeandoB3() {
-    if (!this.data.mapeandoB3 || !Array.isArray(this.data.mapeandoB3.assets)) {
+    if (!this.data.mapeandoB3 || !Array.isArray(this.data.mapeandoB3.assets) || this.data.mapeandoB3.assets.length === 0) {
       this.data.mapeandoB3 = JSON.parse(JSON.stringify(INITIAL_DATABASE.mapeandoB3));
       this.save();
     }
