@@ -5417,6 +5417,9 @@ const app = {
         </div>
 
         <div class="b3-actions-wrap" style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+          <button class="btn-header" style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); color:#34d399; padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:8px; display:flex; align-items:center; gap:0.45rem; cursor:pointer;" onclick="app.syncMapeandoB3FromPortfolio()" title="Puxar cotas e ativos diretamente da aba Investimentos (Bolsa)">
+            <span>📥</span> Sincronizar Cotas da Carteira
+          </button>
           <button id="btnFetchB3Online" class="btn-primary" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); border:none; padding:0.55rem 1.15rem; font-size:0.85rem; font-weight:700; border-radius:8px; display:flex; align-items:center; gap:0.45rem; cursor:pointer;" onclick="app.fetchOnlineB3Data()">
             <span id="b3SyncIcon">🔄</span> Atualizar Online (B3)
           </button>
@@ -5725,6 +5728,16 @@ const app = {
     if (!isNaN(val) && val > 0) {
       this.b3SimulatedAporte = val;
       this.renderMapeandoB3();
+    }
+  },
+
+  syncMapeandoB3FromPortfolio() {
+    const res = store.syncMapeandoB3WithInvestments();
+    this.renderMapeandoB3();
+    if (res.totalRegistered === 0) {
+      this.showToast('Nenhum ativo com cotas registrado na aba "Investimentos (Bolsa)". Você pode digitar as cotas diretamente na tabela!', 'info');
+    } else {
+      this.showToast(`✓ Carteira sincronizada! ${res.updatedCount} ativo(s) atualizado(s) com as cotas dos seus investimentos.`, 'success');
     }
   },
 

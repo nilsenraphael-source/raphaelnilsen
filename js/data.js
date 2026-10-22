@@ -1392,7 +1392,99 @@ class DataStore {
       this.data.mapeandoB3 = JSON.parse(JSON.stringify(INITIAL_DATABASE.mapeandoB3));
       this.save();
     }
+    // Sincronização automática com a aba Investimentos (Bolsa de Valores):
+    // Se o usuário já cadastrou cotas em store.data.investments.stocks, traz para o Mapeando B3
+    if (this.data.investments && Array.isArray(this.data.investments.stocks) && this.data.investments.stocks.length > 0) {
+      const stockMap = {};
+      const costMap = {};
+      this.data.investments.stocks.forEach(s => {
+        const t = (s.ticker || '').toUpperCase().trim();
+        if (t) {
+          const shares = Number(s.shares) || 0;
+          const price = Number(s.pricePerShare) || 0;
+          const total = Number(s.total) || (shares * price);
+          stockMap[t] = (stockMap[t] || 0) + shares;
+          costMap[t] = (costMap[t] || 0) + total;
+        }
+      });
+      let hasChanges = false;
+      this.data.mapeandoB3.assets.forEach(a => {
+        const t = (a.ticker || '').toUpperCase().trim();
+        if ((!a.shares || a.shares === 0) && stockMap[t] && stockMap[t] > 0) {
+          a.shares = stockMap[t];
+          a.avgPrice = Number((costMap[t] / stockMap[t]).toFixed(2));
+          hasChanges = true;
+        }
+      });
+      if (hasChanges) this.save();
+    }
     return this.data.mapeandoB3;
+  }
+
+  syncMapeandoB3WithInvestments() {
+    const b3 = this.getMapeandoB3();
+    const stocks = (this.data.investments && Array.isArray(this.data.investments.stocks)) ? this.data.investments.stocks : [];
+    
+    const portfolioByTicker = {};
+    stocks.forEach(s => {
+      const ticker = (s.ticker || '').toUpperCase().trim();
+      if (!ticker) return;
+      if (!portfolioByTicker[ticker]) {
+        portfolioByTicker[ticker] = {
+          shares: 0,
+          totalCost: 0,
+          type: s.type || 'FII'
+        };
+      }
+      const shares = Number(s.shares) || 0;
+      const price = Number(s.pricePerShare) || 0;
+      const total = Number(s.total) || (shares * price);
+      portfolioByTicker[ticker].shares += shares;
+      portfolioByTicker[ticker].totalCost += total;
+      if (s.type) portfolioByTicker[ticker].type = s.type;
+    });
+
+    let updatedCount = 0;
+    b3.assets.forEach(asset => {
+      const t = (asset.ticker || '').toUpperCase().trim();
+      if (portfolioByTicker[t]) {
+        const p = portfolioByTicker[t];
+        asset.shares = p.shares;
+        if (p.shares > 0) {
+          asset.avgPrice = Number((p.totalCost / p.shares).toFixed(2));
+        }
+        updatedCount++;
+      }
+    });
+
+    // Se houver algum ativo na carteira de investimentos que não está no Mapeando B3, adiciona
+    Object.keys(portfolioByTicker).forEach(ticker => {
+      const exists = b3.assets.some(a => (a.ticker || '').toUpperCase().trim() === ticker);
+      if (!exists && portfolioByTicker[ticker].shares > 0) {
+        const p = portfolioByTicker[ticker];
+        const avg = p.shares > 0 ? (p.totalCost / p.shares) : 0;
+        b3.assets.push({
+          id: 'b3_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          ticker: ticker,
+          name: ticker,
+          type: p.type || (ticker.endsWith('11') ? 'FII' : 'Ação'),
+          price: avg > 0 ? Number(avg.toFixed(2)) : 10.00,
+          lastDiv: 0.10,
+          div12m: 1.20,
+          dy: 12.00,
+          shares: p.shares,
+          avgPrice: Number(avg.toFixed(2))
+        });
+        updatedCount++;
+      }
+    });
+
+    this.save();
+    return {
+      success: true,
+      updatedCount,
+      totalRegistered: Object.keys(portfolioByTicker).length
+    };
   }
 
   updateMapeandoB3Asset(id, data) {
