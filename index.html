@@ -2634,7 +2634,7 @@
   <div id="modalNovoAtivoB3" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">📈 Adicionar Ativo à Carteira B3</h3>
+        <h3 class="modal-title">📈 Adicionar Ativo ao Radar B3</h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalNovoAtivoB3')">✕</button>
       </div>
       <form id="formNovoAtivoB3">
@@ -2665,11 +2665,11 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Preço Atual (R$) *</label>
-              <input type="number" step="0.01" min="0.01" id="b3_new_price" class="form-input" required placeholder="Ex: 9.42">
+              <input type="number" step="0.01" min="0.01" id="b3_new_price" class="form-input" required placeholder="Ex: 9.48">
             </div>
             <div class="form-group">
-              <label class="form-label">Minhas Cotas na Carteira</label>
-              <input type="number" step="1" min="0" id="b3_new_shares" class="form-input" placeholder="0" value="0">
+              <label class="form-label">Variação do Dia (%)</label>
+              <input type="number" step="0.01" id="b3_new_change" class="form-input" placeholder="Ex: 0.42" value="0">
             </div>
           </div>
 
@@ -2686,7 +2686,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalNovoAtivoB3')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Cadastrar Ativo</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Adicionar ao Radar</button>
         </div>
       </form>
     </div>
@@ -2696,7 +2696,7 @@
   <div id="modalEditarAtivoB3" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">✏️ Editar Ativo B3</h3>
+        <h3 class="modal-title">✏️ Editar Cotações & Dividendos</h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalEditarAtivoB3')">✕</button>
       </div>
       <form id="formEditarAtivoB3">
@@ -2731,8 +2731,8 @@
               <input type="number" step="0.01" min="0.01" id="b3_edit_price" class="form-input" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Minhas Cotas na Carteira</label>
-              <input type="number" step="1" min="0" id="b3_edit_shares" class="form-input">
+              <label class="form-label">Variação do Dia (%)</label>
+              <input type="number" step="0.01" id="b3_edit_change" class="form-input" placeholder="Ex: -0.55">
             </div>
           </div>
 
@@ -2748,7 +2748,7 @@
           </div>
         </div>
         <div class="modal-footer" style="display:flex; justify-content:space-between;">
-          <button type="button" class="btn-danger-outline" id="btnDeleteAtivoB3" style="border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.1); border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer;">Excluir Ativo</button>
+          <button type="button" class="btn-danger-outline" id="btnDeleteAtivoB3" style="border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; background: rgba(239, 68, 68, 0.1); border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer;">Excluir do Radar</button>
           <div style="display:flex; gap:0.5rem;">
             <button type="button" class="btn-header" onclick="app.closeModal('modalEditarAtivoB3')">Cancelar</button>
             <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Alterações</button>

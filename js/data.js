@@ -83,17 +83,16 @@ const INITIAL_DATABASE = {
   // 8. Cofre de Senhas
   passwords: [],
 
-  // 9. Mapeando B3 (Levantamento Online de Dividendos & Carteira)
+  // 9. Mapeando B3 (Radar Online de Dividendos & Oportunidades de Compra)
   mapeandoB3: {
     lastUpdated: null,
     assets: [
-      { id: 'b3_1', ticker: 'MXRF11', name: 'Maxi Renda FII', type: 'FII', price: 9.42, lastDiv: 0.10, div12m: 1.19, dy: 12.63, shares: 0 },
-      { id: 'b3_2', ticker: 'KISU11', name: 'Kilima FIC de FII', type: 'FII', price: 6.20, lastDiv: 0.07, div12m: 0.83, dy: 13.39, shares: 0 },
-      { id: 'b3_3', ticker: 'BTCI11', name: 'BTG Pactual Crédito Imob.', type: 'FII', price: 9.06, lastDiv: 0.10, div12m: 1.17, dy: 12.91, shares: 0 },
-      { id: 'b3_4', ticker: 'XPML11', name: 'XP Malls FII', type: 'FII', price: 104.30, lastDiv: 0.92, div12m: 11.07, dy: 10.61, shares: 0 },
-      { id: 'b3_5', ticker: 'BBAS3', name: 'Banco do Brasil ON', type: 'Ação', price: 23.88, lastDiv: 0.22, div12m: 2.65, dy: 11.10, shares: 0 },
-      { id: 'b3_6', ticker: 'TAEE3', name: 'Taesa ON', type: 'Ação', price: 14.80, lastDiv: 0.25, div12m: 1.00, dy: 6.76, shares: 0 },
-      { id: 'b3_7', ticker: 'UA1111', name: 'Ativo Carteira (Personalizado)', type: 'FII', price: 10.00, lastDiv: 0.10, div12m: 1.20, dy: 12.00, shares: 0 }
+      { id: 'b3_1', ticker: 'MXRF11', name: 'Maxi Renda FII', type: 'FII', price: 9.48, change: 0.42, lastDiv: 0.10, div12m: 1.19, dy: 12.60 },
+      { id: 'b3_2', ticker: 'KISU11', name: 'Kilima FIC de FII', type: 'FII', price: 6.20, change: -0.80, lastDiv: 0.07, div12m: 0.83, dy: 13.37 },
+      { id: 'b3_3', ticker: 'BTCI11', name: 'BTG Pactual Crédito Imob.', type: 'FII', price: 9.07, change: -0.55, lastDiv: 0.10, div12m: 1.17, dy: 12.91 },
+      { id: 'b3_4', ticker: 'XPML11', name: 'XP Malls FII', type: 'FII', price: 104.70, change: -0.22, lastDiv: 0.92, div12m: 11.07, dy: 10.57 },
+      { id: 'b3_5', ticker: 'BBAS3', name: 'Banco do Brasil ON', type: 'Ação', price: 23.92, change: -0.75, lastDiv: 0.22, div12m: 2.65, dy: 11.08 },
+      { id: 'b3_6', ticker: 'TAEE3', name: 'Taesa ON', type: 'Ação', price: 14.81, change: -0.60, lastDiv: 0.25, div12m: 1.00, dy: 6.77 }
     ]
   },
 
@@ -1386,105 +1385,13 @@ class DataStore {
     }
   }
 
-  // --- MAPEANDO B3 ---
+  // --- MAPEANDO B3 (RADAR ONLINE DE DIVIDENDOS & OPORTUNIDADES B3) ---
   getMapeandoB3() {
     if (!this.data.mapeandoB3 || !Array.isArray(this.data.mapeandoB3.assets)) {
       this.data.mapeandoB3 = JSON.parse(JSON.stringify(INITIAL_DATABASE.mapeandoB3));
       this.save();
     }
-    // Sincronização automática com a aba Investimentos (Bolsa de Valores):
-    // Se o usuário já cadastrou cotas em store.data.investments.stocks, traz para o Mapeando B3
-    if (this.data.investments && Array.isArray(this.data.investments.stocks) && this.data.investments.stocks.length > 0) {
-      const stockMap = {};
-      const costMap = {};
-      this.data.investments.stocks.forEach(s => {
-        const t = (s.ticker || '').toUpperCase().trim();
-        if (t) {
-          const shares = Number(s.shares) || 0;
-          const price = Number(s.pricePerShare) || 0;
-          const total = Number(s.total) || (shares * price);
-          stockMap[t] = (stockMap[t] || 0) + shares;
-          costMap[t] = (costMap[t] || 0) + total;
-        }
-      });
-      let hasChanges = false;
-      this.data.mapeandoB3.assets.forEach(a => {
-        const t = (a.ticker || '').toUpperCase().trim();
-        if ((!a.shares || a.shares === 0) && stockMap[t] && stockMap[t] > 0) {
-          a.shares = stockMap[t];
-          a.avgPrice = Number((costMap[t] / stockMap[t]).toFixed(2));
-          hasChanges = true;
-        }
-      });
-      if (hasChanges) this.save();
-    }
     return this.data.mapeandoB3;
-  }
-
-  syncMapeandoB3WithInvestments() {
-    const b3 = this.getMapeandoB3();
-    const stocks = (this.data.investments && Array.isArray(this.data.investments.stocks)) ? this.data.investments.stocks : [];
-    
-    const portfolioByTicker = {};
-    stocks.forEach(s => {
-      const ticker = (s.ticker || '').toUpperCase().trim();
-      if (!ticker) return;
-      if (!portfolioByTicker[ticker]) {
-        portfolioByTicker[ticker] = {
-          shares: 0,
-          totalCost: 0,
-          type: s.type || 'FII'
-        };
-      }
-      const shares = Number(s.shares) || 0;
-      const price = Number(s.pricePerShare) || 0;
-      const total = Number(s.total) || (shares * price);
-      portfolioByTicker[ticker].shares += shares;
-      portfolioByTicker[ticker].totalCost += total;
-      if (s.type) portfolioByTicker[ticker].type = s.type;
-    });
-
-    let updatedCount = 0;
-    b3.assets.forEach(asset => {
-      const t = (asset.ticker || '').toUpperCase().trim();
-      if (portfolioByTicker[t]) {
-        const p = portfolioByTicker[t];
-        asset.shares = p.shares;
-        if (p.shares > 0) {
-          asset.avgPrice = Number((p.totalCost / p.shares).toFixed(2));
-        }
-        updatedCount++;
-      }
-    });
-
-    // Se houver algum ativo na carteira de investimentos que não está no Mapeando B3, adiciona
-    Object.keys(portfolioByTicker).forEach(ticker => {
-      const exists = b3.assets.some(a => (a.ticker || '').toUpperCase().trim() === ticker);
-      if (!exists && portfolioByTicker[ticker].shares > 0) {
-        const p = portfolioByTicker[ticker];
-        const avg = p.shares > 0 ? (p.totalCost / p.shares) : 0;
-        b3.assets.push({
-          id: 'b3_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-          ticker: ticker,
-          name: ticker,
-          type: p.type || (ticker.endsWith('11') ? 'FII' : 'Ação'),
-          price: avg > 0 ? Number(avg.toFixed(2)) : 10.00,
-          lastDiv: 0.10,
-          div12m: 1.20,
-          dy: 12.00,
-          shares: p.shares,
-          avgPrice: Number(avg.toFixed(2))
-        });
-        updatedCount++;
-      }
-    });
-
-    this.save();
-    return {
-      success: true,
-      updatedCount,
-      totalRegistered: Object.keys(portfolioByTicker).length
-    };
   }
 
   updateMapeandoB3Asset(id, data) {
@@ -1503,16 +1410,18 @@ class DataStore {
 
   addMapeandoB3Asset(asset) {
     const b3 = this.getMapeandoB3();
+    const p = Number(asset.price) || 0;
+    const d12 = Number(asset.div12m) || 0;
     const newAsset = {
       id: 'b3_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       ticker: (asset.ticker || '').toUpperCase().trim(),
       name: (asset.name || asset.ticker || '').trim(),
       type: asset.type || (asset.ticker?.endsWith('11') ? 'FII' : 'Ação'),
-      price: Number(asset.price) || 0,
+      price: p,
+      change: Number(asset.change) || 0,
       lastDiv: Number(asset.lastDiv) || 0,
-      div12m: Number(asset.div12m) || 0,
-      dy: (Number(asset.price) > 0 && Number(asset.div12m) > 0) ? Number(((Number(asset.div12m) / Number(asset.price)) * 100).toFixed(2)) : 0,
-      shares: Number(asset.shares) || 0
+      div12m: d12,
+      dy: (p > 0 && d12 > 0) ? Number(((d12 / p) * 100).toFixed(2)) : (Number(asset.dy) || 0)
     };
     b3.assets.push(newAsset);
     this.save();
@@ -1532,6 +1441,7 @@ class DataStore {
       const existing = b3.assets.find(a => a.id === up.id || a.ticker.toUpperCase() === up.ticker.toUpperCase());
       if (existing) {
         if (up.price !== undefined && up.price > 0) existing.price = Number(up.price);
+        if (up.change !== undefined) existing.change = Number(up.change);
         if (up.lastDiv !== undefined && up.lastDiv > 0) existing.lastDiv = Number(up.lastDiv);
         if (up.div12m !== undefined && up.div12m > 0) existing.div12m = Number(up.div12m);
         if (up.name && (!existing.name || existing.name === existing.ticker)) existing.name = up.name;
