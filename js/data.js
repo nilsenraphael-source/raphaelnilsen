@@ -87,12 +87,12 @@ const INITIAL_DATABASE = {
   mapeandoB3: {
     lastUpdated: null,
     assets: [
-      { id: 'b3_1', ticker: 'MXRF11', name: 'Maxi Renda FII', type: 'FII', price: 9.48, change: 0.42, lastDiv: 0.10, div12m: 1.19, dy: 12.60 },
-      { id: 'b3_2', ticker: 'KISU11', name: 'Kilima FIC de FII', type: 'FII', price: 6.20, change: -0.80, lastDiv: 0.07, div12m: 0.83, dy: 13.37 },
-      { id: 'b3_3', ticker: 'BTCI11', name: 'BTG Pactual Crédito Imob.', type: 'FII', price: 9.07, change: -0.55, lastDiv: 0.10, div12m: 1.17, dy: 12.91 },
-      { id: 'b3_4', ticker: 'XPML11', name: 'XP Malls FII', type: 'FII', price: 104.70, change: -0.22, lastDiv: 0.92, div12m: 11.07, dy: 10.57 },
-      { id: 'b3_5', ticker: 'BBAS3', name: 'Banco do Brasil ON', type: 'Ação', price: 23.92, change: -0.75, lastDiv: 0.22, div12m: 2.65, dy: 11.08 },
-      { id: 'b3_6', ticker: 'TAEE3', name: 'Taesa ON', type: 'Ação', price: 14.81, change: -0.60, lastDiv: 0.25, div12m: 1.00, dy: 6.77 }
+      { id: 'b3_1', ticker: 'MXRF11', name: 'Maxi Renda FII', type: 'FII', price: 9.48, change: 0.42, lastDiv: 0.10, div12m: 1.19, dy: 12.60, lastDivDate: '2024-10-15' },
+      { id: 'b3_2', ticker: 'KISU11', name: 'Kilima FIC de FII', type: 'FII', price: 6.20, change: -0.80, lastDiv: 0.07, div12m: 0.83, dy: 13.37, lastDivDate: '2024-10-15' },
+      { id: 'b3_3', ticker: 'BTCI11', name: 'BTG Pactual Crédito Imob.', type: 'FII', price: 9.07, change: -0.55, lastDiv: 0.10, div12m: 1.17, dy: 12.91, lastDivDate: '2024-10-15' },
+      { id: 'b3_4', ticker: 'XPML11', name: 'XP Malls FII', type: 'FII', price: 104.70, change: -0.22, lastDiv: 0.92, div12m: 11.07, dy: 10.57, lastDivDate: '2024-10-25' },
+      { id: 'b3_5', ticker: 'BBAS3', name: 'Banco do Brasil ON', type: 'Ação', price: 23.92, change: -0.75, lastDiv: 0.22, div12m: 2.65, dy: 11.08, lastDivDate: '2024-09-27' },
+      { id: 'b3_6', ticker: 'TAEE3', name: 'Taesa ON', type: 'Ação', price: 14.81, change: -0.60, lastDiv: 0.25, div12m: 1.00, dy: 6.77, lastDivDate: '2024-10-15' }
     ]
   },
 
@@ -219,6 +219,21 @@ class DataStore {
           merged.mapeandoB3 = JSON.parse(JSON.stringify(INITIAL_DATABASE.mapeandoB3));
         } else if (merged.mapeandoB3.assets.length === 0) {
           merged.mapeandoB3.assets = JSON.parse(JSON.stringify(INITIAL_DATABASE.mapeandoB3.assets));
+        } else {
+          // Preenche lastDivDate para ativos predefinidos caso ainda não tenham
+          const defaultDates = {
+            'MXRF11': '2024-10-15',
+            'KISU11': '2024-10-15',
+            'BTCI11': '2024-10-15',
+            'XPML11': '2024-10-25',
+            'BBAS3': '2024-09-27',
+            'TAEE3': '2024-10-15'
+          };
+          merged.mapeandoB3.assets.forEach(a => {
+            if (!a.lastDivDate && defaultDates[a.ticker]) {
+              a.lastDivDate = defaultDates[a.ticker];
+            }
+          });
         }
 
         return merged;
@@ -568,29 +583,124 @@ class DataStore {
     return expense;
   }
 
-  updateFixedExpense(monthNum, id, updatedData) {
+  hasRecurringFixedExpense(monthNum, expense) {
+    if (!expense) return false;
+    if (expense.annualGroupId) return true;
+    if (expense.type === 'anual' || expense.type === 'multi-mes') return true;
+    const desc = (expense.description || expense.name || '').toLowerCase().trim();
+    if (!desc) return false;
+
+    // Verifica se existe despesa com o mesmo nome em outros meses do ano ativo
+    for (let m = 1; m <= 12; m++) {
+      if (m === monthNum) continue;
+      const list = this.data.months[m]?.fixedExpenses;
+      if (list && list.some(e => (e.description || e.name || '').toLowerCase().trim() === desc)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  updateFixedExpense(monthNum, id, updatedData, cascadeMode = 'single') {
     if (!this.data.months[monthNum] || !this.data.months[monthNum].fixedExpenses) return null;
     const index = this.data.months[monthNum].fixedExpenses.findIndex(e => e.id === id);
     if (index === -1) return null;
 
     const currentItem = this.data.months[monthNum].fixedExpenses[index];
+    const gid = currentItem.annualGroupId;
+    const descLower = (currentItem.description || currentItem.name || '').toLowerCase().trim();
+
+    const newExpected = updatedData.valueExpected !== undefined ? (Number(updatedData.valueExpected) || 0) : currentItem.valueExpected;
+    const newPaid = updatedData.valuePaid !== undefined ? (Number(updatedData.valuePaid) || 0) : currentItem.valuePaid;
+
     this.data.months[monthNum].fixedExpenses[index] = {
       ...currentItem,
       ...updatedData,
-      valueExpected: updatedData.valueExpected !== undefined ? (Number(updatedData.valueExpected) || 0) : currentItem.valueExpected,
-      valuePaid: updatedData.valuePaid !== undefined ? (Number(updatedData.valuePaid) || 0) : currentItem.valuePaid
+      valueExpected: newExpected,
+      valuePaid: newPaid
     };
+
+    // Cascata para meses seguintes ou todos os meses se solicitado
+    if ((cascadeMode === 'following' || cascadeMode === 'all') && (gid || descLower)) {
+      const startMonth = cascadeMode === 'following' ? monthNum : 1;
+      const targetGid = gid || ('fix_grp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+
+      // Garante que o item atual possui o grupo
+      this.data.months[monthNum].fixedExpenses[index].annualGroupId = targetGid;
+      this.data.months[monthNum].fixedExpenses[index].type = 'multi-mes';
+
+      const year = parseInt(this.activeYear, 10) || new Date().getFullYear();
+
+      for (let m = 1; m <= 12; m++) {
+        if (m === monthNum) continue; // Mês atual já foi alterado
+        if (m < startMonth) continue; // Ignora anteriores quando cascadeMode for 'following'
+        if (!this.data.months[m] || !this.data.months[m].fixedExpenses) continue;
+
+        this.data.months[m].fixedExpenses.forEach(f => {
+          const isMatch = (gid && f.annualGroupId === gid) || (!gid && descLower && (f.description || f.name || '').toLowerCase().trim() === descLower);
+          if (isMatch) {
+            f.annualGroupId = targetGid;
+            f.type = 'multi-mes';
+            if (updatedData.description !== undefined) f.description = updatedData.description;
+            if (updatedData.valueExpected !== undefined) f.valueExpected = Number(updatedData.valueExpected) || 0;
+            if (updatedData.bank !== undefined) f.bank = updatedData.bank;
+
+            // Ajuste do vencimento (ou limpa se deixado em branco)
+            if (updatedData.dueDay !== undefined) {
+              if (updatedData.dueDay === null || updatedData.dueDay === '') {
+                f.dueDay = null;
+                f.dueDate = '';
+              } else {
+                const dayNum = parseInt(updatedData.dueDay, 10);
+                const daysInM = new Date(year, m, 0).getDate();
+                const actualDay = Math.min(dayNum, daysInM);
+                f.dueDay = dayNum;
+                f.dueDate = `${year}-${String(m).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+              }
+            }
+          }
+        });
+      }
+    }
 
     this.save();
     return this.data.months[monthNum].fixedExpenses[index];
   }
 
-  deleteFixedExpense(monthNum, id) {
-    if (!this.data.months[monthNum]) return;
-    this.data.months[monthNum].fixedExpenses = this.data.months[monthNum].fixedExpenses.filter(e => e.id !== id);
-    if (typeof window !== 'undefined' && window.supabaseService) {
-      window.supabaseService.deleteRowFromTable('despesas_fixas', id);
+  deleteFixedExpense(monthNum, id, cascadeMode = 'single') {
+    if (!this.data.months[monthNum] || !this.data.months[monthNum].fixedExpenses) return;
+    const item = this.data.months[monthNum].fixedExpenses.find(e => e.id === id);
+    if (!item) return;
+
+    const gid = item.annualGroupId;
+    const descLower = (item.description || item.name || '').toLowerCase().trim();
+
+    if ((cascadeMode === 'following' || cascadeMode === 'all') && (gid || descLower)) {
+      const startMonth = cascadeMode === 'following' ? monthNum : 1;
+      for (let m = 1; m <= 12; m++) {
+        if (m < startMonth) continue;
+        if (this.data.months[m] && this.data.months[m].fixedExpenses) {
+          this.data.months[m].fixedExpenses.filter(e => {
+            return (gid && e.annualGroupId === gid) || (!gid && descLower && (e.description || e.name || '').toLowerCase().trim() === descLower);
+          }).forEach(e => {
+            if (typeof window !== 'undefined' && window.supabaseService) {
+              window.supabaseService.deleteRowFromTable('despesas_fixas', e.id);
+            }
+          });
+
+          this.data.months[m].fixedExpenses = this.data.months[m].fixedExpenses.filter(e => {
+            const isMatch = (gid && e.annualGroupId === gid) || (!gid && descLower && (e.description || e.name || '').toLowerCase().trim() === descLower);
+            return !isMatch;
+          });
+        }
+      }
+    } else {
+      this.data.months[monthNum].fixedExpenses = this.data.months[monthNum].fixedExpenses.filter(e => e.id !== id);
+      if (typeof window !== 'undefined' && window.supabaseService) {
+        window.supabaseService.deleteRowFromTable('despesas_fixas', id);
+      }
     }
+
     this.save();
   }
 
@@ -876,6 +986,63 @@ class DataStore {
     this.data.cardPurchases.push(purchase);
     this.save();
     return purchase;
+  }
+
+  updateCardPurchase(id, updatedData) {
+    if (!this.data.cardPurchases) return null;
+    const index = this.data.cardPurchases.findIndex(p => p.id === id);
+    if (index === -1) return null;
+
+    const currentItem = this.data.cardPurchases[index];
+
+    let totalAmount = updatedData.totalAmount !== undefined ? (Number(updatedData.totalAmount) || 0) : currentItem.totalAmount;
+    let installments = updatedData.installments !== undefined ? (Number(updatedData.installments) || 1) : currentItem.installments;
+    let date = updatedData.date !== undefined ? updatedData.date : currentItem.date;
+    let startMonth = updatedData.startMonth !== undefined ? Number(updatedData.startMonth) : currentItem.startMonth;
+    let startYear = updatedData.startYear !== undefined ? Number(updatedData.startYear) : currentItem.startYear;
+
+    let dateYear = this.activeYear;
+    let dateMonth = 1;
+    let dateDay = 1;
+    if (date) {
+      const parts = date.split('-');
+      if (parts.length >= 2) {
+        dateYear = parseInt(parts[0], 10) || dateYear;
+        dateMonth = parseInt(parts[1], 10) || 1;
+        if (parts.length >= 3) dateDay = parseInt(parts[2], 10) || 1;
+      }
+    }
+
+    if (!startMonth || !startYear || startYear < dateYear || (startYear === dateYear && startMonth < dateMonth)) {
+      const cardType = updatedData.card || currentItem.card;
+      const cardObj = (this.data.cards || this.data.creditCards || []).find(c => (c.name || '').toLowerCase() === (cardType || '').toLowerCase());
+      const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
+      let sMonth = dateMonth;
+      let sYear = dateYear;
+      if (date && dateDay > closingDay) {
+        sMonth = dateMonth + 1;
+        sYear = dateYear;
+        if (sMonth > 12) {
+          sMonth = 1;
+          sYear += 1;
+        }
+      }
+      startMonth = sMonth;
+      startYear = sYear;
+    }
+
+    this.data.cardPurchases[index] = {
+      ...currentItem,
+      ...updatedData,
+      totalAmount,
+      installments,
+      date,
+      startMonth,
+      startYear
+    };
+
+    this.save();
+    return this.data.cardPurchases[index];
   }
 
   deleteCardPurchase(id) {
@@ -1410,16 +1577,35 @@ class DataStore {
 
   addMapeandoB3Asset(asset) {
     const b3 = this.getMapeandoB3();
+    const ticker = (asset.ticker || '').toUpperCase().trim();
     const p = Number(asset.price) || 0;
     const d12 = Number(asset.div12m) || 0;
+    const existing = b3.assets.find(a => a.ticker.toUpperCase() === ticker);
+
+    if (existing) {
+      if (p > 0) existing.price = p;
+      if (asset.change !== undefined) existing.change = Number(asset.change);
+      if (asset.name && asset.name !== ticker) existing.name = asset.name;
+      if (asset.type) existing.type = asset.type;
+      if (asset.lastDiv !== undefined) existing.lastDiv = Number(asset.lastDiv);
+      if (asset.lastDivDate) existing.lastDivDate = asset.lastDivDate;
+      if (d12 > 0) existing.div12m = d12;
+      if (existing.price > 0 && existing.div12m > 0) {
+        existing.dy = Number(((existing.div12m / existing.price) * 100).toFixed(2));
+      }
+      this.save();
+      return existing;
+    }
+
     const newAsset = {
       id: 'b3_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      ticker: (asset.ticker || '').toUpperCase().trim(),
-      name: (asset.name || asset.ticker || '').trim(),
-      type: asset.type || (asset.ticker?.endsWith('11') ? 'FII' : 'Ação'),
+      ticker,
+      name: (asset.name || ticker).trim(),
+      type: asset.type || (ticker.endsWith('11') ? 'FII' : 'Ação'),
       price: p,
       change: Number(asset.change) || 0,
       lastDiv: Number(asset.lastDiv) || 0,
+      lastDivDate: asset.lastDivDate || null,
       div12m: d12,
       dy: (p > 0 && d12 > 0) ? Number(((d12 / p) * 100).toFixed(2)) : (Number(asset.dy) || 0)
     };
@@ -1443,6 +1629,7 @@ class DataStore {
         if (up.price !== undefined && up.price > 0) existing.price = Number(up.price);
         if (up.change !== undefined) existing.change = Number(up.change);
         if (up.lastDiv !== undefined && up.lastDiv > 0) existing.lastDiv = Number(up.lastDiv);
+        if (up.lastDivDate) existing.lastDivDate = up.lastDivDate;
         if (up.div12m !== undefined && up.div12m > 0) existing.div12m = Number(up.div12m);
         if (up.name && (!existing.name || existing.name === existing.ticker)) existing.name = up.name;
         if (existing.price > 0 && existing.div12m > 0) {

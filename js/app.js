@@ -42,6 +42,22 @@ function formatDateBR(dateStr) {
   return dateStr;
 }
 
+// Formatador amigável para data de pagamento de dividendos
+function formatLastDivDate(dateVal) {
+  if (!dateVal) return '-';
+  try {
+    if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
+      const parts = dateVal.split('-');
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('pt-BR');
+    }
+  } catch (e) {}
+  return String(dateVal);
+}
+
 // Sanitizador simples para inserção segura em HTML
 function escapeHtml(str) {
   if (!str) return '';
@@ -1225,8 +1241,12 @@ const app = {
                 const valExp = Number(e.valueExpected) || 0;
                 let valPaid = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : 0;
 
-                // Cálculo de vencimento por dia e alerta de atraso
-                const dDay = Number(e.dueDay) || (e.dueDate ? parseInt(e.dueDate.split('-')[2], 10) : 1);
+                // Identificação de recorrência (meses múltiplos ou grupo)
+                const isRecurring = Boolean(e.annualGroupId || e.type === 'anual' || e.type === 'multi-mes' || store.hasRecurringFixedExpense(this.activeMonth, e));
+
+                // Cálculo de vencimento por dia (opcional) e alerta de atraso
+                const hasDueDay = (e.dueDay !== undefined && e.dueDay !== null && String(e.dueDay).trim() !== '');
+                const dDay = hasDueDay ? Number(e.dueDay) : (e.dueDate ? parseInt(e.dueDate.split('-')[2], 10) : null);
                 const now = new Date();
                 const currYear = now.getFullYear();
                 const currMonth = now.getMonth() + 1;
@@ -1237,7 +1257,7 @@ const app = {
                 let isOverdue = false;
                 let isToday = false;
 
-                if (!isPaid) {
+                if (!isPaid && dDay) {
                   if (actYear < currYear) {
                     isOverdue = true;
                   } else if (actYear === currYear) {
@@ -1280,8 +1300,13 @@ const app = {
 
                 return `
                 <tr class="${rowClass}">
-                  <td><strong>${e.description}</strong></td>
-                  <td>Dia ${dDay}</td>
+                  <td>
+                    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                      <strong>${e.description}</strong>
+                      ${isRecurring ? '<span class="badge-recurrence annual">Recorrente</span>' : ''}
+                    </div>
+                  </td>
+                  <td>${dDay ? `Dia ${dDay}` : '<span style="color: var(--text-muted); font-size: 0.85rem;">—</span>'}</td>
                   <td style="color: var(--text-secondary); font-weight: 600;">${formatBRL(valExp)}</td>
                   <td>
                     <div style="display:flex; align-items:center; gap:0.35rem;">
@@ -1536,6 +1561,18 @@ const app = {
     });
   },
 
+  selectMonthsFromCurrentOnwards() {
+    document.querySelectorAll('input[name="rev_month_chk"]').forEach(chk => {
+      chk.checked = Number(chk.value) >= this.activeMonth;
+    });
+  },
+
+  selectFixedMonthsFromCurrentOnwards() {
+    document.querySelectorAll('input[name="fix_month_chk"]').forEach(chk => {
+      chk.checked = Number(chk.value) >= this.activeMonth;
+    });
+  },
+
   selectCurrentFixedMonthOnly() {
     document.querySelectorAll('input[name="fix_month_chk"]').forEach(chk => {
       chk.checked = Number(chk.value) === this.activeMonth;
@@ -1775,27 +1812,87 @@ const app = {
   },
 
   deleteFixedExpense(monthNum, id) {
-    if (confirm('Deseja excluir esta despesa fixa?')) {
-      store.deleteFixedExpense(monthNum, id);
-      this.renderMeses();
-      this.renderResumo();
-      this.showToast('Despesa fixa removida com sucesso.', 'info');
+    const m = store.data.months[monthNum];
+    if (!m) return;
+    const expense = m.fixedExpenses?.find(e => e.id === id);
+    if (!expense) return;
+
+    const isRecurring = Boolean(expense.annualGroupId || expense.type === 'anual' || expense.type === 'multi-mes' || store.hasRecurringFixedExpense(monthNum, expense));
+
+    if (isRecurring) {
+      document.getElementById('delete_fix_id').value = id;
+      document.getElementById('delete_fix_month').value = monthNum;
+      document.getElementById('delete_fix_desc_display').textContent = `"${expense.description}"`;
+      document.getElementById('delete_fix_month_name').textContent = m.name;
+      document.getElementById('delete_fix_month_range').textContent = `de ${m.name} até Dezembro`;
+      this.openModal('modalExcluirDespesaFixaRecorrente');
+    } else {
+      if (confirm(`Deseja excluir a despesa fixa "${expense.description}"?`)) {
+        store.deleteFixedExpense(monthNum, id, 'single');
+        this.renderMeses();
+        this.renderResumo();
+        this.showToast('Despesa fixa removida com sucesso.', 'info');
+      }
+    }
+  },
+
+  confirmDeleteFixedExpense(cascadeMode) {
+    const id = document.getElementById('delete_fix_id').value;
+    const monthNum = Number(document.getElementById('delete_fix_month').value) || this.activeMonth;
+    const m = store.data.months[monthNum];
+    const monthName = m ? m.name : `Mês ${monthNum}`;
+
+    store.deleteFixedExpense(monthNum, id, cascadeMode);
+    this.closeModal('modalExcluirDespesaFixaRecorrente');
+    this.renderMeses();
+    this.renderResumo();
+
+    if (cascadeMode === 'single') {
+      this.showToast(`Despesa removida apenas de ${monthName}.`, 'info');
+    } else if (cascadeMode === 'following') {
+      this.showToast(`Despesa removida de ${monthName} e de todos os meses seguintes!`, 'info');
+    } else {
+      this.showToast('Despesa recorrente removida de todos os meses do ano!', 'info');
     }
   },
 
   openEditFixedExpenseModal(monthNum, id) {
-    const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
+    const m = store.data.months[monthNum];
+    const expense = m?.fixedExpenses?.find(e => e.id === id);
     if (!expense) return;
 
     document.getElementById('edit_fix_id').value = expense.id;
     document.getElementById('edit_fix_month').value = monthNum;
+    document.getElementById('edit_fix_annual_group').value = expense.annualGroupId || '';
     document.getElementById('edit_fix_desc').value = expense.description || '';
-    const dDay = expense.dueDay || (expense.dueDate ? parseInt(expense.dueDate.split('-')[2], 10) : 1);
-    document.getElementById('edit_fix_due_day').value = dDay;
+
+    // Vencimento opcional: em branco se não cadastrado
+    const hasDue = (expense.dueDay !== undefined && expense.dueDay !== null && String(expense.dueDay).trim() !== '');
+    const dDay = hasDue ? Number(expense.dueDay) : (expense.dueDate ? parseInt(expense.dueDate.split('-')[2], 10) : '');
+    document.getElementById('edit_fix_due_day').value = dDay || '';
+
     document.getElementById('edit_fix_val_exp').value = formatMoneyDisplay(expense.valueExpected || 0);
     document.getElementById('edit_fix_val_paid').value = (expense.valuePaid !== undefined && expense.valuePaid !== null && expense.valuePaid !== '') ? formatMoneyDisplay(expense.valuePaid) : '';
     document.getElementById('edit_fix_status').value = expense.status || 'Pendente';
     document.getElementById('edit_fix_bank').value = expense.bank || '';
+
+    // Opções de recorrência (cascata)
+    const isRecurring = Boolean(expense.annualGroupId || expense.type === 'anual' || expense.type === 'multi-mes' || store.hasRecurringFixedExpense(monthNum, expense));
+    const container = document.getElementById('editFixRecurrenceContainer');
+    if (container) {
+      if (isRecurring) {
+        container.style.display = 'block';
+        const monthName = m ? m.name : `Mês ${monthNum}`;
+        const curEl = document.getElementById('edit_fix_current_month_name');
+        if (curEl) curEl.textContent = monthName;
+        const follEl = document.getElementById('edit_fix_following_months_desc');
+        if (follEl) follEl.textContent = `de ${monthName} até Dezembro`;
+        const singleRadio = document.querySelector('input[name="edit_fix_cascade_option"][value="single"]');
+        if (singleRadio) singleRadio.checked = true;
+      } else {
+        container.style.display = 'none';
+      }
+    }
 
     this.openModal('modalEditarDespesaFixa');
   },
@@ -2194,6 +2291,9 @@ const app = {
               <button class="btn-table-icon" title="Ver Detalhes" onclick="app.openCardPurchaseDetails('${p.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
               </button>
+              <button class="btn-table-icon" title="Editar Compra" onclick="app.openEditCardPurchaseModal('${p.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
               <button class="btn-table-icon delete" title="Excluir Compra" onclick="app.deleteCardPurchase('${p.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
@@ -2284,7 +2384,70 @@ const app = {
       };
     }
 
+    const btnEdit = document.getElementById('btnEditCardPurchaseDetail');
+    if (btnEdit) {
+      btnEdit.onclick = () => {
+        this.openEditCardPurchaseModal(id);
+      };
+    }
+
     this.openModal('modalDetalhesCompraCartao');
+  },
+
+  openEditCardPurchaseModal(id) {
+    const p = store.data.cardPurchases?.find(item => item.id === id);
+    if (!p) return;
+
+    this.closeModal('modalDetalhesCompraCartao');
+
+    document.getElementById('edit_card_id').value = p.id;
+    document.getElementById('edit_card_desc').value = p.description || '';
+    document.getElementById('edit_card_place').value = p.place || '';
+    document.getElementById('edit_card_date').value = p.date || '';
+    document.getElementById('edit_card_val').value = formatMoneyDisplay(p.totalAmount || 0);
+    document.getElementById('edit_card_installments').value = String(p.installments || 1);
+
+    // Popula ou seleciona o cartão
+    const cardSelect = document.getElementById('edit_card_type');
+    if (cardSelect) {
+      const cards = store.data.cards || store.data.creditCards || [];
+      if (cards.length > 0) {
+        cardSelect.innerHTML = cards.map(c => `
+          <option value="${escapeHtml(c.name)}" ${(c.name || '').toLowerCase() === (p.card || '').toLowerCase() ? 'selected' : ''}>
+            ${escapeHtml(c.name)}
+          </option>
+        `).join('');
+      } else {
+        cardSelect.value = p.card || 'Mastercard';
+      }
+    }
+
+    // Início da Cobrança
+    const sMonth = p.startMonth || 1;
+    const sYear = p.startYear || (p.date ? parseInt(p.date.split('-')[0], 10) : store.activeYear);
+    const monthSelect = document.getElementById('edit_card_start_month');
+    const yearSelect = document.getElementById('edit_card_start_year');
+    if (monthSelect) monthSelect.value = String(sMonth);
+    if (yearSelect) yearSelect.value = String(sYear);
+
+    this.updateEditCardStartBillingSuggestion();
+    this.openModal('modalEditarCompraCartao');
+
+    setTimeout(() => {
+      const descInput = document.getElementById('edit_card_desc');
+      if (descInput) descInput.focus();
+    }, 150);
+  },
+
+  updateEditCardStartBillingSuggestion() {
+    const installments = Number(document.getElementById('edit_card_installments')?.value) || 1;
+    const totalVal = parseMoney(document.getElementById('edit_card_val')?.value) || 0;
+    const hintEl = document.getElementById('edit_card_billing_hint');
+
+    if (hintEl) {
+      const valParcela = totalVal > 0 ? formatBRL(totalVal / installments) : 'R$ 0,00';
+      hintEl.textContent = `Parcelamento: ${installments}x de ${valParcela}`;
+    }
   },
 
   deleteCardPurchase(id) {
@@ -5493,6 +5656,12 @@ const app = {
                 </div>
                 <div style="width:1px; height:32px; background:rgba(255,255,255,0.1);"></div>
                 <div>
+                  <div style="font-size:0.72rem; color:#38bdf8; text-transform:uppercase; font-weight:700;">Último Dividendo</div>
+                  <div style="font-size:1.15rem; font-weight:800; color:#38bdf8;">${formatBRL(topLastDiv)}</div>
+                  <div style="font-size:0.7rem; color:#94a3b8;">📅 ${formatLastDivDate(topOpportunity.lastDivDate)}</div>
+                </div>
+                <div style="width:1px; height:32px; background:rgba(255,255,255,0.1);"></div>
+                <div>
                   <div style="font-size:0.72rem; color:#fbbf24; text-transform:uppercase; font-weight:700;">Número Mágico</div>
                   <div style="font-size:1.15rem; font-weight:800; color:#f59e0b;">${magicNumberTop} cotas</div>
                   <div style="font-size:0.7rem; color:#94a3b8;">${formatBRL(magicCostTop)}</div>
@@ -5613,7 +5782,7 @@ const app = {
                   <th style="padding:0.75rem 0.5rem; text-align:center;">Tipo</th>
                   <th style="padding:0.75rem 0.5rem; text-align:right;">Cotação Atual</th>
                   <th style="padding:0.75rem 0.5rem; text-align:center;">Variação Hoje</th>
-                  <th style="padding:0.75rem 0.5rem; text-align:right;">Último Div.</th>
+                  <th style="padding:0.75rem 0.5rem; text-align:right;">Último Div. / Data</th>
                   <th style="padding:0.75rem 0.5rem; text-align:right;">Div. 12M</th>
                   <th style="padding:0.75rem 0.5rem; text-align:right;">DY (12M)</th>
                   <th style="padding:0.75rem 0.5rem; text-align:right;">Renda p/ R$ 1.000</th>
@@ -5674,8 +5843,11 @@ const app = {
             <td style="padding:0.75rem 0.5rem; text-align:center; font-weight:600; ${changeClass}">
               ${changeText}
             </td>
-            <td style="padding:0.75rem 0.5rem; text-align:right; color:#38bdf8; font-weight:600;">
-              ${formatBRL(lastDiv)}
+            <td style="padding:0.75rem 0.5rem; text-align:right;">
+              <div style="color:#38bdf8; font-weight:700;">${formatBRL(lastDiv)}</div>
+              <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px; display:inline-flex; align-items:center; gap:3px;" title="Data do último dividendo pago">
+                <span style="font-size:0.7rem;">📅</span> ${formatLastDivDate(asset.lastDivDate)}
+              </div>
             </td>
             <td style="padding:0.75rem 0.5rem; text-align:right; color:#fbbf24; font-weight:600;">
               ${formatBRL(div12m)}
@@ -5746,9 +5918,171 @@ const app = {
   },
 
   openModalNovoAtivoB3() {
-    const form = document.getElementById('formNovoAtivoB3');
-    if (form) form.reset();
+    this.lastSearchedB3Asset = null;
+    const input = document.getElementById('b3_search_ticker');
+    if (input) input.value = '';
+    const container = document.getElementById('b3SearchResultContainer');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:1.75rem 1rem; background:rgba(15,23,42,0.5); border:1px dashed rgba(148,163,184,0.25); border-radius:10px; color:#94a3b8;">
+          <div style="font-size:2.2rem; margin-bottom:0.5rem;">📡</div>
+          <div style="font-size:0.95rem; font-weight:700; color:#e2e8f0; margin-bottom:0.35rem;">Busca Automática de Mercado</div>
+          <div style="font-size:0.82rem; max-width:420px; margin:0 auto; line-height:1.45;">
+            Digite o código de qualquer fundo imobiliário ou ação da B3 (como <strong>KISU11</strong>) e clique em <strong>Buscar</strong>. O sistema trará todas as informações (nome, cotação, dividendos, último pagamento e número mágico) para você confirmar e adicionar ao seu radar!
+          </div>
+        </div>
+      `;
+    }
     this.openModal('modalNovoAtivoB3');
+    setTimeout(() => {
+      document.getElementById('b3_search_ticker')?.focus();
+    }, 150);
+  },
+
+  quickSearchB3Ticker(ticker) {
+    const input = document.getElementById('b3_search_ticker');
+    if (input) input.value = ticker;
+    this.searchAssetOnlineB3();
+  },
+
+  async searchAssetOnlineB3() {
+    const input = document.getElementById('b3_search_ticker');
+    const ticker = (input?.value || '').trim().toUpperCase();
+    if (!ticker) {
+      this.showToast('Por favor, digite o código do ativo (ex: KISU11, MXRF11).', 'warning');
+      input?.focus();
+      return;
+    }
+
+    const container = document.getElementById('b3SearchResultContainer');
+    const btn = document.getElementById('btnDoSearchB3');
+    const btnIcon = document.getElementById('b3SearchBtnIcon');
+    const btnText = document.getElementById('b3SearchBtnText');
+
+    if (btn) btn.disabled = true;
+    if (btnIcon) btnIcon.textContent = '⏳';
+    if (btnText) btnText.textContent = 'Buscando...';
+
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:2rem 1rem; background:rgba(15,23,42,0.6); border:1px solid rgba(56,189,248,0.3); border-radius:10px;">
+          <div style="font-size:2.2rem; display:inline-block;" class="b3-spinning">🔄</div>
+          <div style="font-size:1.05rem; font-weight:800; color:#38bdf8; margin-top:0.75rem;">Buscando dados de ${ticker} na B3...</div>
+          <div style="font-size:0.82rem; color:#94a3b8; margin-top:0.35rem;">Consultando cotação em tempo real, último dividendo, histórico e razão social...</div>
+        </div>
+      `;
+    }
+
+    try {
+      const data = await this.fetchSingleB3AssetOnline(ticker);
+
+      if (!data || (data.price <= 0 && data.div12m <= 0 && data.lastDiv <= 0)) {
+        if (container) {
+          container.innerHTML = `
+            <div style="text-align:center; padding:1.75rem 1rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px;">
+              <div style="font-size:2rem; margin-bottom:0.5rem;">⚠️</div>
+              <div style="font-size:0.95rem; font-weight:700; color:#f87171;">Não encontramos dados para "${ticker}"</div>
+              <div style="font-size:0.8rem; color:#cbd5e1; margin-top:0.35rem; max-width:400px; margin-left:auto; margin-right:auto;">
+                Verifique se o código foi digitado corretamente (ex: <strong>KISU11</strong>, <strong>MXRF11</strong>, <strong>PETR4</strong>) e tente novamente.
+              </div>
+            </div>
+          `;
+        }
+        return;
+      }
+
+      this.lastSearchedB3Asset = data;
+
+      const p = data.price || 0;
+      const lastD = data.lastDiv || 0;
+      const d12 = data.div12m || 0;
+      const dy = (p > 0 && d12 > 0) ? ((d12 / p) * 100) : 0;
+      const magicNum = (p > 0 && lastD > 0) ? Math.ceil(p / lastD) : 0;
+      const magicCost = magicNum * p;
+      const rendaMensal1000 = p > 0 ? (1000 / p) * lastD : 0;
+      const rendaAnual1000 = p > 0 ? (1000 / p) * d12 : 0;
+
+      const change = data.change || 0;
+      const changeBadge = change !== 0 ? `
+        <span style="font-size:0.75rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:5px; background:${change > 0 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${change > 0 ? '#34d399' : '#f87171'};">
+          ${change > 0 ? '▲ +' : '▼ '}${change.toFixed(2)}% hoje
+        </span>
+      ` : '';
+
+      if (container) {
+        container.innerHTML = `
+          <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(14, 165, 233, 0.08) 100%); border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 1.25rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+              <div>
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                  <span style="font-size:1.45rem; font-weight:900; color:#34d399; letter-spacing:0.5px;">${data.ticker}</span>
+                  <span class="b3-type-pill ${data.type.toLowerCase()}">${data.type}</span>
+                  ${changeBadge}
+                </div>
+                <div style="font-size:0.9rem; font-weight:600; color:#ffffff;">${data.name}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.7rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">Cotação Atual</div>
+                <div style="font-size:1.45rem; font-weight:900; color:#ffffff;">${formatBRL(p)}</div>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.65rem; background:rgba(15,23,42,0.7); padding:0.85rem; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:1.15rem;">
+              <div>
+                <div style="font-size:0.68rem; color:#34d399; text-transform:uppercase; font-weight:700;">Dividend Yield</div>
+                <div style="font-size:1.15rem; font-weight:800; color:#10b981;">${dy.toFixed(2)}%<span style="font-size:0.7rem; color:#94a3b8;"> a.a.</span></div>
+              </div>
+              <div>
+                <div style="font-size:0.68rem; color:#38bdf8; text-transform:uppercase; font-weight:700;">Último Dividendo</div>
+                <div style="font-size:1.15rem; font-weight:800; color:#38bdf8;">${formatBRL(lastD)}</div>
+                <div style="font-size:0.68rem; color:#94a3b8;">📅 ${formatLastDivDate(data.lastDivDate)}</div>
+              </div>
+              <div>
+                <div style="font-size:0.68rem; color:#fbbf24; text-transform:uppercase; font-weight:700;">Número Mágico</div>
+                <div style="font-size:1.1rem; font-weight:800; color:#f59e0b;">${magicNum} cotas</div>
+                <div style="font-size:0.68rem; color:#94a3b8;">${formatBRL(magicCost)}</div>
+              </div>
+              <div>
+                <div style="font-size:0.68rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">Dividendos 12M</div>
+                <div style="font-size:0.95rem; font-weight:700; color:#ffffff;">${formatBRL(d12)}</div>
+              </div>
+              <div style="grid-column: span 2;">
+                <div style="font-size:0.68rem; color:#94a3b8; text-transform:uppercase; font-weight:700;">Renda Passiva p/ R$ 1.000</div>
+                <div style="font-size:0.95rem; font-weight:800; color:#34d399;">${formatBRL(rendaMensal1000)}/mês <span style="font-size:0.75rem; color:#94a3b8;">(${formatBRL(rendaAnual1000)}/ano)</span></div>
+              </div>
+            </div>
+
+            <button type="button" class="btn-primary" style="width:100%; padding:0.85rem; font-size:1rem; font-weight:800; display:flex; align-items:center; justify-content:center; gap:0.5rem; background:linear-gradient(135deg, #10b981, #059669); border:none; border-radius:8px; cursor:pointer; box-shadow:0 4px 15px rgba(16,185,129,0.3);" onclick="app.confirmAddSearchedB3Asset()">
+              <span>✅</span> Confirmar e Adicionar ${data.ticker} ao Radar
+            </button>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.error('[MapeandoB3] Erro na busca online:', err);
+      if (container) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:1.75rem 1rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px;">
+            <div style="font-size:2rem; margin-bottom:0.5rem;">⚠️</div>
+            <div style="font-size:0.95rem; font-weight:700; color:#f87171;">Erro de conexão ao buscar ativo</div>
+            <div style="font-size:0.8rem; color:#cbd5e1; margin-top:0.35rem;">Não foi possível consultar os servidores da B3 no momento. Tente novamente em instantes.</div>
+          </div>
+        `;
+      }
+    } finally {
+      if (btn) btn.disabled = false;
+      if (btnIcon) btnIcon.textContent = '🔍';
+      if (btnText) btnText.textContent = 'Buscar';
+    }
+  },
+
+  confirmAddSearchedB3Asset() {
+    if (!this.lastSearchedB3Asset) return;
+    const asset = this.lastSearchedB3Asset;
+    store.addMapeandoB3Asset(asset);
+    this.closeModal('modalNovoAtivoB3');
+    this.renderMapeandoB3();
+    this.showToast(`✅ ${asset.ticker} adicionado com sucesso ao seu radar B3!`, 'success');
   },
 
   openModalEditarAtivoB3(id) {
@@ -5763,6 +6097,7 @@ const app = {
     document.getElementById('b3_edit_price').value = asset.price || '';
     document.getElementById('b3_edit_change').value = asset.change || 0;
     document.getElementById('b3_edit_last_div').value = asset.lastDiv || '';
+    document.getElementById('b3_edit_last_div_date').value = asset.lastDivDate || '';
     document.getElementById('b3_edit_div12m').value = asset.div12m || '';
 
     const btnDelete = document.getElementById('btnDeleteAtivoB3');
@@ -5782,6 +6117,105 @@ const app = {
     }
   },
 
+  // Consulta dados completos de um único ativo na B3 (Brapi + Yahoo Finance)
+  async fetchSingleB3AssetOnline(ticker) {
+    ticker = (ticker || '').trim().toUpperCase();
+    if (!ticker) return null;
+
+    let fetchedPrice = 0;
+    let fetchedChange = 0;
+    let fetchedName = '';
+    let fetchedType = ticker.endsWith('11') ? 'FII' : 'Ação';
+    let fetchedLastDiv = 0;
+    let fetchedLastDivDate = null;
+    let fetchedDiv12m = 0;
+
+    // 1. Consulta Rápida na Brapi (CORS liberado, sem chave, cotação e variação em tempo real)
+    try {
+      const brapiUrl = `https://brapi.dev/api/quote/list?search=${encodeURIComponent(ticker)}`;
+      const bRes = await Promise.race([
+        fetch(brapiUrl),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4500))
+      ]);
+      if (bRes && bRes.ok) {
+        const bData = await bRes.json();
+        const item = bData.stocks?.find(s => (s.stock || '').toUpperCase() === ticker) || bData.stocks?.[0];
+        if (item) {
+          if (item.close > 0) fetchedPrice = Number(item.close);
+          if (item.change !== undefined) fetchedChange = Number(item.change);
+          if (item.name && item.name !== ticker) fetchedName = item.name;
+          if (item.subType === 'fii') fetchedType = 'FII';
+          else if (item.type === 'stock') fetchedType = 'Ação';
+        }
+      }
+    } catch (eBrapi) {
+      console.warn(`[Brapi] Erro ao buscar ${ticker}:`, eBrapi);
+    }
+
+    // 2. Consulta de Dividendos e Histórico 12M no Yahoo Finance via Proxies
+    try {
+      const yTarget = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}.SA?interval=1d&range=1y&events=capitalGain%7Cdiv%7Csplit`;
+      const proxyUrls = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(yTarget)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yTarget)}`,
+        `https://corsproxy.io/?url=${encodeURIComponent(yTarget)}`
+      ];
+
+      let yData = null;
+      for (const pUrl of proxyUrls) {
+        try {
+          const yRes = await Promise.race([
+            fetch(pUrl),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+          ]);
+          if (yRes && yRes.ok) {
+            yData = await yRes.json();
+            if (yData?.chart?.result?.[0]) break;
+          }
+        } catch (eProxy) {}
+      }
+
+      if (yData?.chart?.result?.[0]) {
+        const meta = yData.chart.result[0].meta;
+        if (!fetchedPrice && meta?.regularMarketPrice) {
+          fetchedPrice = Number(meta.regularMarketPrice);
+        }
+        if (!fetchedChange && meta?.regularMarketChangePercent) {
+          fetchedChange = Number(meta.regularMarketChangePercent);
+        }
+        if ((!fetchedName || fetchedName === ticker) && (meta?.longName || meta?.shortName)) {
+          fetchedName = meta.longName || meta.shortName;
+        }
+
+        const divEvents = yData.chart.result[0].events?.dividends;
+        if (divEvents && typeof divEvents === 'object') {
+          const divsArray = Object.values(divEvents).sort((a, b) => b.date - a.date);
+          if (divsArray.length > 0) {
+            fetchedLastDiv = Number(divsArray[0].amount) || 0;
+            fetchedDiv12m = Number(divsArray.reduce((acc, d) => acc + (d.amount || 0), 0)) || 0;
+            if (divsArray[0].date) {
+              const dt = new Date(divsArray[0].date * 1000);
+              fetchedLastDivDate = dt.toISOString().split('T')[0];
+            }
+          }
+        }
+      }
+    } catch (eYahoo) {
+      console.warn(`[Yahoo] Erro ao buscar dividendos de ${ticker}:`, eYahoo);
+    }
+
+    return {
+      ticker,
+      name: fetchedName || ticker,
+      type: fetchedType,
+      price: Number(fetchedPrice.toFixed(2)) || 0,
+      change: Number(fetchedChange.toFixed(2)) || 0,
+      lastDiv: Number(fetchedLastDiv.toFixed(4)) || 0,
+      lastDivDate: fetchedLastDivDate,
+      div12m: Number(fetchedDiv12m.toFixed(4)) || 0
+    };
+  },
+
   async fetchOnlineB3Data() {
     const btn = document.getElementById('btnFetchB3Online');
     const icon = document.getElementById('b3SyncIcon');
@@ -5797,87 +6231,18 @@ const app = {
       const ticker = (asset.ticker || '').trim().toUpperCase();
       if (!ticker || ticker === 'UA1111') continue;
 
-      let fetchedPrice = 0;
-      let fetchedChange = 0;
-      let fetchedName = '';
-      let fetchedLastDiv = 0;
-      let fetchedDiv12m = 0;
-
-      // 1. Consulta Rápida na Brapi (CORS liberado, sem chave, cotação e variação em tempo real)
-      try {
-        const brapiUrl = `https://brapi.dev/api/quote/list?search=${ticker}`;
-        const bRes = await Promise.race([
-          fetch(brapiUrl),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4500))
-        ]);
-        if (bRes && bRes.ok) {
-          const bData = await bRes.json();
-          const item = bData.stocks?.find(s => s.stock === ticker) || bData.stocks?.[0];
-          if (item && item.close > 0) {
-            fetchedPrice = Number(item.close);
-            fetchedChange = Number(item.change) || 0;
-            if (item.name && item.name !== ticker) fetchedName = item.name;
-          }
-        }
-      } catch (eBrapi) {
-        console.warn(`[Brapi] Erro ao buscar ${ticker}:`, eBrapi);
-      }
-
-      // 2. Consulta de Dividendos e Histórico 12M no Yahoo Finance via Proxies
-      try {
-        const yTarget = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?interval=1d&range=1y&events=capitalGain%7Cdiv%7Csplit`;
-        const proxyUrls = [
-          `https://api.allorigins.win/raw?url=${encodeURIComponent(yTarget)}`,
-          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yTarget)}`
-        ];
-
-        let yData = null;
-        for (const pUrl of proxyUrls) {
-          try {
-            const yRes = await Promise.race([
-              fetch(pUrl),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-            ]);
-            if (yRes && yRes.ok) {
-              yData = await yRes.json();
-              if (yData?.chart?.result?.[0]) break;
-            }
-          } catch (eProxy) {}
-        }
-
-        if (yData?.chart?.result?.[0]) {
-          const meta = yData.chart.result[0].meta;
-          if (!fetchedPrice && meta?.regularMarketPrice) {
-            fetchedPrice = Number(meta.regularMarketPrice);
-          }
-          if (!fetchedName && (meta?.longName || meta?.shortName)) {
-            fetchedName = meta.longName || meta.shortName;
-          }
-
-          const divEvents = yData.chart.result[0].events?.dividends;
-          if (divEvents && typeof divEvents === 'object') {
-            const divsArray = Object.values(divEvents).sort((a, b) => b.date - a.date);
-            if (divsArray.length > 0) {
-              fetchedLastDiv = Number(divsArray[0].amount) || 0;
-              fetchedDiv12m = Number(divsArray.reduce((acc, d) => acc + (d.amount || 0), 0)) || 0;
-            }
-          }
-        }
-      } catch (eYahoo) {
-        console.warn(`[Yahoo] Erro ao buscar dividendos de ${ticker}:`, eYahoo);
-      }
-
-      // Atualiza o ativo se obteve preço ou dividendos
-      if (fetchedPrice > 0 || fetchedDiv12m > 0) {
+      const onlineData = await this.fetchSingleB3AssetOnline(ticker);
+      if (onlineData && (onlineData.price > 0 || onlineData.div12m > 0)) {
         const updatedAsset = {
           id: asset.id,
           ticker: asset.ticker
         };
-        if (fetchedPrice > 0) updatedAsset.price = Number(fetchedPrice.toFixed(2));
-        if (fetchedChange !== undefined) updatedAsset.change = Number(fetchedChange.toFixed(2));
-        if (fetchedName) updatedAsset.name = fetchedName;
-        if (fetchedLastDiv > 0) updatedAsset.lastDiv = Number(fetchedLastDiv.toFixed(4));
-        if (fetchedDiv12m > 0) updatedAsset.div12m = Number(fetchedDiv12m.toFixed(4));
+        if (onlineData.price > 0) updatedAsset.price = onlineData.price;
+        if (onlineData.change !== undefined) updatedAsset.change = onlineData.change;
+        if (onlineData.name && onlineData.name !== ticker) updatedAsset.name = onlineData.name;
+        if (onlineData.lastDiv > 0) updatedAsset.lastDiv = onlineData.lastDiv;
+        if (onlineData.lastDivDate) updatedAsset.lastDivDate = onlineData.lastDivDate;
+        if (onlineData.div12m > 0) updatedAsset.div12m = onlineData.div12m;
 
         updatedList.push(updatedAsset);
         updatedCount++;
@@ -6072,8 +6437,8 @@ const app = {
       formFix.addEventListener('submit', (e) => {
         e.preventDefault();
         const desc = document.getElementById('fix_desc').value.trim() || 'Despesa Fixa';
-        const dueDayInput = document.getElementById('fix_due_day').value.trim();
-        const dueDay = dueDayInput ? Math.min(31, Math.max(1, parseInt(dueDayInput, 10) || 10)) : 10;
+        const dueDayRaw = document.getElementById('fix_due_day').value.trim();
+        const dueDay = dueDayRaw !== '' ? Math.min(31, Math.max(1, parseInt(dueDayRaw, 10))) : null;
         const valExpected = parseMoney(document.getElementById('fix_val_exp').value) || 0;
         const valPaidRaw = document.getElementById('fix_val_paid').value.trim();
         const status = document.getElementById('fix_status').value || 'Pendente';
@@ -6087,17 +6452,26 @@ const app = {
         // Seleção de Meses (idêntico ao Rendimento / Receita)
         const checkedBoxes = Array.from(document.querySelectorAll('input[name="fix_month_chk"]:checked'));
         const targetMonths = checkedBoxes.length > 0 ? checkedBoxes.map(c => Number(c.value)) : [this.activeMonth];
-        const annualGroupId = targetMonths.length > 1 ? 'fix_grp_' + Date.now() : null;
+        const annualGroupId = targetMonths.length > 1 ? 'fix_grp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4) : null;
+        const year = parseInt(store.activeYear, 10) || new Date().getFullYear();
 
         targetMonths.forEach(mNum => {
+          let dueDate = '';
+          if (dueDay) {
+            const daysInM = new Date(year, mNum, 0).getDate();
+            const actualDay = Math.min(dueDay, daysInM);
+            dueDate = `${year}-${String(mNum).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+          }
+
           const exp = {
             description: desc,
             dueDay: dueDay,
-            dueDate: `${store.activeYear}-${String(mNum).padStart(2, '0')}-${String(Math.min(dueDay, 28)).padStart(2, '0')}`,
+            dueDate: dueDate,
             valueExpected: valExpected,
             valuePaid: valPaid,
             status: status,
             bank: '', // Banco permanece em branco no cadastro, conforme solicitado
+            type: targetMonths.length > 1 ? 'multi-mes' : 'mensal',
             annualGroupId: annualGroupId
           };
           store.addFixedExpense(mNum, exp);
@@ -6108,7 +6482,7 @@ const app = {
         this.renderMeses();
         this.renderResumo();
         const msg = targetMonths.length > 1 
-          ? `Despesa fixa cadastrada para ${targetMonths.length} meses!` 
+          ? `Despesa fixa cadastrada como recorrente para ${targetMonths.length} meses!` 
           : 'Despesa fixa cadastrada com sucesso!';
         this.showToast(msg, 'success');
       });
@@ -6122,8 +6496,8 @@ const app = {
         const monthNum = Number(document.getElementById('edit_fix_month').value) || this.activeMonth;
         const id = document.getElementById('edit_fix_id').value;
         const desc = document.getElementById('edit_fix_desc').value.trim() || 'Despesa Fixa';
-        const dueDayInput = document.getElementById('edit_fix_due_day').value.trim();
-        const dueDay = dueDayInput ? Math.min(31, Math.max(1, parseInt(dueDayInput, 10) || 10)) : 10;
+        const dueDayRaw = document.getElementById('edit_fix_due_day').value.trim();
+        const dueDay = dueDayRaw !== '' ? Math.min(31, Math.max(1, parseInt(dueDayRaw, 10))) : null;
         const valExpected = parseMoney(document.getElementById('edit_fix_val_exp').value) || 0;
         const valPaidRaw = document.getElementById('edit_fix_val_paid').value.trim();
         const status = document.getElementById('edit_fix_status').value || 'Pendente';
@@ -6134,21 +6508,40 @@ const app = {
           valPaid = 0;
         }
 
+        const year = parseInt(store.activeYear, 10) || new Date().getFullYear();
+        let dueDate = '';
+        if (dueDay) {
+          const daysInM = new Date(year, monthNum, 0).getDate();
+          const actualDay = Math.min(dueDay, daysInM);
+          dueDate = `${year}-${String(monthNum).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+        }
+
         const updated = {
           description: desc,
           dueDay: dueDay,
-          dueDate: `${store.activeYear}-${String(monthNum).padStart(2, '0')}-${String(Math.min(dueDay, 28)).padStart(2, '0')}`,
+          dueDate: dueDate,
           valueExpected: valExpected,
           valuePaid: valPaid,
           status: status,
           bank: document.getElementById('edit_fix_bank').value || ''
         };
-        store.updateFixedExpense(monthNum, id, updated);
+
+        const cascadeRadio = document.querySelector('input[name="edit_fix_cascade_option"]:checked');
+        const cascadeMode = cascadeRadio ? cascadeRadio.value : 'single';
+
+        store.updateFixedExpense(monthNum, id, updated, cascadeMode);
         this.closeModal('modalEditarDespesaFixa');
         formEditFix.reset();
         this.renderMeses();
         this.renderResumo();
-        this.showToast('Despesa fixa atualizada com sucesso!', 'success');
+
+        if (cascadeMode === 'following') {
+          this.showToast('Despesa atualizada para este mês e todos os seguintes!', 'success');
+        } else if (cascadeMode === 'all') {
+          this.showToast('Despesa atualizada em todos os meses do ano!', 'success');
+        } else {
+          this.showToast('Despesa fixa atualizada com sucesso!', 'success');
+        }
       });
     }
 
@@ -6258,6 +6651,55 @@ const app = {
         this.renderMeses();
         this.renderResumo();
         this.showToast(`Compra no cartão cadastrada! Parcelas iniciadas em ${purchase.startMonth}/${purchase.startYear}.`, 'success');
+      });
+    }
+
+    // Formulário Editar Compra no Cartão
+    const formEditCard = document.getElementById('formEditarCompraCartao');
+    if (formEditCard) {
+      const editCardDate = document.getElementById('edit_card_date');
+      const editCardType = document.getElementById('edit_card_type');
+      const editCardVal = document.getElementById('edit_card_val');
+      const editCardInst = document.getElementById('edit_card_installments');
+
+      if (editCardDate) {
+        editCardDate.addEventListener('input', () => this.updateEditCardStartBillingSuggestion());
+        editCardDate.addEventListener('change', () => this.updateEditCardStartBillingSuggestion());
+      }
+      if (editCardType) editCardType.addEventListener('change', () => this.updateEditCardStartBillingSuggestion());
+      if (editCardVal) editCardVal.addEventListener('input', () => this.updateEditCardStartBillingSuggestion());
+      if (editCardInst) editCardInst.addEventListener('change', () => this.updateEditCardStartBillingSuggestion());
+
+      formEditCard.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit_card_id').value;
+        const desc = document.getElementById('edit_card_desc').value.trim() || 'Compra Cartão';
+        const place = document.getElementById('edit_card_place').value.trim();
+        const card = document.getElementById('edit_card_type').value;
+        const dateVal = document.getElementById('edit_card_date').value;
+        const totalAmount = parseMoney(document.getElementById('edit_card_val').value) || 0;
+        const installments = Number(document.getElementById('edit_card_installments').value) || 1;
+        const startMonth = Number(document.getElementById('edit_card_start_month').value) || 1;
+        const startYear = Number(document.getElementById('edit_card_start_year').value) || Number(store.activeYear);
+
+        store.updateCardPurchase(id, {
+          description: desc,
+          place: place,
+          card: card,
+          date: dateVal,
+          totalAmount: totalAmount,
+          installments: installments,
+          startMonth: startMonth,
+          startYear: startYear
+        });
+
+        this.closeModal('modalEditarCompraCartao');
+        formEditCard.reset();
+        this.renderCartoes();
+        this.renderMeses();
+        this.renderResumo();
+        this.renderCardPurchasesList();
+        this.showToast('Compra no cartão atualizada com sucesso!', 'success');
       });
     }
 
@@ -6561,35 +7003,7 @@ const app = {
       if (keyInput && sbConfig.anonKey) keyInput.value = sbConfig.anonKey;
     }
 
-    // Formulário Novo Ativo B3
-    const formNovoB3 = document.getElementById('formNovoAtivoB3');
-    if (formNovoB3) {
-      formNovoB3.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const ticker = document.getElementById('b3_new_ticker').value.toUpperCase().trim();
-        const type = document.getElementById('b3_new_type').value;
-        const name = document.getElementById('b3_new_name').value.trim();
-        const price = Number(document.getElementById('b3_new_price').value);
-        const change = Number(document.getElementById('b3_new_change')?.value) || 0;
-        const lastDiv = Number(document.getElementById('b3_new_last_div').value) || 0;
-        const div12m = Number(document.getElementById('b3_new_div12m').value) || 0;
-
-        store.addMapeandoB3Asset({
-          ticker,
-          type,
-          name,
-          price,
-          change,
-          lastDiv,
-          div12m
-        });
-
-        this.closeModal('modalNovoAtivoB3');
-        formNovoB3.reset();
-        this.renderMapeandoB3();
-        this.showToast(`Ativo ${ticker} adicionado ao radar B3!`, 'success');
-      });
-    }
+    // (A busca e cadastro de novo ativo B3 agora são gerenciados por app.searchAssetOnlineB3 e app.confirmAddSearchedB3Asset)
 
     // Formulário Editar Ativo B3
     const formEditB3 = document.getElementById('formEditarAtivoB3');
@@ -6603,6 +7017,7 @@ const app = {
         const price = Number(document.getElementById('b3_edit_price').value);
         const change = Number(document.getElementById('b3_edit_change')?.value) || 0;
         const lastDiv = Number(document.getElementById('b3_edit_last_div').value) || 0;
+        const lastDivDate = document.getElementById('b3_edit_last_div_date')?.value || '';
         const div12m = Number(document.getElementById('b3_edit_div12m').value) || 0;
 
         store.updateMapeandoB3Asset(id, {
@@ -6612,6 +7027,7 @@ const app = {
           price,
           change,
           lastDiv,
+          lastDivDate,
           div12m
         });
 

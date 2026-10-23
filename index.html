@@ -1564,8 +1564,9 @@
           <div class="form-group" style="margin-top: 1.25rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; flex-wrap:wrap; gap:0.4rem;">
               <label class="form-label" style="margin:0;">Meses de Recebimento</label>
-              <div style="display:flex; gap:0.35rem;">
+              <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
                 <button type="button" class="btn-xs-action" onclick="app.selectAllMonths(true)">Todos (12)</button>
+                <button type="button" class="btn-xs-action" onclick="app.selectMonthsFromCurrentOnwards()">Deste mês em diante</button>
                 <button type="button" class="btn-xs-action" onclick="app.selectCurrentMonthOnly()">Mês Atual</button>
                 <button type="button" class="btn-xs-action" onclick="app.selectAllMonths(false)">Limpar</button>
               </div>
@@ -1735,8 +1736,8 @@
           </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Dia do Vencimento</label>
-              <input type="number" id="fix_due_day" min="1" max="31" class="form-input" placeholder="Ex: 10" style="font-weight: 700; font-size: 1.05rem;">
+              <label class="form-label">Dia do Vencimento <span style="font-weight:normal; font-size:0.8rem; color:var(--text-muted);">(Opcional)</span></label>
+              <input type="number" id="fix_due_day" min="1" max="31" class="form-input" placeholder="Em branco se não houver" style="font-weight: 700; font-size: 1.05rem;">
             </div>
             <div class="form-group">
               <label class="form-label">Valor Previsto (R$)</label>
@@ -1761,8 +1762,9 @@
           <div class="form-group" style="margin-top: 1.25rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; flex-wrap:wrap; gap:0.4rem;">
               <label class="form-label" style="margin:0;">Meses de Cobrança</label>
-              <div style="display:flex; gap:0.35rem;">
+              <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
                 <button type="button" class="btn-xs-action" onclick="app.selectAllFixedMonths(true)">Todos (12)</button>
+                <button type="button" class="btn-xs-action" onclick="app.selectFixedMonthsFromCurrentOnwards()">Deste mês em diante</button>
                 <button type="button" class="btn-xs-action" onclick="app.selectCurrentFixedMonthOnly()">Mês Atual</button>
                 <button type="button" class="btn-xs-action" onclick="app.selectAllFixedMonths(false)">Limpar</button>
               </div>
@@ -1808,6 +1810,7 @@
       <form id="formEditarDespesaFixa">
         <input type="hidden" id="edit_fix_id">
         <input type="hidden" id="edit_fix_month">
+        <input type="hidden" id="edit_fix_annual_group">
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Conta / Descrição</label>
@@ -1815,8 +1818,8 @@
           </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Dia do Vencimento</label>
-              <input type="number" id="edit_fix_due_day" min="1" max="31" class="form-input" placeholder="Ex: 10" style="font-weight: 700;">
+              <label class="form-label">Dia do Vencimento <span style="font-weight:normal; font-size:0.8rem; color:var(--text-muted);">(Opcional)</span></label>
+              <input type="number" id="edit_fix_due_day" min="1" max="31" class="form-input" placeholder="Em branco se não houver" style="font-weight: 700;">
             </div>
             <div class="form-group">
               <label class="form-label">Valor Previsto (R$)</label>
@@ -1850,12 +1853,82 @@
               <option value="Outro">Outro</option>
             </select>
           </div>
+
+          <!-- Opções de Recorrência para Edição em Cascata -->
+          <div id="editFixRecurrenceContainer" style="display:none; margin-top:1rem; padding:0.9rem; background:rgba(56, 189, 248, 0.05); border:1px solid rgba(56, 189, 248, 0.2); border-radius:var(--radius-md);">
+            <div style="font-weight:600; font-size:0.85rem; color:#38bdf8; margin-bottom:0.5rem; display:flex; align-items:center; gap:0.4rem;">
+              <span>🔁 Despesa Recorrente</span>
+              <span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">(presente em múltiplos meses)</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.6rem;">
+              Como você deseja aplicar as alterações de nome, valor previsto, vencimento e banco?
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.45rem;">
+              <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; cursor:pointer;">
+                <input type="radio" name="edit_fix_cascade_option" value="single" checked style="accent-color:var(--primary);">
+                <span><strong>Apenas neste mês</strong> (<span id="edit_fix_current_month_name">Mês Atual</span>)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; cursor:pointer;">
+                <input type="radio" name="edit_fix_cascade_option" value="following" style="accent-color:var(--primary);">
+                <span><strong>Neste mês e em todos os seguintes</strong> (<span id="edit_fix_following_months_desc">deste mês até Dezembro</span>)</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; cursor:pointer;">
+                <input type="radio" name="edit_fix_cascade_option" value="all" style="accent-color:var(--primary);">
+                <span><strong>Em todos os meses</strong> do ano (Janeiro a Dezembro)</span>
+              </label>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalEditarDespesaFixa')">Cancelar</button>
           <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Alterações</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: Excluir Despesa Fixa Recorrente -->
+  <div id="modalExcluirDespesaFixaRecorrente" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 490px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: #ef4444; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Excluir Despesa Recorrente
+        </h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalExcluirDespesaFixaRecorrente')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="delete_fix_id">
+        <input type="hidden" id="delete_fix_month">
+        <div style="margin-bottom: 1.1rem;">
+          <p style="font-size: 0.95rem; margin-bottom: 0.45rem;">
+            A despesa <strong id="delete_fix_desc_display" style="color: #ffffff;"></strong> é recorrente e está presente em vários meses.
+          </p>
+          <p style="font-size: 0.83rem; color: var(--text-secondary);">
+            Como você deseja realizar a exclusão?
+          </p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+          <button type="button" class="btn-cascade-action" onclick="app.confirmDeleteFixedExpense('single')">
+            <div style="font-weight: 600; font-size: 0.9rem; color: #ffffff;">1. Excluir apenas deste mês</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">Remove somente de <span id="delete_fix_month_name">Mês Atual</span>. Os outros meses permanecem intactos.</div>
+          </button>
+
+          <button type="button" class="btn-cascade-action highlight-warning" onclick="app.confirmDeleteFixedExpense('following')">
+            <div style="font-weight: 600; font-size: 0.9rem; color: #f59e0b;">2. Excluir deste mês e de todos os seguintes</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">Remove de <span id="delete_fix_month_range">deste mês até Dezembro</span>. Os meses anteriores são mantidos.</div>
+          </button>
+
+          <button type="button" class="btn-cascade-action highlight-danger" onclick="app.confirmDeleteFixedExpense('all')">
+            <div style="font-weight: 600; font-size: 0.9rem; color: #ef4444;">3. Excluir de todos os meses do ano</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">Apaga completamente esta despesa de todos os 12 meses do ano.</div>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-header" onclick="app.closeModal('modalExcluirDespesaFixaRecorrente')">Cancelar</button>
+      </div>
     </div>
   </div>
 
@@ -2058,11 +2131,114 @@
         <!-- Renderizado dinamicamente via app.openCardPurchaseDetails -->
       </div>
       <div class="modal-footer" style="justify-content: space-between;">
-        <button type="button" class="btn-header" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);" id="btnDeleteCardPurchaseDetail">
-          🗑 Excluir Compra
-        </button>
+        <div style="display:flex; gap:0.5rem;">
+          <button type="button" class="btn-header" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);" id="btnDeleteCardPurchaseDetail">
+            🗑 Excluir
+          </button>
+          <button type="button" class="btn-header" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" id="btnEditCardPurchaseDetail">
+            ✏️ Editar Compra
+          </button>
+        </div>
         <button type="button" class="btn-primary" style="width: auto; padding: 0 1.5rem;" onclick="app.closeModal('modalDetalhesCompraCartao')">Fechar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal: Editar Compra no Cartão -->
+  <div id="modalEditarCompraCartao" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Editar Compra no Cartão</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalEditarCompraCartao')">✕</button>
+      </div>
+      <form id="formEditarCompraCartao">
+        <input type="hidden" id="edit_card_id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Compra (Descrição) *</label>
+            <input type="text" id="edit_card_desc" class="form-input" required placeholder="Ex: Smartphone, Seguro, Supermercado">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Onde Comprou (Estabelecimento)</label>
+              <input type="text" id="edit_card_place" class="form-input" placeholder="Ex: Amazon, Magazine Luiza, Posto">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cartão Utilizado *</label>
+              <select id="edit_card_type" class="form-input">
+                <option value="Mastercard">Mastercard</option>
+                <option value="Nubank (Nu)">Nubank (Nu)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Data da Compra *</label>
+              <input type="date" id="edit_card_date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Total da Compra (R$) *</label>
+              <input type="text" inputmode="decimal" id="edit_card_val" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Quantidade de Vezes (Parcelamento)</label>
+              <select id="edit_card_installments" class="form-input">
+                <option value="1">1x (À vista na fatura)</option>
+                <option value="2">2x</option>
+                <option value="3">3x</option>
+                <option value="4">4x</option>
+                <option value="5">5x</option>
+                <option value="6">6x</option>
+                <option value="7">7x</option>
+                <option value="8">8x</option>
+                <option value="9">9x</option>
+                <option value="10">10x</option>
+                <option value="12">12x</option>
+                <option value="18">18x</option>
+                <option value="24">24x</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Início da Cobrança (1ª Parcela)</label>
+              <div style="display:flex; gap:0.5rem;">
+                <select id="edit_card_start_month" class="form-input" style="flex:1.4;" title="Mês da 1ª Parcela">
+                  <option value="1">Janeiro</option>
+                  <option value="2">Fevereiro</option>
+                  <option value="3">Março</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Maio</option>
+                  <option value="6">Junho</option>
+                  <option value="7">Julho</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Setembro</option>
+                  <option value="10">Outubro</option>
+                  <option value="11">Novembro</option>
+                  <option value="12">Dezembro</option>
+                </select>
+                <select id="edit_card_start_year" class="form-input" style="flex:1;" title="Ano da 1ª Parcela">
+                  <option value="2024">2024</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2028">2028</option>
+                  <option value="2029">2029</option>
+                  <option value="2030">2030</option>
+                </select>
+              </div>
+              <div id="edit_card_billing_hint" style="font-size:0.75rem; color:#38bdf8; margin-top:0.35rem;"></div>
+            </div>
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-surface-alt); padding:0.6rem; border-radius:var(--radius-sm);">
+            💡 <strong>Atualização Automática:</strong> As parcelas desta compra serão recalculadas e redistribuídas automaticamente nas faturas e meses correspondentes!
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalEditarCompraCartao')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Alterações</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -2631,64 +2807,52 @@
   </div>
 
   <!-- Modal: Novo Ativo Mapeando B3 -->
+  <!-- Modal: Novo Ativo Mapeando B3 (Busca Instantânea por Ticker/Nome) -->
   <div id="modalNovoAtivoB3" class="modal-overlay">
-    <div class="modal-dialog">
+    <div class="modal-dialog" style="max-width: 580px;">
       <div class="modal-header">
-        <h3 class="modal-title">📈 Adicionar Ativo ao Radar B3</h3>
+        <h3 class="modal-title" style="display:flex; align-items:center; gap:0.5rem;">
+          <span>🔍</span> Buscar & Adicionar Ativo (B3)
+        </h3>
         <button class="btn-close-modal" onclick="app.closeModal('modalNovoAtivoB3')">✕</button>
       </div>
-      <form id="formNovoAtivoB3">
-        <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Ticker / Código *</label>
-              <input type="text" id="b3_new_ticker" class="form-input" required placeholder="Ex: MXRF11, BBAS3" style="text-transform: uppercase; font-weight:700;">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tipo de Ativo *</label>
-              <select id="b3_new_type" class="form-select" required>
-                <option value="FII">Fundo Imobiliário (FII)</option>
-                <option value="Ação">Ação (B3)</option>
-                <option value="Fiagro">Fiagro</option>
-                <option value="ETF">ETF</option>
-                <option value="BDR">BDR</option>
-                <option value="Outro">Outro</option>
-              </select>
-            </div>
-          </div>
+      <div class="modal-body">
+        <!-- Campo Único de Pesquisa -->
+        <label class="form-label" style="font-weight:700; font-size:0.92rem; color:#e2e8f0; margin-bottom:0.4rem; display:block;">
+          Digite o código do Fundo ou Ação
+        </label>
+        <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+          <input type="text" id="b3_search_ticker" class="form-input" placeholder="Ex: KISU11, MXRF11, PETR4, BBAS3, XPML11" style="text-transform: uppercase; font-weight:800; font-size:1.15rem; letter-spacing:1px; flex:1;" autofocus onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.searchAssetOnlineB3(); }">
+          <button type="button" id="btnDoSearchB3" class="btn-primary" style="width:auto; padding:0 1.5rem; font-weight:700; display:flex; align-items:center; gap:0.45rem; background:linear-gradient(135deg, #0ea5e9, #0284c7); border:none; border-radius:8px; cursor:pointer;" onclick="app.searchAssetOnlineB3()">
+            <span id="b3SearchBtnIcon">🔍</span> <span id="b3SearchBtnText">Buscar</span>
+          </button>
+        </div>
 
-          <div class="form-group">
-            <label class="form-label">Nome do Ativo / Razão Social</label>
-            <input type="text" id="b3_new_name" class="form-input" placeholder="Ex: Maxi Renda Fundo de Investimento Imob.">
-          </div>
+        <!-- Chips de Sugestões Rápidas -->
+        <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-bottom:1.25rem;">
+          <span style="font-size:0.75rem; color:#94a3b8;">Exemplos rápidos:</span>
+          <button type="button" class="btn-chip" onclick="app.quickSearchB3Ticker('KISU11')">KISU11</button>
+          <button type="button" class="btn-chip" onclick="app.quickSearchB3Ticker('MXRF11')">MXRF11</button>
+          <button type="button" class="btn-chip" onclick="app.quickSearchB3Ticker('XPML11')">XPML11</button>
+          <button type="button" class="btn-chip" onclick="app.quickSearchB3Ticker('PETR4')">PETR4</button>
+          <button type="button" class="btn-chip" onclick="app.quickSearchB3Ticker('BBAS3')">BBAS3</button>
+          <button type="button" class="btn-chip" onclick="app.quickSearchB3Ticker('TAEE3')">TAEE3</button>
+        </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Preço Atual (R$) *</label>
-              <input type="number" step="0.01" min="0.01" id="b3_new_price" class="form-input" required placeholder="Ex: 9.48">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Variação do Dia (%)</label>
-              <input type="number" step="0.01" id="b3_new_change" class="form-input" placeholder="Ex: 0.42" value="0">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Último Dividendo Pago (R$)</label>
-              <input type="number" step="0.0001" min="0" id="b3_new_last_div" class="form-input" placeholder="Ex: 0.10">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Dividendos 12 Meses (R$) *</label>
-              <input type="number" step="0.0001" min="0" id="b3_new_div12m" class="form-input" required placeholder="Ex: 1.19">
+        <!-- Área Dinâmica: Resultado da Pesquisa / Card Completo do Ativo -->
+        <div id="b3SearchResultContainer">
+          <div style="text-align:center; padding:1.75rem 1rem; background:rgba(15,23,42,0.5); border:1px dashed rgba(148,163,184,0.25); border-radius:10px; color:#94a3b8;">
+            <div style="font-size:2.2rem; margin-bottom:0.5rem;">📡</div>
+            <div style="font-size:0.95rem; font-weight:700; color:#e2e8f0; margin-bottom:0.35rem;">Busca Automática de Mercado</div>
+            <div style="font-size:0.82rem; max-width:420px; margin:0 auto; line-height:1.45;">
+              Digite o código de qualquer fundo imobiliário ou ação da B3 (como <strong>KISU11</strong>) e clique em <strong>Buscar</strong>. O sistema trará todas as informações (nome, cotação, dividendos, último pagamento e número mágico) para você confirmar e adicionar ao seu radar!
             </div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn-header" onclick="app.closeModal('modalNovoAtivoB3')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Adicionar ao Radar</button>
-        </div>
-      </form>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end;">
+        <button type="button" class="btn-header" onclick="app.closeModal('modalNovoAtivoB3')">Fechar</button>
+      </div>
     </div>
   </div>
 
@@ -2740,6 +2904,10 @@
             <div class="form-group">
               <label class="form-label">Último Dividendo Pago (R$)</label>
               <input type="number" step="0.0001" min="0" id="b3_edit_last_div" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data do Último Pagamento</label>
+              <input type="date" id="b3_edit_last_div_date" class="form-input">
             </div>
             <div class="form-group">
               <label class="form-label">Dividendos 12 Meses (R$) *</label>
@@ -2878,8 +3046,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261022b3_fix"></script>
-  <script src="js/supabase.js?v=20261022b3_fix"></script>
-  <script src="js/app.js?v=20261022b3_fix"></script>
+  <script src="js/data.js?v=20261023_v5"></script>
+  <script src="js/supabase.js?v=20261023_v5"></script>
+  <script src="js/app.js?v=20261023_v5"></script>
 </body>
 </html>
