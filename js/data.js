@@ -171,30 +171,25 @@ class DataStore {
           // Garante que apenas compras reais cadastradas pelo usuário existam
           merged.cardPurchases = merged.cardPurchases.filter(p => !/^cp_[0-9]{1,2}$/.test(p.id));
 
-          // Sanitiza compras onde a data de início da cobrança ficou anterior à data da compra
+          // Sanitiza compras: garante que compras iniciem no mês da data da compra
           merged.cardPurchases.forEach(p => {
             if (p.date) {
               const parts = p.date.split('-');
               if (parts.length >= 2) {
                 const dYear = parseInt(parts[0], 10);
                 const dMonth = parseInt(parts[1], 10);
-                const dDay = parts.length >= 3 ? parseInt(parts[2], 10) : 1;
                 const sMonth = Number(p.startMonth);
                 const sYear = Number(p.startYear);
+                const isSingle = (p.installments === 1 || !p.installments || p.installments === '1');
+                
+                // Se não preenchido ou anterior à data da compra, inicia no mês da compra
                 if (!sMonth || !sYear || sYear < dYear || (sYear === dYear && sMonth < dMonth)) {
-                  const cardObj = (merged.cards || INITIAL_DATABASE.cards || []).find(c => (c.name || '').toLowerCase() === (p.card || '').toLowerCase());
-                  const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
-                  if (dDay > closingDay) {
-                    p.startMonth = dMonth + 1;
-                    p.startYear = dYear;
-                    if (p.startMonth > 12) {
-                      p.startMonth = 1;
-                      p.startYear += 1;
-                    }
-                  } else {
-                    p.startMonth = dMonth;
-                    p.startYear = dYear;
-                  }
+                  p.startMonth = dMonth;
+                  p.startYear = dYear;
+                } else if (isSingle && sYear === dYear && sMonth === dMonth + 1) {
+                  // Compras à vista (1x) que haviam sido empurradas indevidamente para o mês seguinte retornam para o mês da compra
+                  p.startMonth = dMonth;
+                  p.startYear = dYear;
                 }
               }
             }
@@ -747,28 +742,20 @@ class DataStore {
       let startMonth = Number(purchase.startMonth);
       let startYear = Number(purchase.startYear);
 
-      // Validação: 1ª parcela nunca antes da data da compra
+      // Padrão de início: sempre o mês da compra se não informado ou inválido
       if (!startMonth || !startYear || startYear < dateYear || (startYear === dateYear && startMonth < dateMonth)) {
-        const cardObj = (this.data.cards || []).find(c => (c.name || '').toLowerCase() === (purchase.card || '').toLowerCase());
-        const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
-        if (purchase.date && dateDay > closingDay) {
-          startMonth = dateMonth + 1;
-          startYear = dateYear;
-          if (startMonth > 12) {
-            startMonth = 1;
-            startYear += 1;
-          }
-        } else {
-          startMonth = dateMonth;
-          startYear = dateYear;
-        }
+        startMonth = dateMonth;
+        startYear = dateYear;
       }
 
       const isRecurring = (purchase.installments === 'recorrente' || purchase.isRecurring === true);
+      const isSingle = !isRecurring && (Number(purchase.installments) <= 1 || !purchase.installments);
       const installmentsCount = isRecurring ? 1 : (Number(purchase.installments) || 1);
-      const installmentValue = isRecurring ? (Number(purchase.totalAmount) || 0) : ((Number(purchase.totalAmount) || 0) / installmentsCount);
+      const totalAmount = Number(purchase.totalAmount) || 0;
+      const installmentValue = isRecurring ? totalAmount : (totalAmount / installmentsCount);
 
       if (isRecurring) {
+        // Recorrente: incide em todos os meses a partir do mês de início
         const monthDiff = (targetYear - startYear) * 12 + (targetMonth - startMonth);
         if (monthDiff >= 0) {
           const key = `${purchase.id}_m${monthDiff + 1}`;
@@ -799,7 +786,41 @@ class DataStore {
             status: status
           });
         }
+      } else if (isSingle) {
+        // Compra à vista (1x): incide no mês selecionado se a data da compra for deste mês OU se startMonth for deste mês
+        const matchesDate = (dateYear === targetYear && dateMonth === targetMonth);
+        const matchesStart = (startYear === targetYear && startMonth === targetMonth);
+        if (matchesDate || matchesStart) {
+          const key = `${purchase.id}_1`;
+          const status = (m && m.cardInstallmentStatus && m.cardInstallmentStatus[key]) || 'Pendente';
+          const valuePaidStored = (m && m.cardInstallmentPaid && m.cardInstallmentPaid[key] !== undefined && m.cardInstallmentPaid[key] !== null)
+            ? Number(m.cardInstallmentPaid[key])
+            : null;
+          const valuePaid = valuePaidStored !== null ? valuePaidStored : (status === 'Pago' ? installmentValue : 0);
+
+          list.push({
+            key: key,
+            purchaseId: purchase.id,
+            description: purchase.description,
+            place: purchase.place,
+            card: purchase.card,
+            installmentIndex: 1,
+            installmentsTotal: 1,
+            isRecurring: false,
+            value: installmentValue,
+            valueExpected: installmentValue,
+            valuePaid: valuePaid,
+            valuePaidStored: valuePaidStored,
+            date: purchase.date,
+            startMonth: startMonth,
+            startYear: startYear,
+            dueMonth: targetMonth,
+            dueYear: targetYear,
+            status: status
+          });
+        }
       } else {
+        // Compra parcelada (2x, 3x, etc.)
         for (let i = 0; i < installmentsCount; i++) {
           const totalMonths = (startMonth - 1) + i;
           const dueYear = startYear + Math.floor(totalMonths / 12);
@@ -1123,21 +1144,10 @@ class DataStore {
     let sMonth = Number(purchase.startMonth);
     let sYear = Number(purchase.startYear);
 
-    // Validação: a 1ª parcela nunca pode ser anterior à data da compra!
+    // Validação: a 1ª parcela inicia por padrão no mês da compra
     if (!sMonth || !sYear || sYear < dateYear || (sYear === dateYear && sMonth < dateMonth)) {
-      const cardObj = (this.data.cards || []).find(c => (c.name || '').toLowerCase() === (purchase.card || '').toLowerCase());
-      const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
-      if (purchase.date && dateDay > closingDay) {
-        sMonth = dateMonth + 1;
-        sYear = dateYear;
-        if (sMonth > 12) {
-          sMonth = 1;
-          sYear += 1;
-        }
-      } else {
-        sMonth = dateMonth;
-        sYear = dateYear;
-      }
+      sMonth = dateMonth;
+      sYear = dateYear;
     }
 
     purchase.startMonth = sMonth;
@@ -1174,21 +1184,8 @@ class DataStore {
     }
 
     if (!startMonth || !startYear || startYear < dateYear || (startYear === dateYear && startMonth < dateMonth)) {
-      const cardType = updatedData.card || currentItem.card;
-      const cardObj = (this.data.cards || this.data.creditCards || []).find(c => (c.name || '').toLowerCase() === (cardType || '').toLowerCase());
-      const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
-      let sMonth = dateMonth;
-      let sYear = dateYear;
-      if (date && dateDay > closingDay) {
-        sMonth = dateMonth + 1;
-        sYear = dateYear;
-        if (sMonth > 12) {
-          sMonth = 1;
-          sYear += 1;
-        }
-      }
-      startMonth = sMonth;
-      startYear = sYear;
+      startMonth = dateMonth;
+      startYear = dateYear;
     }
 
     this.data.cardPurchases[index] = {

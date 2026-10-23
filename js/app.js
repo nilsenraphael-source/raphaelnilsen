@@ -2273,21 +2273,10 @@ const app = {
     let sMonth = Number(p.startMonth);
     let sYear = Number(p.startYear);
 
-    // Validação estrita: a cobrança NUNCA pode iniciar em mês/ano anterior à compra!
+    // Validação: o início padrão é o mês da compra
     if (!sMonth || !sYear || sYear < dateYear || (sYear === dateYear && sMonth < dateMonth)) {
-      const cardObj = (store.data.cards || []).find(c => (c.name || '').toLowerCase() === (p.card || '').toLowerCase());
-      const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
-      if (p.date && dateDay > closingDay) {
-        sMonth = dateMonth + 1;
-        sYear = dateYear;
-        if (sMonth > 12) {
-          sMonth = 1;
-          sYear += 1;
-        }
-      } else {
-        sMonth = dateMonth;
-        sYear = dateYear;
-      }
+      sMonth = dateMonth;
+      sYear = dateYear;
     }
 
     const isRecurring = (p.installments === 'recorrente' || p.isRecurring === true);
@@ -5746,30 +5735,19 @@ const app = {
     }
 
     const cardName = cardSelect ? cardSelect.value : 'Mastercard';
-    const cardObj = (store.data.cards || []).find(c => (c.name || '').toLowerCase() === cardName.toLowerCase());
-    const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
-    const dueDay = cardObj ? (cardObj.dueDay || 10) : 10;
+    const cardObj = (store.data.creditCards || store.data.cards || []).find(c => (c.name || '').toLowerCase() === cardName.toLowerCase());
+    const dueDay = cardObj ? (cardObj.dueDay || 10) : (cardName.toLowerCase().includes('nu') ? 15 : 10);
 
     let sMonth = dMonth;
     let sYear = dYear;
-    let hint = '';
 
     const monthNames = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-    if (dDay > closingDay) {
-      sMonth = dMonth + 1;
-      if (sMonth > 12) {
-        sMonth = 1;
-        sYear += 1;
-      }
-      hint = `💡 Compra feita após o fechamento (dia ${closingDay}). 1ª parcela na fatura de ${monthNames[sMonth]}/${sYear} (venc. dia ${dueDay}).`;
-    } else {
-      hint = `💡 Compra feita antes do fechamento (dia ${closingDay}). 1ª parcela na fatura de ${monthNames[sMonth]}/${sYear} (venc. dia ${dueDay}).`;
-    }
-
     mSelect.value = String(sMonth);
     if (ySelect) ySelect.value = String(sYear);
-    if (hintEl) hintEl.textContent = hint;
+    if (hintEl) {
+      hintEl.textContent = `💡 Compra vinculada à fatura de ${monthNames[sMonth]}/${sYear} (vencimento dia ${dueDay}).`;
+    }
   },
 
   closeModal(modalId) {
@@ -6972,22 +6950,10 @@ const app = {
         let sMonth = Number(document.getElementById('card_start_month').value) || 1;
         let sYear = Number(document.getElementById('card_start_year')?.value) || dYear;
 
-        // Se a data de início da cobrança ficou anterior à data da compra, ajusta automaticamente
-        if (sYear < dYear || (sYear === dYear && sMonth < dMonth)) {
-          const cardTypeVal = document.getElementById('card_type').value;
-          const cardObj = (store.data.cards || []).find(c => (c.name || '').toLowerCase() === (cardTypeVal || '').toLowerCase());
-          const closingDay = cardObj ? (cardObj.closingDay || 1) : 1;
-          if (dDay > closingDay) {
-            sMonth = dMonth + 1;
-            sYear = dYear;
-            if (sMonth > 12) {
-              sMonth = 1;
-              sYear += 1;
-            }
-          } else {
-            sMonth = dMonth;
-            sYear = dYear;
-          }
+        // Se a data de início da cobrança não foi definida ou ficou anterior, inicia no mês da compra
+        if (!sMonth || !sYear || sYear < dYear || (sYear === dYear && sMonth < dMonth)) {
+          sMonth = dMonth;
+          sYear = dYear;
         }
 
         const rawInst = document.getElementById('card_installments').value;
