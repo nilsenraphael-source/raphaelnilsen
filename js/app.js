@@ -2290,14 +2290,16 @@ const app = {
       }
     }
 
-    const count = Number(p.installments) || 1;
+    const isRecurring = (p.installments === 'recorrente' || p.isRecurring === true);
+    const count = isRecurring ? 9999 : (Number(p.installments) || 1);
     const valTotal = Number(p.totalAmount) || 0;
-    const valPerInstallment = count > 0 ? (valTotal / count) : valTotal;
+    const valPerInstallment = isRecurring ? valTotal : (count > 0 ? (valTotal / count) : valTotal);
 
     return {
       startMonth: sMonth,
       startYear: sYear,
       count: count,
+      isRecurring: isRecurring,
       installmentValue: valPerInstallment
     };
   },
@@ -2586,8 +2588,9 @@ const app = {
 
     tbody.innerHTML = purchases.map(p => {
       const statusInfo = store.getCardPurchaseStatusInfo(p);
-      const parcelas = Number(p.installments) || 1;
-      const valorParcela = (Number(p.totalAmount) || 0) / parcelas;
+      const isRec = (p.installments === 'recorrente' || p.isRecurring === true);
+      const parcelas = isRec ? 'Recorrente' : (Number(p.installments) || 1);
+      const valorParcela = isRec ? (Number(p.totalAmount) || 0) : ((Number(p.totalAmount) || 0) / (Number(p.installments) || 1));
       const mesInicio = (store.data.months[p.startMonth]?.name) || (INITIAL_DATABASE.months[p.startMonth]?.name) || 'Janeiro';
       const anoInicio = p.startYear || (p.date ? p.date.split('-')[0] : store.activeYear);
 
@@ -2595,7 +2598,7 @@ const app = {
         <tr style="${statusInfo.isLiquidated ? 'opacity: 0.85;' : ''}">
           <td>
             <div style="display:flex; align-items:center; gap:0.45rem;">
-              <span style="color:${statusInfo.isLiquidated ? '#10b981' : '#64748b'};">${statusInfo.isLiquidated ? '✓' : '📄'}</span>
+              <span style="color:${isRec ? '#c084fc' : (statusInfo.isLiquidated ? '#10b981' : '#64748b')};">${isRec ? '🔁' : (statusInfo.isLiquidated ? '✓' : '📄')}</span>
               <strong>${escapeHtml(p.description)}</strong>
             </div>
           </td>
@@ -2603,13 +2606,15 @@ const app = {
           <td><span class="status-badge neutral">${p.card}</span></td>
           <td>${formatDateBR(p.date)}</td>
           <td>
-            <span class="status-badge ${statusInfo.isLiquidated ? 'paid' : 'waiting'}">
-              ${statusInfo.isLiquidated ? '✓ 100% Liquidada' : `${parcelas}x de ${formatBRL(valorParcela)}`}
+            <span class="status-badge ${isRec ? 'annual' : (statusInfo.isLiquidated ? 'paid' : 'waiting')}" ${isRec ? 'style="background:rgba(139, 92, 246, 0.15); color:#c084fc; border:1px solid rgba(139, 92, 246, 0.3);"' : ''}>
+              ${isRec ? '🔁 Recorrente (Mensal)' : (statusInfo.isLiquidated ? '✓ 100% Liquidada' : `${parcelas}x de ${formatBRL(valorParcela)}`)}
             </span>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
-              ${statusInfo.isLiquidated 
-                ? `Todas as ${parcelas} parcelas quitadas` 
-                : `Faltam ${statusInfo.pendingCount}x (Saldo: ${formatBRL(statusInfo.totalPending)})`}
+              ${isRec 
+                ? `Assinatura de ${formatBRL(p.totalAmount)}/mês` 
+                : (statusInfo.isLiquidated 
+                    ? `Todas as ${parcelas} parcelas quitadas` 
+                    : `Faltam ${statusInfo.pendingCount}x (Saldo: ${formatBRL(statusInfo.totalPending)})`)}
             </div>
           </td>
           <td style="font-weight: 800; color: #ffffff;">${formatBRL(p.totalAmount)}</td>
@@ -2687,8 +2692,10 @@ const app = {
             <div style="font-weight:800; color:#f87171; font-size:1.15rem;">${formatBRL(p.totalAmount)}</div>
           </div>
           <div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">Parcelamento</div>
-            <div style="font-weight:700; color:#fbbf24; font-size:0.95rem;">${info.count}x de ${formatBRL(info.installmentValue)}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">Parcelamento / Tipo</div>
+            <div style="font-weight:700; color:#fbbf24; font-size:0.95rem;">
+              ${info.isRecurring ? '🔁 Recorrente (Mensal)' : `${info.count}x de ${formatBRL(info.installmentValue)}`}
+            </div>
           </div>
           <div>
             <div style="font-size:0.75rem; color:var(--text-muted);">Início da Cobrança</div>
@@ -2732,7 +2739,8 @@ const app = {
     document.getElementById('edit_card_place').value = p.place || '';
     document.getElementById('edit_card_date').value = p.date || '';
     document.getElementById('edit_card_val').value = formatMoneyDisplay(p.totalAmount || 0);
-    document.getElementById('edit_card_installments').value = String(p.installments || 1);
+    const isRec = (p.installments === 'recorrente' || p.isRecurring === true);
+    document.getElementById('edit_card_installments').value = isRec ? 'recorrente' : String(p.installments || 1);
 
     // Popula ou seleciona o cartão
     const cardSelect = document.getElementById('edit_card_type');
@@ -6982,13 +6990,16 @@ const app = {
           }
         }
 
+        const rawInst = document.getElementById('card_installments').value;
+        const isRec = rawInst === 'recorrente';
         const purchase = {
           description: document.getElementById('card_desc').value,
           place: document.getElementById('card_place').value,
           card: document.getElementById('card_type').value,
           date: dateVal,
           totalAmount: parseMoney(document.getElementById('card_val').value),
-          installments: Number(document.getElementById('card_installments').value) || 1,
+          installments: isRec ? 'recorrente' : (Number(rawInst) || 1),
+          isRecurring: isRec,
           startMonth: sMonth,
           startYear: sYear
         };
@@ -7025,10 +7036,9 @@ const app = {
         const place = document.getElementById('edit_card_place').value.trim();
         const card = document.getElementById('edit_card_type').value;
         const dateVal = document.getElementById('edit_card_date').value;
-        const totalAmount = parseMoney(document.getElementById('edit_card_val').value) || 0;
-        const installments = Number(document.getElementById('edit_card_installments').value) || 1;
-        const startMonth = Number(document.getElementById('edit_card_start_month').value) || 1;
-        const startYear = Number(document.getElementById('edit_card_start_year').value) || Number(store.activeYear);
+        const rawEditInst = document.getElementById('edit_card_installments').value;
+        const isRecEdit = rawEditInst === 'recorrente';
+        const installments = isRecEdit ? 'recorrente' : (Number(rawEditInst) || 1);
 
         store.updateCardPurchase(id, {
           description: desc,
@@ -7037,6 +7047,7 @@ const app = {
           date: dateVal,
           totalAmount: totalAmount,
           installments: installments,
+          isRecurring: isRecEdit,
           startMonth: startMonth,
           startYear: startYear
         });

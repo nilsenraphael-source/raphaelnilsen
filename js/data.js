@@ -732,7 +732,6 @@ class DataStore {
     if (!this.data.cardPurchases) return list;
 
     this.data.cardPurchases.forEach(purchase => {
-      const installmentsCount = Number(purchase.installments) || 1;
       let dateYear = this.activeYear;
       let dateMonth = 1;
       let dateDay = 1;
@@ -764,16 +763,15 @@ class DataStore {
           startYear = dateYear;
         }
       }
-      const installmentValue = (Number(purchase.totalAmount) || 0) / installmentsCount;
 
-      for (let i = 0; i < installmentsCount; i++) {
-        // Cálculo temporal exato: calcula o mês e o ano em que cada parcela incide
-        const totalMonths = (startMonth - 1) + i;
-        const dueYear = startYear + Math.floor(totalMonths / 12);
-        const dueMonth = (totalMonths % 12) + 1;
+      const isRecurring = (purchase.installments === 'recorrente' || purchase.isRecurring === true);
+      const installmentsCount = isRecurring ? 1 : (Number(purchase.installments) || 1);
+      const installmentValue = isRecurring ? (Number(purchase.totalAmount) || 0) : ((Number(purchase.totalAmount) || 0) / installmentsCount);
 
-        if (dueYear === targetYear && dueMonth === targetMonth) {
-          const key = `${purchase.id}_${i + 1}`;
+      if (isRecurring) {
+        const monthDiff = (targetYear - startYear) * 12 + (targetMonth - startMonth);
+        if (monthDiff >= 0) {
+          const key = `${purchase.id}_m${monthDiff + 1}`;
           const status = (m && m.cardInstallmentStatus && m.cardInstallmentStatus[key]) || 'Pendente';
           const valuePaidStored = (m && m.cardInstallmentPaid && m.cardInstallmentPaid[key] !== undefined && m.cardInstallmentPaid[key] !== null)
             ? Number(m.cardInstallmentPaid[key])
@@ -786,8 +784,9 @@ class DataStore {
             description: purchase.description,
             place: purchase.place,
             card: purchase.card,
-            installmentIndex: i + 1,
-            installmentsTotal: installmentsCount,
+            installmentIndex: monthDiff + 1,
+            installmentsTotal: 'Recorrente',
+            isRecurring: true,
             value: installmentValue,
             valueExpected: installmentValue,
             valuePaid: valuePaid,
@@ -795,10 +794,46 @@ class DataStore {
             date: purchase.date,
             startMonth: startMonth,
             startYear: startYear,
-            dueMonth: dueMonth,
-            dueYear: dueYear,
+            dueMonth: targetMonth,
+            dueYear: targetYear,
             status: status
           });
+        }
+      } else {
+        for (let i = 0; i < installmentsCount; i++) {
+          const totalMonths = (startMonth - 1) + i;
+          const dueYear = startYear + Math.floor(totalMonths / 12);
+          const dueMonth = (totalMonths % 12) + 1;
+
+          if (dueYear === targetYear && dueMonth === targetMonth) {
+            const key = `${purchase.id}_${i + 1}`;
+            const status = (m && m.cardInstallmentStatus && m.cardInstallmentStatus[key]) || 'Pendente';
+            const valuePaidStored = (m && m.cardInstallmentPaid && m.cardInstallmentPaid[key] !== undefined && m.cardInstallmentPaid[key] !== null)
+              ? Number(m.cardInstallmentPaid[key])
+              : null;
+            const valuePaid = valuePaidStored !== null ? valuePaidStored : (status === 'Pago' ? installmentValue : 0);
+
+            list.push({
+              key: key,
+              purchaseId: purchase.id,
+              description: purchase.description,
+              place: purchase.place,
+              card: purchase.card,
+              installmentIndex: i + 1,
+              installmentsTotal: installmentsCount,
+              isRecurring: false,
+              value: installmentValue,
+              valueExpected: installmentValue,
+              valuePaid: valuePaid,
+              valuePaidStored: valuePaidStored,
+              date: purchase.date,
+              startMonth: startMonth,
+              startYear: startYear,
+              dueMonth: dueMonth,
+              dueYear: dueYear,
+              status: status
+            });
+          }
         }
       }
     });
@@ -1180,9 +1215,10 @@ class DataStore {
 
   getCardPurchaseStatusInfo(p) {
     if (!p) return { isLiquidated: true, pendingCount: 0, paidCount: 0, totalPaid: 0, totalPending: 0, totalAmount: 0 };
-    const installments = Number(p.installments) || 1;
+    const isRecurring = (p.installments === 'recorrente' || p.isRecurring === true);
+    const installments = isRecurring ? 'Recorrente' : (Number(p.installments) || 1);
     const totalAmount = Number(p.totalAmount) || 0;
-    const valPerInstallment = installments > 0 ? (totalAmount / installments) : totalAmount;
+    const valPerInstallment = isRecurring ? totalAmount : (installments > 0 ? (totalAmount / installments) : totalAmount);
 
     let dateYear = this.activeYear;
     let dateMonth = 1;
@@ -1206,6 +1242,26 @@ class DataStore {
     const now = new Date();
     const currYear = now.getFullYear();
     const currMonth = now.getMonth() + 1;
+
+    if (isRecurring) {
+      const monthDiff = (currYear - startYear) * 12 + (currMonth - startMonth);
+      const key = `${p.id}_m${Math.max(1, monthDiff + 1)}`;
+      const mObj = (this.data.years && this.data.years[currYear]) 
+        ? this.data.years[currYear][currMonth] 
+        : (currYear === Number(this.activeYear) ? this.data.months[currMonth] : null);
+      const isPaid = (mObj && mObj.cardInstallmentStatus && mObj.cardInstallmentStatus[key] === 'Pago');
+
+      return {
+        installments: 'Recorrente',
+        isRecurring: true,
+        paidCount: isPaid ? 1 : 0,
+        pendingCount: isPaid ? 0 : 1,
+        totalAmount,
+        totalPaid: isPaid ? totalAmount : 0,
+        totalPending: isPaid ? 0 : totalAmount,
+        isLiquidated: false
+      };
+    }
 
     let paidCount = 0;
     let pendingCount = 0;
@@ -1239,6 +1295,7 @@ class DataStore {
 
     return {
       installments,
+      isRecurring: false,
       paidCount,
       pendingCount,
       totalAmount,
