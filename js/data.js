@@ -186,10 +186,6 @@ class DataStore {
                 if (!sMonth || !sYear || sYear < dYear || (sYear === dYear && sMonth < dMonth)) {
                   p.startMonth = dMonth;
                   p.startYear = dYear;
-                } else if (isSingle && sYear === dYear && sMonth === dMonth + 1) {
-                  // Compras à vista (1x) que haviam sido empurradas indevidamente para o mês seguinte retornam para o mês da compra
-                  p.startMonth = dMonth;
-                  p.startYear = dYear;
                 }
               }
             }
@@ -786,41 +782,8 @@ class DataStore {
             status: status
           });
         }
-      } else if (isSingle) {
-        // Compra à vista (1x): incide no mês selecionado se a data da compra for deste mês OU se startMonth for deste mês
-        const matchesDate = (dateYear === targetYear && dateMonth === targetMonth);
-        const matchesStart = (startYear === targetYear && startMonth === targetMonth);
-        if (matchesDate || matchesStart) {
-          const key = `${purchase.id}_1`;
-          const status = (m && m.cardInstallmentStatus && m.cardInstallmentStatus[key]) || 'Pendente';
-          const valuePaidStored = (m && m.cardInstallmentPaid && m.cardInstallmentPaid[key] !== undefined && m.cardInstallmentPaid[key] !== null)
-            ? Number(m.cardInstallmentPaid[key])
-            : null;
-          const valuePaid = valuePaidStored !== null ? valuePaidStored : (status === 'Pago' ? installmentValue : 0);
-
-          list.push({
-            key: key,
-            purchaseId: purchase.id,
-            description: purchase.description,
-            place: purchase.place,
-            card: purchase.card,
-            installmentIndex: 1,
-            installmentsTotal: 1,
-            isRecurring: false,
-            value: installmentValue,
-            valueExpected: installmentValue,
-            valuePaid: valuePaid,
-            valuePaidStored: valuePaidStored,
-            date: purchase.date,
-            startMonth: startMonth,
-            startYear: startYear,
-            dueMonth: targetMonth,
-            dueYear: targetYear,
-            status: status
-          });
-        }
       } else {
-        // Compra parcelada (2x, 3x, etc.)
+        // Compra à vista (1x) ou parcelada (2x, 3x, etc.)
         for (let i = 0; i < installmentsCount; i++) {
           const totalMonths = (startMonth - 1) + i;
           const dueYear = startYear + Math.floor(totalMonths / 12);

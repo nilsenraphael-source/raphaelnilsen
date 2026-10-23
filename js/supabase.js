@@ -398,12 +398,59 @@ class SupabaseService {
         if (!store.data.settings.userEmail) store.data.settings.userEmail = 'raphael_nilsen@hotmail.com';
         if (!store.data.settings.userPasswordHash) store.data.settings.userPasswordHash = '12345';
         store.data.settings.lastSync = data.updated_at;
+
+        // IMPORTANTE: Carrega todas as compras reais da tabela compras_cartao
+        try {
+          const { data: cardRows, error: cardErr } = await this.client
+            .from('compras_cartao')
+            .select('*')
+            .eq('user_email', email);
+
+          if (!cardErr && Array.isArray(cardRows) && cardRows.length > 0) {
+            store.data.cardPurchases = cardRows.map(r => ({
+              id: r.id,
+              description: r.descricao,
+              place: r.estabelecimento,
+              card: r.cartao,
+              date: r.data_compra,
+              totalAmount: Number(r.valor_total) || 0,
+              installments: Number(r.parcelas) || 1,
+              startMonth: Number(r.mes_inicio) || 1,
+              startYear: Number(r.ano_inicio) || new Date().getFullYear()
+            }));
+          }
+        } catch (cardErr) {
+          console.warn('[Supabase] Erro ao carregar compras_cartao:', cardErr);
+        }
+
         store.save(true);
         this.lastError = null;
         if (!silent) console.log('[Cofre Supabase] Dados carregados da nuvem com sucesso.');
         return { success: true, message: 'Dados restaurados com sucesso da nuvem!' };
       } else {
-        // Se a nuvem tem apenas um registro parcial/teste, sobe o estado local
+        // Se a nuvem tem apenas um registro parcial/teste, verifica compras_cartao antes
+        try {
+          const { data: cardRows } = await this.client
+            .from('compras_cartao')
+            .select('*')
+            .eq('user_email', email);
+
+          if (Array.isArray(cardRows) && cardRows.length > 0) {
+            store.data.cardPurchases = cardRows.map(r => ({
+              id: r.id,
+              description: r.descricao,
+              place: r.estabelecimento,
+              card: r.cartao,
+              date: r.data_compra,
+              totalAmount: Number(r.valor_total) || 0,
+              installments: Number(r.parcelas) || 1,
+              startMonth: Number(r.mes_inicio) || 1,
+              startYear: Number(r.ano_inicio) || new Date().getFullYear()
+            }));
+            store.save(true);
+          }
+        } catch (_) {}
+
         this.syncToCloud(true);
         return { success: false, reason: 'Nenhum backup completo na nuvem. Dados locais enviados com sucesso.' };
       }
