@@ -897,8 +897,10 @@ class DataStore {
       }, 0);
       const count = matched.length;
       const paidCount = matched.filter(inst => inst.status === 'Pago').length;
-      const isPaid = (count > 0 && paidCount === count) || (count > 0 && totalPaid >= totalExpected && totalExpected > 0);
-      const status = count === 0 ? 'Sem lançamentos' : (isPaid ? 'Pago' : (paidCount > 0 ? 'Parcial' : 'Pendente'));
+      const isPaid = (count > 0 && (paidCount > 0 || totalPaid > 0));
+      const isFullPaid = isPaid && (totalPaid >= totalExpected && totalExpected > 0);
+      const isUnderPaid = isPaid && (totalPaid < totalExpected);
+      const status = count === 0 ? 'Sem lançamentos' : (!isPaid ? 'Pendente' : (isFullPaid ? 'Pago' : 'Pago Abaixo'));
 
       return {
         key: c.key,
@@ -912,6 +914,8 @@ class DataStore {
         count,
         paidCount,
         isPaid,
+        isFullPaid,
+        isUnderPaid,
         status,
         installments: matched
       };
@@ -931,7 +935,10 @@ class DataStore {
       }, 0);
       const otherCount = otherMatched.length;
       const otherPaidCount = otherMatched.filter(inst => inst.status === 'Pago').length;
-      const isPaid = (otherCount > 0 && otherPaidCount === otherCount) || (otherCount > 0 && otherPaid >= otherExpected && otherExpected > 0);
+      const isPaid = (otherCount > 0 && (otherPaidCount > 0 || otherPaid > 0));
+      const isFullPaid = isPaid && (otherPaid >= otherExpected && otherExpected > 0);
+      const isUnderPaid = isPaid && (otherPaid < otherExpected);
+      const status = otherCount === 0 ? 'Sem lançamentos' : (!isPaid ? 'Pendente' : (isFullPaid ? 'Pago' : 'Pago Abaixo'));
 
       result.push({
         key: 'outros',
@@ -945,7 +952,9 @@ class DataStore {
         count: otherCount,
         paidCount: otherPaidCount,
         isPaid,
-        status: isPaid ? 'Pago' : (otherPaidCount > 0 ? 'Parcial' : 'Pendente'),
+        isFullPaid,
+        isUnderPaid,
+        status,
         installments: otherMatched
       });
     }
@@ -976,23 +985,30 @@ class DataStore {
       ? Number(customPaidValue) 
       : (status === 'Pago' ? totalExpected : 0);
 
-    cardInsts.forEach((inst, idx) => {
-      m.cardInstallmentStatus[inst.key] = status;
-      if (status === 'Pago') {
+    const targetStatus = (finalPaid > 0 || status === 'Pago') ? 'Pago' : 'Pendente';
+
+    if (targetStatus === 'Pago') {
+      let allocated = 0;
+      cardInsts.forEach((inst, idx) => {
+        m.cardInstallmentStatus[inst.key] = 'Pago';
         if (customPaidValue !== null && customPaidValue !== undefined) {
-          if (totalExpected > 0) {
-            const ratio = inst.value / totalExpected;
-            m.cardInstallmentPaid[inst.key] = Math.round(finalPaid * ratio * 100) / 100;
+          if (idx === cardInsts.length - 1) {
+            m.cardInstallmentPaid[inst.key] = Math.max(0, Math.round((finalPaid - allocated) * 100) / 100);
           } else {
-            m.cardInstallmentPaid[inst.key] = (idx === 0) ? finalPaid : 0;
+            const part = totalExpected > 0 ? Math.round((finalPaid * (inst.value / totalExpected)) * 100) / 100 : 0;
+            m.cardInstallmentPaid[inst.key] = part;
+            allocated += part;
           }
         } else {
           m.cardInstallmentPaid[inst.key] = inst.value;
         }
-      } else {
+      });
+    } else {
+      cardInsts.forEach(inst => {
+        m.cardInstallmentStatus[inst.key] = 'Pendente';
         m.cardInstallmentPaid[inst.key] = 0;
-      }
-    });
+      });
+    }
 
     this.save();
   }
@@ -1049,8 +1065,11 @@ class DataStore {
     
     const cardInstallments = this.getCardInstallmentsForMonth(monthNum);
     const totalCard = cardInstallments.reduce((acc, c) => acc + (Number(c.value) || 0), 0);
-    const cardPaid = cardInstallments.filter(c => c.status === 'Pago').reduce((acc, c) => acc + (Number(c.valuePaid) || Number(c.value) || 0), 0);
-    const cardPending = cardInstallments.filter(c => c.status !== 'Pago').reduce((acc, c) => acc + (Number(c.value) || 0), 0);
+    const cardPaid = cardInstallments.filter(c => c.status === 'Pago').reduce((acc, c) => {
+      const vp = (c.valuePaid !== undefined && c.valuePaid !== null) ? Number(c.valuePaid) : (Number(c.value) || 0);
+      return acc + vp;
+    }, 0);
+    const cardPending = Math.max(0, totalCard - cardPaid);
     const cardCount = cardInstallments.length;
     const cardPaidCount = cardInstallments.filter(c => c.status === 'Pago').length;
     const cardPct = cardCount === 0 ? 100 : (totalCard > 0 ? Math.min(100, Math.round((cardPaid / totalCard) * 100)) : (cardPaidCount === cardCount ? 100 : 0));
