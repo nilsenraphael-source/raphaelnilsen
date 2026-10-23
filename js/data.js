@@ -1053,6 +1053,76 @@ class DataStore {
     this.save();
   }
 
+  getCardPurchaseStatusInfo(p) {
+    if (!p) return { isLiquidated: true, pendingCount: 0, paidCount: 0, totalPaid: 0, totalPending: 0, totalAmount: 0 };
+    const installments = Number(p.installments) || 1;
+    const totalAmount = Number(p.totalAmount) || 0;
+    const valPerInstallment = installments > 0 ? (totalAmount / installments) : totalAmount;
+
+    let dateYear = this.activeYear;
+    let dateMonth = 1;
+    let dateDay = 1;
+    if (p.date) {
+      const parts = p.date.split('-');
+      if (parts.length >= 2) {
+        dateYear = parseInt(parts[0], 10) || dateYear;
+        dateMonth = parseInt(parts[1], 10) || 1;
+        if (parts.length >= 3) dateDay = parseInt(parts[2], 10) || 1;
+      }
+    }
+
+    let startMonth = Number(p.startMonth);
+    let startYear = Number(p.startYear);
+    if (!startMonth || !startYear || startYear < dateYear || (startYear === dateYear && startMonth < dateMonth)) {
+      startMonth = dateMonth;
+      startYear = dateYear;
+    }
+
+    const now = new Date();
+    const currYear = now.getFullYear();
+    const currMonth = now.getMonth() + 1;
+
+    let paidCount = 0;
+    let pendingCount = 0;
+    let totalPaid = 0;
+    let totalPending = 0;
+
+    for (let i = 0; i < installments; i++) {
+      const totalMonths = (startMonth - 1) + i;
+      const dueYear = startYear + Math.floor(totalMonths / 12);
+      const dueMonth = (totalMonths % 12) + 1;
+      const key = `${p.id}_${i + 1}`;
+
+      const mObj = (this.data.years && this.data.years[dueYear]) 
+        ? this.data.years[dueYear][dueMonth] 
+        : (dueYear === Number(this.activeYear) ? this.data.months[dueMonth] : null);
+
+      const status = (mObj && mObj.cardInstallmentStatus && mObj.cardInstallmentStatus[key]);
+      const isExplicitlyPaid = (status === 'Pago');
+      const isPastMonth = (dueYear < currYear) || (dueYear === currYear && dueMonth < currMonth);
+
+      if (isExplicitlyPaid || isPastMonth) {
+        paidCount++;
+        totalPaid += valPerInstallment;
+      } else {
+        pendingCount++;
+        totalPending += valPerInstallment;
+      }
+    }
+
+    const isLiquidated = (pendingCount === 0);
+
+    return {
+      installments,
+      paidCount,
+      pendingCount,
+      totalAmount,
+      totalPaid,
+      totalPending: Math.max(0, totalPending),
+      isLiquidated
+    };
+  }
+
   // --- SONHOS & COMPRAS ---
   addDream(dream) {
     dream.id = 'drm_' + Date.now();

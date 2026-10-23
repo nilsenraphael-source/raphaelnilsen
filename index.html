@@ -444,17 +444,35 @@
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                 </div>
                 <div>
-                  <h3 class="card-title">Todas as Compras Cadastradas (Gerenciamento)</h3>
-                  <span class="card-subtitle">Exclusão, detalhes de parcelamento e total em aberto</span>
+                  <h3 class="card-title">Gerenciamento de Compras no Cartão</h3>
+                  <span class="card-subtitle">Controle de parcelas ativas, compras liquidadas e saldo a pagar</span>
                 </div>
               </div>
               <div class="card-header-actions-cartao">
                 <div class="card-header-stat-cartao">
-                  <span>Total Aberto:</span> <span id="totalOpenCardPurchases" style="color:var(--danger); font-size:1.05rem;">R$ 0,00</span>
+                  <span>Saldo a Pagar (Aberto):</span> <span id="totalOpenCardPurchases" style="color:var(--danger); font-size:1.05rem;">R$ 0,00</span>
                 </div>
                 <button class="btn-header primary btn-nova-compra-cartao" onclick="event.stopPropagation(); app.openModalNovaCompraCartao()">
                   + Nova Compra
                 </button>
+              </div>
+            </div>
+
+            <!-- FILTRO DE STATUS: EM ABERTO vs LIQUIDADAS -->
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1.25rem; border-bottom:1px solid var(--border-light); background:rgba(255,255,255,0.015); flex-wrap:wrap; gap:0.6rem;">
+              <div class="receitas-view-switcher" style="margin:0;">
+                <button type="button" class="btn-view-mode active" id="btnCardFilterAberto" onclick="app.setCardPurchasesFilter('aberto')">
+                  ⏳ Em Aberto (<span id="countCardAberto">0</span>)
+                </button>
+                <button type="button" class="btn-view-mode" id="btnCardFilterLiquidado" onclick="app.setCardPurchasesFilter('liquidado')">
+                  ✓ Liquidadas (<span id="countCardLiquidado">0</span>)
+                </button>
+                <button type="button" class="btn-view-mode" id="btnCardFilterTodas" onclick="app.setCardPurchasesFilter('todas')">
+                  📋 Todas (<span id="countCardTodas">0</span>)
+                </button>
+              </div>
+              <div style="font-size:0.78rem; color:var(--text-muted);">
+                💡 Compras quitadas saem da lista "Em Aberto" automaticamente, mantendo o histórico de meses anteriores.
               </div>
             </div>
 
@@ -466,7 +484,7 @@
                     <th>Estabelecimento</th>
                     <th>Cartão</th>
                     <th>Data</th>
-                    <th>Parcelamento</th>
+                    <th>Parcelamento / Status</th>
                     <th>Valor Total</th>
                     <th style="width: 80px; text-align: center;">Ações</th>
                   </tr>
@@ -3046,8 +3064,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261023_v5"></script>
-  <script src="js/supabase.js?v=20261023_v5"></script>
-  <script src="js/app.js?v=20261023_v5"></script>
+  <script src="js/data.js?v=20261023_v6"></script>
+  <script src="js/supabase.js?v=20261023_v6"></script>
+  <script src="js/app.js?v=20261023_v6"></script>
 </body>
 </html>

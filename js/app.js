@@ -2184,47 +2184,61 @@ const app = {
               </tr>
             </thead>
             <tbody>
-              ${purchases.length === 0 ? `
-                <tr>
-                  <td colspan="${5 + cols.length}" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
-                    Nenhuma compra encontrada para ${cardTitle} no ano ${store.activeYear}. Clique em "+ Nova" para cadastrar sua compra.
-                  </td>
-                </tr>
-              ` : purchases.map(p => {
-                const info = this.getPurchaseInstallmentInfo(p, store.activeYear);
-                const siteTag = this.getSiteTagHtml(p.place);
-                const dateText = this.formatDateFullPT(p.date);
-                let rowTotalYear = 0;
+              ${(() => {
+                const yearPurchases = purchases.filter(p => {
+                  const info = this.getPurchaseInstallmentInfo(p, store.activeYear);
+                  return cols.some(col => {
+                    const monthDiff = (col.year - info.startYear) * 12 + (col.month - info.startMonth);
+                    return (monthDiff >= 0 && monthDiff < info.count);
+                  });
+                });
 
-                const cellsHtml = cols.map((col, idx) => {
-                  const monthDiff = (col.year - info.startYear) * 12 + (col.month - info.startMonth);
-                  const hasInstallment = (monthDiff >= 0 && monthDiff < info.count);
-                  if (hasInstallment) {
-                    colTotals[idx] += info.installmentValue;
-                    rowTotalYear += info.installmentValue;
-                    grandTotalYear += info.installmentValue;
-                    return `<td class="col-month ${col.isCurrent ? 'col-current-month' : ''}">${formatBRL(info.installmentValue)}</td>`;
-                  }
-                  return `<td class="col-month ${col.isCurrent ? 'col-current-month' : ''}"></td>`;
+                if (yearPurchases.length === 0) {
+                  return `
+                    <tr>
+                      <td colspan="${5 + cols.length}" style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+                        Nenhuma parcela prevista para ${cardTitle} no ano ${store.activeYear}.
+                      </td>
+                    </tr>
+                  `;
+                }
+
+                return yearPurchases.map(p => {
+                  const info = this.getPurchaseInstallmentInfo(p, store.activeYear);
+                  const siteTag = this.getSiteTagHtml(p.place);
+                  const dateText = this.formatDateFullPT(p.date);
+                  let rowTotalYear = 0;
+
+                  const cellsHtml = cols.map((col, idx) => {
+                    const monthDiff = (col.year - info.startYear) * 12 + (col.month - info.startMonth);
+                    const hasInstallment = (monthDiff >= 0 && monthDiff < info.count);
+                    if (hasInstallment) {
+                      colTotals[idx] += info.installmentValue;
+                      rowTotalYear += info.installmentValue;
+                      grandTotalYear += info.installmentValue;
+                      return `<td class="col-month ${col.isCurrent ? 'col-current-month' : ''}">${formatBRL(info.installmentValue)}</td>`;
+                    }
+                    return `<td class="col-month ${col.isCurrent ? 'col-current-month' : ''}"></td>`;
+                  }).join('');
+
+                  return `
+                    <tr>
+                      <td>
+                        <div class="notion-purchase-title-cell">
+                          <span class="notion-file-icon">📄</span>
+                          <span style="font-weight: 600;">${escapeHtml(p.description)}</span>
+                          <button class="notion-abrir-btn" onclick="app.openCardPurchaseDetails('${p.id}')">Abrir</button>
+                        </div>
+                      </td>
+                      <td>${siteTag}</td>
+                      <td><span class="notion-tag" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1;">${escapeHtml(p.card || 'Mastercard')}</span></td>
+                      <td style="color: #94a3b8; font-size: 0.8rem;">${dateText}</td>
+                      ${cellsHtml}
+                      <td style="text-align: right; font-weight: 700; color: #38bdf8;">${rowTotalYear > 0 ? formatBRL(rowTotalYear) : '—'}</td>
+                    </tr>
+                  `;
                 }).join('');
-
-                return `
-                  <tr>
-                    <td>
-                      <div class="notion-purchase-title-cell">
-                        <span class="notion-file-icon">📄</span>
-                        <span style="font-weight: 600;">${escapeHtml(p.description)}</span>
-                        <button class="notion-abrir-btn" onclick="app.openCardPurchaseDetails('${p.id}')">Abrir</button>
-                      </div>
-                    </td>
-                    <td>${siteTag}</td>
-                    <td><span class="notion-tag" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1;">${escapeHtml(p.card || 'Mastercard')}</span></td>
-                    <td style="color: #94a3b8; font-size: 0.8rem;">${dateText}</td>
-                    ${cellsHtml}
-                    <td style="text-align: right; font-weight: 700; color: #38bdf8;">${rowTotalYear > 0 ? formatBRL(rowTotalYear) : '—'}</td>
-                  </tr>
-                `;
-              }).join('')}
+              })()}
             </tbody>
             <tfoot>
               <tr>
@@ -2247,32 +2261,84 @@ const app = {
     `;
   },
 
+  setCardPurchasesFilter(mode) {
+    this.cardPurchasesFilter = mode;
+    const btnAberto = document.getElementById('btnCardFilterAberto');
+    const btnLiquidado = document.getElementById('btnCardFilterLiquidado');
+    const btnTodas = document.getElementById('btnCardFilterTodas');
+    if (btnAberto) btnAberto.classList.toggle('active', mode === 'aberto');
+    if (btnLiquidado) btnLiquidado.classList.toggle('active', mode === 'liquidado');
+    if (btnTodas) btnTodas.classList.toggle('active', mode === 'todas');
+    this.renderCardPurchasesList();
+  },
+
   renderCardPurchasesList() {
     const tbody = document.getElementById('cardPurchasesTableBody');
     if (!tbody) return;
 
-    let purchases = store.data.cardPurchases || [];
+    this.cardPurchasesFilter = this.cardPurchasesFilter || 'aberto';
+
+    let allPurchases = store.data.cardPurchases || [];
     if (this.activeTabCartao !== 'todos') {
-      purchases = purchases.filter(p => (p.card || '').toLowerCase().includes(this.activeTabCartao.toLowerCase()));
+      allPurchases = allPurchases.filter(p => (p.card || '').toLowerCase().includes(this.activeTabCartao.toLowerCase()));
     }
 
-    const totalOpen = (store.data.cardPurchases || []).reduce((acc, p) => acc + (Number(p.totalAmount) || 0), 0);
-    const elTotal = document.getElementById('totalOpenCardPurchases');
-    if (elTotal) elTotal.textContent = formatBRL(totalOpen);
+    // Calcula contadores e saldo a pagar real
+    let countAberto = 0;
+    let countLiquidado = 0;
+    let totalPendingSum = 0;
 
-    tbody.innerHTML = purchases.length === 0 ? `
-      <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma compra de cartão cadastrada.</td></tr>
-    ` : purchases.map(p => {
+    allPurchases.forEach(p => {
+      const s = store.getCardPurchaseStatusInfo(p);
+      if (s.isLiquidated) {
+        countLiquidado++;
+      } else {
+        countAberto++;
+        totalPendingSum += s.totalPending;
+      }
+    });
+
+    const elCountAberto = document.getElementById('countCardAberto');
+    const elCountLiquidado = document.getElementById('countCardLiquidado');
+    const elCountTodas = document.getElementById('countCardTodas');
+    if (elCountAberto) elCountAberto.textContent = countAberto;
+    if (elCountLiquidado) elCountLiquidado.textContent = countLiquidado;
+    if (elCountTodas) elCountTodas.textContent = allPurchases.length;
+
+    const elTotal = document.getElementById('totalOpenCardPurchases');
+    if (elTotal) elTotal.textContent = formatBRL(totalPendingSum);
+
+    // Aplica o filtro selecionado
+    let purchases = allPurchases;
+    if (this.cardPurchasesFilter === 'aberto') {
+      purchases = allPurchases.filter(p => !store.getCardPurchaseStatusInfo(p).isLiquidated);
+    } else if (this.cardPurchasesFilter === 'liquidado') {
+      purchases = allPurchases.filter(p => store.getCardPurchaseStatusInfo(p).isLiquidated);
+    }
+
+    if (purchases.length === 0) {
+      let emptyMsg = 'Nenhuma compra de cartão cadastrada.';
+      if (this.cardPurchasesFilter === 'aberto') {
+        emptyMsg = '🎉 Nenhuma compra com parcelas em aberto! Todas as compras registradas estão 100% quitadas/liquidadas.';
+      } else if (this.cardPurchasesFilter === 'liquidado') {
+        emptyMsg = 'Nenhuma compra liquidada até o momento. Conforme as parcelas forem pagas, elas aparecerão aqui.';
+      }
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2.5rem; font-size: 0.92rem;">${emptyMsg}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = purchases.map(p => {
+      const statusInfo = store.getCardPurchaseStatusInfo(p);
       const parcelas = Number(p.installments) || 1;
       const valorParcela = (Number(p.totalAmount) || 0) / parcelas;
       const mesInicio = (store.data.months[p.startMonth]?.name) || (INITIAL_DATABASE.months[p.startMonth]?.name) || 'Janeiro';
       const anoInicio = p.startYear || (p.date ? p.date.split('-')[0] : store.activeYear);
 
       return `
-        <tr>
+        <tr style="${statusInfo.isLiquidated ? 'opacity: 0.85;' : ''}">
           <td>
             <div style="display:flex; align-items:center; gap:0.45rem;">
-              <span style="color:#64748b;">📄</span>
+              <span style="color:${statusInfo.isLiquidated ? '#10b981' : '#64748b'};">${statusInfo.isLiquidated ? '✓' : '📄'}</span>
               <strong>${escapeHtml(p.description)}</strong>
             </div>
           </td>
@@ -2280,9 +2346,13 @@ const app = {
           <td><span class="status-badge neutral">${p.card}</span></td>
           <td>${formatDateBR(p.date)}</td>
           <td>
-            <span class="status-badge waiting">${parcelas}x de ${formatBRL(valorParcela)}</span>
+            <span class="status-badge ${statusInfo.isLiquidated ? 'paid' : 'waiting'}">
+              ${statusInfo.isLiquidated ? '✓ 100% Liquidada' : `${parcelas}x de ${formatBRL(valorParcela)}`}
+            </span>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
-              1ª parcela: <strong>${mesInicio}/${anoInicio}</strong>
+              ${statusInfo.isLiquidated 
+                ? `Todas as ${parcelas} parcelas quitadas` 
+                : `Faltam ${statusInfo.pendingCount}x (Saldo: ${formatBRL(statusInfo.totalPending)})`}
             </div>
           </td>
           <td style="font-weight: 800; color: #ffffff;">${formatBRL(p.totalAmount)}</td>
