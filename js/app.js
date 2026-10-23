@@ -1412,37 +1412,46 @@ const app = {
       `;
     } else if (this.activeSubtabMes === 'cartao_mes') {
       const summary = store.getMonthSummary(this.activeMonth);
-      const cardInstallments = store.getCardInstallmentsForMonth(this.activeMonth);
+      const invoices = store.getCardInvoicesForMonth(this.activeMonth);
+      const allInstallments = store.getCardInstallmentsForMonth(this.activeMonth);
       const cardHasItems = summary.cardCount > 0;
       const cardIsComplete = cardHasItems && summary.cardPct === 100;
       const cardBarClass = !cardHasItems ? 'empty' : (cardIsComplete ? 'complete' : (summary.cardPct > 0 ? 'card-partial' : 'card-pending'));
 
+      // Encontra faturas específicas de Mastercard e Nubank
+      const masterInv = invoices.find(i => i.key === 'master') || {
+        key: 'master', name: 'Mastercard', totalExpected: 0, totalPaid: 0, totalPending: 0, count: 0, isPaid: false, dueDay: 10, closingDay: 1
+      };
+      const nubankInv = invoices.find(i => i.key === 'nubank') || {
+        key: 'nubank', name: 'Nubank (Nu)', totalExpected: 0, totalPaid: 0, totalPending: 0, count: 0, isPaid: false, dueDay: 15, closingDay: 5
+      };
+
       container.innerHTML = `
         <div class="card-header">
           <div class="card-title-group">
-            <h3 class="card-title">Fatura / Parcelas de Cartão para ${m.name}</h3>
-            <span class="card-subtitle">Encaminhado automaticamente do Módulo Cartão de Crédito</span>
+            <h3 class="card-title">Fatura dos Cartões de Crédito — ${m.name}</h3>
+            <span class="card-subtitle">Valor total consolidado das faturas para pagamento mensal</span>
           </div>
-          <div style="display:flex; gap:1.25rem; align-items:center; flex-wrap:wrap;">
+          <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
             ${cardHasItems ? `
               <button class="btn-header" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" onclick="app.togglePayAllCards(${this.activeMonth})">
-                ${cardIsComplete ? '↩ Desmarcar Fatura' : '✓ Quitar Fatura do Mês'}
+                ${cardIsComplete ? '↩ Desmarcar Todas as Faturas' : '✓ Quitar Todas as Faturas'}
               </button>
             ` : ''}
             <div style="font-size: 0.95rem; font-weight: 700; color: #fbbf24;">
               Previsto: ${formatBRL(summary.cardExpected || summary.card)}
             </div>
-            <div style="font-size: 1.1rem; font-weight: 800; color: var(--danger);">
+            <div style="font-size: 1.1rem; font-weight: 800; color: #34d399;">
               Pago: ${formatBRL(summary.cardPaid || 0)}
             </div>
           </div>
         </div>
 
-        <!-- BANNER DE PROGRESSO DE FATURA -->
+        <!-- BANNER DE PROGRESSO GERAL DE FATURAS -->
         <div class="subtab-progress-banner">
           <div class="subtab-progress-banner-left">
             <div style="font-weight:700; font-size:0.85rem; color:var(--text-primary); min-width:140px;">
-              Progresso Fatura:
+              Progresso Faturas:
             </div>
             <div style="flex:1;">
               <div class="progress-bar-track" style="margin-bottom:0;">
@@ -1458,53 +1467,256 @@ const app = {
           </div>
         </div>
 
-        <div class="table-responsive">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Compra / Descrição</th>
-                <th>Estabelecimento</th>
-                <th>Cartão</th>
-                <th>Parcela</th>
-                <th>Valor Previsto</th>
-                <th>Valor Pago</th>
-                <th>Status</th>
-                <th>Data da Compra</th>
-                <th style="width: 70px; text-align: center;">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${cardInstallments.length === 0 ? `
-                <tr><td colspan="9" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma parcela de cartão caindo neste mês.</td></tr>
-              ` : cardInstallments.map(c => `
+        <!-- CARDS CONSOLIDADOS: MASTERCARD & NUBANK -->
+        <div class="faturas-cards-grid">
+          
+          <!-- CARD: MASTERCARD -->
+          <div class="fatura-card-widget mastercard-theme">
+            <div>
+              <div class="fatura-widget-header">
+                <div class="fatura-brand-group">
+                  <div class="fatura-brand-icon">
+                    <svg width="34" height="22" viewBox="0 0 34 22" fill="none">
+                      <circle cx="11" cy="11" r="11" fill="#EB001B"/>
+                      <circle cx="23" cy="11" r="11" fill="#F79E1B" fill-opacity="0.85"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="fatura-brand-name">Mastercard</div>
+                    <div style="font-size:0.75rem; color:#f59e0b; font-weight:600;">Fatura de ${m.name}</div>
+                  </div>
+                </div>
+                <div>
+                  ${masterInv.count === 0 ? `
+                    <span class="status-badge neutral" style="font-size:0.75rem;">Sem Lançamentos</span>
+                  ` : (masterInv.isPaid ? `
+                    <span class="status-badge paid" style="font-size:0.78rem;">✓ Fatura Paga</span>
+                  ` : `
+                    <span class="status-badge waiting" style="font-size:0.78rem;">⏳ Pendente</span>
+                  `)}
+                </div>
+              </div>
+
+              <div class="fatura-widget-body">
+                <div class="fatura-amount-label">Valor Total da Fatura</div>
+                <div class="fatura-amount-value" style="color: ${masterInv.totalExpected > 0 ? '#ffffff' : 'var(--text-muted)'};">
+                  ${formatBRL(masterInv.totalExpected)}
+                </div>
+                <div class="fatura-amount-sub">
+                  <span style="color: #34d399; font-weight:700;">Pago: ${formatBRL(masterInv.totalPaid)}</span>
+                  ${masterInv.totalPending > 0 ? `
+                    <span style="color: #f87171; font-weight:600;">Restante: ${formatBRL(masterInv.totalPending)}</span>
+                  ` : ''}
+                </div>
+
+                <div class="fatura-widget-info">
+                  <span>📅 Vencimento: <strong>Dia ${masterInv.dueDay}</strong></span>
+                  <span>🔒 Fechamento: <strong>Dia ${masterInv.closingDay}</strong></span>
+                  <span>📦 <strong>${masterInv.count}</strong> compra(s)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="fatura-widget-footer">
+              ${masterInv.count > 0 ? `
+                <button class="btn-fatura-action ${masterInv.isPaid ? 'btn-fatura-unpay' : 'btn-fatura-pay'}" onclick="app.togglePayCardInvoice(${this.activeMonth}, 'master')">
+                  ${masterInv.isPaid ? '↩ Desmarcar Fatura' : '✓ Quitar Fatura Mastercard'}
+                </button>
+                <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, 'master')" title="Ajustar valor pago">
+                  ✏️ Ajustar Valor
+                </button>
+              ` : `
+                <span style="font-size:0.82rem; color:var(--text-muted);">Nenhuma compra no Mastercard neste mês.</span>
+              `}
+            </div>
+          </div>
+
+          <!-- CARD: NUBANK -->
+          <div class="fatura-card-widget nubank-theme">
+            <div>
+              <div class="fatura-widget-header">
+                <div class="fatura-brand-group">
+                  <div class="fatura-brand-icon" style="background: rgba(130, 10, 209, 0.45); border: 1px solid rgba(168, 85, 247, 0.4);">
+                    <span style="color:#ffffff; font-weight:900; font-size:1.1rem; letter-spacing:-1px;">nu</span>
+                  </div>
+                  <div>
+                    <div class="fatura-brand-name">Nubank (Nu)</div>
+                    <div style="font-size:0.75rem; color:#c084fc; font-weight:600;">Fatura de ${m.name}</div>
+                  </div>
+                </div>
+                <div>
+                  ${nubankInv.count === 0 ? `
+                    <span class="status-badge neutral" style="font-size:0.75rem;">Sem Lançamentos</span>
+                  ` : (nubankInv.isPaid ? `
+                    <span class="status-badge paid" style="font-size:0.78rem;">✓ Fatura Paga</span>
+                  ` : `
+                    <span class="status-badge waiting" style="font-size:0.78rem;">⏳ Pendente</span>
+                  `)}
+                </div>
+              </div>
+
+              <div class="fatura-widget-body">
+                <div class="fatura-amount-label">Valor Total da Fatura</div>
+                <div class="fatura-amount-value" style="color: ${nubankInv.totalExpected > 0 ? '#ffffff' : 'var(--text-muted)'};">
+                  ${formatBRL(nubankInv.totalExpected)}
+                </div>
+                <div class="fatura-amount-sub">
+                  <span style="color: #34d399; font-weight:700;">Pago: ${formatBRL(nubankInv.totalPaid)}</span>
+                  ${nubankInv.totalPending > 0 ? `
+                    <span style="color: #f87171; font-weight:600;">Restante: ${formatBRL(nubankInv.totalPending)}</span>
+                  ` : ''}
+                </div>
+
+                <div class="fatura-widget-info">
+                  <span>📅 Vencimento: <strong>Dia ${nubankInv.dueDay}</strong></span>
+                  <span>🔒 Fechamento: <strong>Dia ${nubankInv.closingDay}</strong></span>
+                  <span>📦 <strong>${nubankInv.count}</strong> compra(s)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="fatura-widget-footer">
+              ${nubankInv.count > 0 ? `
+                <button class="btn-fatura-action ${nubankInv.isPaid ? 'btn-fatura-unpay' : 'btn-fatura-pay'}" onclick="app.togglePayCardInvoice(${this.activeMonth}, 'nubank')">
+                  ${nubankInv.isPaid ? '↩ Desmarcar Fatura' : '✓ Quitar Fatura Nubank'}
+                </button>
+                <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, 'nubank')" title="Ajustar valor pago">
+                  ✏️ Ajustar Valor
+                </button>
+              ` : `
+                <span style="font-size:0.82rem; color:var(--text-muted);">Nenhuma compra no Nubank neste mês.</span>
+              `}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TABELA CONSOLIDADA DAS FATURAS -->
+        <div style="margin-top: 1.25rem;">
+          <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <span>Resumo Consolidado das Faturas do Mês</span>
+            <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">💡 Pagamento executado sobre o total da fatura (não compra por compra)</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td><strong>${c.description}</strong></td>
-                  <td>${c.place || '-'}</td>
-                  <td><span class="status-badge neutral">${c.card}</span></td>
-                  <td><span class="status-badge waiting">${c.installmentIndex} de ${c.installmentsTotal}</span></td>
-                  <td style="color: #fbbf24; font-weight: 700;">${formatBRL(c.value)}</td>
+                  <th>Cartão</th>
+                  <th>Vencimento</th>
+                  <th>Fechamento</th>
+                  <th>Compras Inclusas</th>
+                  <th>Total Fatura (Previsto)</th>
+                  <th>Total Pago</th>
+                  <th>Status</th>
+                  <th style="width: 140px; text-align: center;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${invoices.map(inv => `
+                  <tr>
+                    <td>
+                      <div style="display:flex; align-items:center; gap:0.6rem;">
+                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${inv.color};"></span>
+                        <strong>${escapeHtml(inv.name)}</strong>
+                      </div>
+                    </td>
+                    <td>Dia ${inv.dueDay}</td>
+                    <td>Dia ${inv.closingDay}</td>
+                    <td>${inv.count > 0 ? `${inv.count} compra(s)` : '<span style="color:var(--text-muted);">-</span>'}</td>
+                    <td style="color: #fbbf24; font-weight: 800; font-size: 1rem;">${formatBRL(inv.totalExpected)}</td>
+                    <td style="color: #34d399; font-weight: 800; font-size: 1rem;">${formatBRL(inv.totalPaid)}</td>
+                    <td>
+                      ${inv.count === 0 ? `
+                        <span class="status-badge neutral">Sem lançamentos</span>
+                      ` : (inv.isPaid ? `
+                        <span class="status-badge paid">✓ Paga</span>
+                      ` : (inv.totalPaid > 0 ? `
+                        <span class="status-badge waiting">Parcial</span>
+                      ` : `
+                        <span class="status-badge pending">⏳ Pendente</span>
+                      `))}
+                    </td>
+                    <td style="text-align:center;">
+                      ${inv.count > 0 ? `
+                        <div style="display:inline-flex; gap:0.4rem; justify-content:center;">
+                          <button class="status-badge ${inv.isPaid ? 'paid' : 'pending'}" style="cursor:pointer; border:none;" onclick="app.togglePayCardInvoice(${this.activeMonth}, '${inv.key}')" title="Marcar fatura inteira como paga/pendente">
+                            ${inv.isPaid ? '✓ Paga' : 'Quitar'}
+                          </button>
+                          <button class="action-btn edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, '${inv.key}')" title="Ajustar valor pago da fatura">
+                            ✏️
+                          </button>
+                        </div>
+                      ` : `
+                        <span style="color:var(--text-muted);">-</span>
+                      `}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+              <tfoot>
+                <tr style="background: rgba(255,255,255,0.02); font-weight: 800; border-top: 2px solid var(--border-light);">
+                  <td colspan="3"><strong>TOTAL CONSOLIDADO DAS FATURAS</strong></td>
+                  <td><strong>${summary.cardCount} compra(s)</strong></td>
+                  <td style="color: #fbbf24; font-size: 1.05rem;">${formatBRL(summary.cardExpected || summary.card)}</td>
+                  <td style="color: #34d399; font-size: 1.05rem;">${formatBRL(summary.cardPaid || 0)}</td>
                   <td>
-                    ${c.status === 'Pago' ? `
-                      <span style="color: var(--danger); font-weight: 800; cursor:pointer;" onclick="app.openEditCardInstallmentModal(${this.activeMonth}, '${c.key}')" title="Clique para editar valor pago">
-                        ${formatBRL(c.valuePaid !== undefined && c.valuePaid !== null ? c.valuePaid : c.value)} ✏️
-                      </span>
-                    ` : `
-                      <span style="color: var(--text-muted); font-weight: 500;">-</span>
-                    `}
+                    ${cardHasItems ? (cardIsComplete ? '<span class="status-badge paid">✓ Tudo Pago</span>' : '<span class="status-badge pending">⏳ Pendente</span>') : '<span class="status-badge neutral">Sem faturas</span>'}
                   </td>
-                  <td>
-                    <button class="status-badge ${c.status === 'Pago' ? 'paid' : 'pending'}" style="cursor:pointer; border:none;" onclick="app.toggleCardInstallment(${this.activeMonth}, '${c.key}')" title="Clique para alterar status">
-                      ${c.status === 'Pago' ? '✓ Pago' : '⏳ Pendente'}
-                    </button>
-                  </td>
-                  <td>${formatDateBR(c.date)}</td>
                   <td style="text-align:center;">
-                    <button class="action-btn edit" onclick="app.openEditCardInstallmentModal(${this.activeMonth}, '${c.key}')" title="Editar Valor Pago ou Status">✏️</button>
+                    ${cardHasItems ? `
+                      <button class="btn-header" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);" onclick="app.togglePayAllCards(${this.activeMonth})">
+                        ${cardIsComplete ? 'Desmarcar' : 'Quitar Tudo'}
+                      </button>
+                    ` : '-'}
                   </td>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- DETALHAMENTO DE COMPRAS INDIVIDUAIS (COLAPSADO / OPCIONAL) -->
+        <div style="margin-top: 1.75rem; border-top: 1px dashed var(--border-light); padding-top: 1rem; text-align: center;">
+          <button id="btnToggleCardDrawer" class="btn-subtle" onclick="app.toggleCardDetailsDrawer()" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); padding: 0.6rem 1.25rem; border-radius: 8px; font-size: 0.82rem; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease;">
+            ▼ Ver detalhamento de compras individuais (Opcional)
+          </button>
+        </div>
+
+        <div id="cardDetailsDrawerContainer" style="display: none; margin-top: 1rem;">
+          <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.75rem; text-align: left;">
+            Lançamentos detalhados que compõem as faturas deste mês:
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" style="font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th>Compra / Descrição</th>
+                  <th>Estabelecimento</th>
+                  <th>Cartão</th>
+                  <th>Parcela</th>
+                  <th>Valor Parcela</th>
+                  <th>Status</th>
+                  <th>Data da Compra</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${allInstallments.length === 0 ? `
+                  <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Nenhuma parcela de cartão neste mês.</td></tr>
+                ` : allInstallments.map(c => `
+                  <tr>
+                    <td><strong>${escapeHtml(c.description)}</strong></td>
+                    <td>${escapeHtml(c.place || '-')}</td>
+                    <td><span class="status-badge neutral">${escapeHtml(c.card)}</span></td>
+                    <td><span class="status-badge waiting">${c.installmentIndex} de ${c.installmentsTotal}</span></td>
+                    <td style="color: #fbbf24; font-weight: 700;">${formatBRL(c.value)}</td>
+                    <td><span class="status-badge ${c.status === 'Pago' ? 'paid' : 'pending'}">${c.status === 'Pago' ? '✓ Pago' : '⏳ Pendente'}</span></td>
+                    <td>${formatDateBR(c.date)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       `;
     }
@@ -1938,6 +2150,51 @@ const app = {
     this.renderMeses();
     this.renderResumo();
     this.showToast(targetStatus === 'Pago' ? 'Fatura do mês marcada como paga!' : 'Fatura do mês marcada como pendente.', 'success');
+  },
+
+  togglePayCardInvoice(monthNum, cardKey) {
+    const invoices = store.getCardInvoicesForMonth(monthNum);
+    const inv = invoices.find(i => i.key === cardKey);
+    if (!inv) return;
+
+    const targetStatus = inv.isPaid ? 'Pendente' : 'Pago';
+    store.setCardInvoiceStatus(monthNum, cardKey, targetStatus);
+    this.renderMeses();
+    this.renderResumo();
+    this.renderActiveMonthSubtab();
+    this.showToast(targetStatus === 'Pago' ? `Fatura ${inv.name} marcada como Paga!` : `Fatura ${inv.name} marcada como Pendente.`, 'success');
+  },
+
+  openEditCardInvoiceModal(monthNum, cardKey) {
+    const invoices = store.getCardInvoicesForMonth(monthNum);
+    const inv = invoices.find(i => i.key === cardKey);
+    if (!inv) return;
+
+    document.getElementById('edit_fatura_month').value = monthNum;
+    document.getElementById('edit_fatura_card').value = cardKey;
+    document.getElementById('edit_fatura_name').value = inv.name;
+    document.getElementById('edit_fatura_due').value = `Vencimento dia ${inv.dueDay} (Fechamento dia ${inv.closingDay})`;
+    document.getElementById('edit_fatura_val_exp').value = formatMoneyDisplay(inv.totalExpected);
+    
+    const currentPaid = (inv.isPaid || inv.totalPaid > 0) ? inv.totalPaid : inv.totalExpected;
+    document.getElementById('edit_fatura_val_paid').value = formatMoneyDisplay(currentPaid);
+    document.getElementById('edit_fatura_status').value = inv.isPaid ? 'Pago' : (inv.totalPaid > 0 ? 'Pago' : 'Pendente');
+
+    this.openModal('modalEditarFaturaCartao');
+  },
+
+  toggleCardDetailsDrawer() {
+    this.showCardDetailsDrawer = !this.showCardDetailsDrawer;
+    const drawer = document.getElementById('cardDetailsDrawerContainer');
+    const btn = document.getElementById('btnToggleCardDrawer');
+    if (drawer) {
+      drawer.style.display = this.showCardDetailsDrawer ? 'block' : 'none';
+    }
+    if (btn) {
+      btn.innerHTML = this.showCardDetailsDrawer 
+        ? '▲ Ocultar detalhamento de compras individuais' 
+        : '▼ Ver detalhamento de compras individuais (Opcional)';
+    }
   },
 
   openEditCardInstallmentModal(monthNum, key) {
@@ -6632,6 +6889,27 @@ const app = {
         this.renderMeses();
         this.renderResumo();
         this.showToast('Parcela de cartão atualizada com sucesso!', 'success');
+      });
+    }
+
+    // Formulário Editar Fatura de Cartão (Mastercard / Nubank)
+    const formEditFatura = document.getElementById('formEditarFaturaCartao');
+    if (formEditFatura) {
+      formEditFatura.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const monthNum = Number(document.getElementById('edit_fatura_month').value) || this.activeMonth;
+        const cardKey = document.getElementById('edit_fatura_card').value;
+        const valPaidRaw = document.getElementById('edit_fatura_val_paid').value.trim();
+        const status = document.getElementById('edit_fatura_status').value;
+        const valPaid = parseMoney(valPaidRaw);
+
+        store.setCardInvoiceStatus(monthNum, cardKey, status, valPaid);
+        this.closeModal('modalEditarFaturaCartao');
+        formEditFatura.reset();
+        this.renderMeses();
+        this.renderResumo();
+        this.renderActiveMonthSubtab();
+        this.showToast('Fatura do cartão atualizada com sucesso!', 'success');
       });
     }
 

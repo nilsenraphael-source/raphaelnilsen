@@ -853,6 +853,131 @@ class DataStore {
     this.save();
   }
 
+  // Faturas consolidadas por cartão no mês (Mastercard e Nubank)
+  getCardInvoicesForMonth(monthNum, year = this.activeYear) {
+    const installments = this.getCardInstallmentsForMonth(monthNum, year);
+    
+    // Configurações padrão dos cartões
+    const cards = [
+      { key: 'master', name: 'Mastercard', color: '#f59e0b', dueDay: 10, closingDay: 1 },
+      { key: 'nubank', name: 'Nubank (Nu)', color: '#8b5cf6', dueDay: 15, closingDay: 5 }
+    ];
+
+    const result = cards.map(c => {
+      const matched = installments.filter(inst => {
+        const cName = (inst.card || '').toLowerCase();
+        if (c.key === 'master') return cName.includes('master');
+        if (c.key === 'nubank') return cName.includes('nubank') || cName.includes('nu');
+        return false;
+      });
+
+      const totalExpected = matched.reduce((acc, inst) => acc + (Number(inst.value) || 0), 0);
+      const totalPaid = matched.filter(inst => inst.status === 'Pago').reduce((acc, inst) => {
+        const vp = (inst.valuePaid !== null && inst.valuePaid !== undefined) ? Number(inst.valuePaid) : (Number(inst.value) || 0);
+        return acc + vp;
+      }, 0);
+      const count = matched.length;
+      const paidCount = matched.filter(inst => inst.status === 'Pago').length;
+      const isPaid = (count > 0 && paidCount === count) || (count > 0 && totalPaid >= totalExpected && totalExpected > 0);
+      const status = count === 0 ? 'Sem lançamentos' : (isPaid ? 'Pago' : (paidCount > 0 ? 'Parcial' : 'Pendente'));
+
+      return {
+        key: c.key,
+        name: c.name,
+        color: c.color,
+        dueDay: c.dueDay,
+        closingDay: c.closingDay,
+        totalExpected,
+        totalPaid,
+        totalPending: Math.max(0, totalExpected - totalPaid),
+        count,
+        paidCount,
+        isPaid,
+        status,
+        installments: matched
+      };
+    });
+
+    // Se houver algum lançamento de outro cartão não previsto
+    const otherMatched = installments.filter(inst => {
+      const cName = (inst.card || '').toLowerCase();
+      return !cName.includes('master') && !cName.includes('nubank') && !cName.includes('nu');
+    });
+
+    if (otherMatched.length > 0) {
+      const otherExpected = otherMatched.reduce((acc, inst) => acc + (Number(inst.value) || 0), 0);
+      const otherPaid = otherMatched.filter(inst => inst.status === 'Pago').reduce((acc, inst) => {
+        const vp = (inst.valuePaid !== null && inst.valuePaid !== undefined) ? Number(inst.valuePaid) : (Number(inst.value) || 0);
+        return acc + vp;
+      }, 0);
+      const otherCount = otherMatched.length;
+      const otherPaidCount = otherMatched.filter(inst => inst.status === 'Pago').length;
+      const isPaid = (otherCount > 0 && otherPaidCount === otherCount) || (otherCount > 0 && otherPaid >= otherExpected && otherExpected > 0);
+
+      result.push({
+        key: 'outros',
+        name: 'Outros Cartões',
+        color: '#64748b',
+        dueDay: 10,
+        closingDay: 1,
+        totalExpected: otherExpected,
+        totalPaid: otherPaid,
+        totalPending: Math.max(0, otherExpected - otherPaid),
+        count: otherCount,
+        paidCount: otherPaidCount,
+        isPaid,
+        status: isPaid ? 'Pago' : (otherPaidCount > 0 ? 'Parcial' : 'Pendente'),
+        installments: otherMatched
+      });
+    }
+
+    return result;
+  }
+
+  // Quitar ou definir status/valor pago de uma fatura específica de cartão
+  setCardInvoiceStatus(monthNum, cardKey, status = 'Pago', customPaidValue = null, year = this.activeYear) {
+    const targetYear = Number(year) || this.activeYear;
+    const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
+    if (!m) return;
+    if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
+    if (!m.cardInstallmentPaid) m.cardInstallmentPaid = {};
+
+    const installments = this.getCardInstallmentsForMonth(monthNum, targetYear);
+    const cardInsts = installments.filter(inst => {
+      const cName = (inst.card || '').toLowerCase();
+      if (cardKey === 'master') return cName.includes('master');
+      if (cardKey === 'nubank') return cName.includes('nubank') || cName.includes('nu');
+      return cName === cardKey.toLowerCase();
+    });
+
+    if (cardInsts.length === 0) return;
+
+    const totalExpected = cardInsts.reduce((acc, c) => acc + (Number(c.value) || 0), 0);
+    const finalPaid = (customPaidValue !== null && customPaidValue !== undefined) 
+      ? Number(customPaidValue) 
+      : (status === 'Pago' ? totalExpected : 0);
+
+    cardInsts.forEach((inst, idx) => {
+      m.cardInstallmentStatus[inst.key] = status;
+      if (status === 'Pago') {
+        if (customPaidValue !== null && customPaidValue !== undefined) {
+          if (totalExpected > 0) {
+            const ratio = inst.value / totalExpected;
+            m.cardInstallmentPaid[inst.key] = Math.round(finalPaid * ratio * 100) / 100;
+          } else {
+            m.cardInstallmentPaid[inst.key] = (idx === 0) ? finalPaid : 0;
+          }
+        } else {
+          m.cardInstallmentPaid[inst.key] = inst.value;
+        }
+      } else {
+        m.cardInstallmentPaid[inst.key] = 0;
+      }
+    });
+
+    this.save();
+  }
+
   setAllFixedExpensesStatus(monthNum, status = 'Pago') {
     const m = this.data.months[monthNum];
     if (!m || !m.fixedExpenses) return;
