@@ -1863,6 +1863,12 @@ class DataStore {
         if (up.lastDivDate) existing.lastDivDate = up.lastDivDate;
         if (up.div12m !== undefined && up.div12m > 0) existing.div12m = Number(up.div12m);
         if (up.name && (!existing.name || existing.name === existing.ticker)) existing.name = up.name;
+
+        // Se div12m for zero mas temos o último dividendo, projeta 12m
+        if ((!existing.div12m || existing.div12m <= 0) && existing.lastDiv > 0) {
+          existing.div12m = Number((existing.lastDiv * 12).toFixed(4));
+        }
+
         if (existing.price > 0 && existing.div12m > 0) {
           existing.dy = Number(((existing.div12m / existing.price) * 100).toFixed(2));
         }

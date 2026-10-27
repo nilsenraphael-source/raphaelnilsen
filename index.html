@@ -2874,9 +2874,9 @@
   </div>
 
   <!-- Modal: Novo Ativo Mapeando B3 -->
-  <!-- Modal: Novo Ativo Mapeando B3 (Busca Instantânea por Ticker/Nome) -->
+  <!-- Modal: Novo Ativo Mapeando B3 (Busca Instantânea por Ticker/Nome ou Cadastro Manual) -->
   <div id="modalNovoAtivoB3" class="modal-overlay">
-    <div class="modal-dialog" style="max-width: 580px;">
+    <div class="modal-dialog" style="max-width: 640px;">
       <div class="modal-header">
         <h3 class="modal-title" style="display:flex; align-items:center; gap:0.5rem;">
           <span>🔍</span> Buscar & Adicionar Ativo (B3)
@@ -2884,10 +2884,15 @@
         <button class="btn-close-modal" onclick="app.closeModal('modalNovoAtivoB3')">✕</button>
       </div>
       <div class="modal-body">
-        <!-- Campo Único de Pesquisa -->
-        <label class="form-label" style="font-weight:700; font-size:0.92rem; color:#e2e8f0; margin-bottom:0.4rem; display:block;">
-          Digite o código do Fundo ou Ação
-        </label>
+        <!-- Campo de Pesquisa com Atalho Manual -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <label class="form-label" style="font-weight:700; font-size:0.92rem; color:#e2e8f0; margin:0;">
+            Código do Ativo (Ticker)
+          </label>
+          <button type="button" class="btn-text" style="color:#38bdf8; font-size:0.8rem; background:none; border:none; cursor:pointer; text-decoration:underline; font-weight:600;" onclick="app.switchToManualB3Asset()">
+            ✍️ Preencher Manualmente
+          </button>
+        </div>
         <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
           <input type="text" id="b3_search_ticker" class="form-input" placeholder="Ex: KISU11, MXRF11, PETR4, BBAS3, XPML11" style="text-transform: uppercase; font-weight:800; font-size:1.15rem; letter-spacing:1px; flex:1;" autofocus onkeydown="if(event.key === 'Enter') { event.preventDefault(); app.searchAssetOnlineB3(); }">
           <button type="button" id="btnDoSearchB3" class="btn-primary" style="width:auto; padding:0 1.5rem; font-weight:700; display:flex; align-items:center; gap:0.45rem; background:linear-gradient(135deg, #0ea5e9, #0284c7); border:none; border-radius:8px; cursor:pointer;" onclick="app.searchAssetOnlineB3()">
@@ -3113,8 +3118,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261023_v11"></script>
-  <script src="js/supabase.js?v=20261023_v11"></script>
-  <script src="js/app.js?v=20261023_v11"></script>
+  <script src="js/data.js?v=20261027_v12"></script>
+  <script src="js/supabase.js?v=20261027_v12"></script>
+  <script src="js/app.js?v=20261027_v12"></script>
 </body>
 </html>
