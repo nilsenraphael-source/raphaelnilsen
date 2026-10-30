@@ -106,6 +106,7 @@ const app = {
   activeTabCartao: 'todos', // Exibe todos os cartões cadastrados por padrão
   cardCalendarOffset: 0,
   activeTabInvest: 'bolsa',
+  activeNubankSubtab: 'boxes', // 'boxes' (Todos), 'caixinhas', 'separado', 'earnings'
   senhasAbaAtiva: 'bancos_cartoes',
   senhasViewMode: (typeof window !== 'undefined' && window.innerWidth <= 768) ? 'cards' : 'table',
   senhasRevelarTodas: false,
@@ -4338,11 +4339,398 @@ const app = {
   },
 
   // =========================================================================
-  // 7. MÓDULO INVESTIMENTOS
+  // 7. MÓDULO INVESTIMENTOS (COM FILTROS DINÂMICOS E ANÁLISE DE FATORES)
   // =========================================================================
-  renderInvestimentos() {
-    const summary = store.getInvestmentsSummary();
+  getInvestFilterState() {
+    const asset = document.getElementById('invFilterAsset')?.value || 'ALL';
+    const assetType = document.getElementById('invFilterAssetType')?.value || 'ALL';
+    const operation = document.getElementById('invFilterOperation')?.value || 'ALL';
+    const year = document.getElementById('invFilterYear')?.value || 'ALL';
+    const month = document.getElementById('invFilterMonth')?.value || 'ALL';
+    const dateFrom = document.getElementById('invFilterDateFrom')?.value || '';
+    const dateTo = document.getElementById('invFilterDateTo')?.value || '';
+    const sort = document.getElementById('invFilterSort')?.value || 'date_desc';
 
+    const isFiltered = (
+      asset !== 'ALL' ||
+      assetType !== 'ALL' ||
+      operation !== 'ALL' ||
+      year !== 'ALL' ||
+      month !== 'ALL' ||
+      dateFrom !== '' ||
+      dateTo !== ''
+    );
+
+    return { asset, assetType, operation, year, month, dateFrom, dateTo, sort, isFiltered };
+  },
+
+  applyInvestFilters() {
+    const filters = this.getInvestFilterState();
+    // Se o usuário filtrou especificamente por RENDIMENTO, destaca as abas de rendimentos
+    if (filters.operation === 'RENDIMENTO') {
+      this.switchInvestStockTab('earnings');
+      this.switchInvestNubankTab('earnings');
+    } else if (filters.operation === 'APORTE') {
+      const btnCons = document.getElementById('btnTabStocksConsolidated');
+      if (!btnCons || !btnCons.classList.contains('active')) {
+        this.switchInvestStockTab('positions');
+      }
+      this.switchInvestNubankTab('boxes');
+    }
+    this.renderInvestimentos();
+  },
+
+  resetInvestFilters() {
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    };
+    setVal('invFilterAsset', 'ALL');
+    setVal('invFilterAssetType', 'ALL');
+    setVal('invFilterOperation', 'ALL');
+    setVal('invFilterYear', 'ALL');
+    setVal('invFilterMonth', 'ALL');
+    setVal('invFilterDateFrom', '');
+    setVal('invFilterDateTo', '');
+    setVal('invFilterSort', 'date_desc');
+    this.renderInvestimentos();
+  },
+
+  quickFilterInvestAsset(assetVal, assetTypeVal = null) {
+    const elAsset = document.getElementById('invFilterAsset');
+    const elType = document.getElementById('invFilterAssetType');
+    if (assetTypeVal && elType) {
+      elType.value = (elType.value === assetTypeVal && assetVal === 'ALL') ? 'ALL' : assetTypeVal;
+      if (elAsset) elAsset.value = 'ALL';
+    } else if (elAsset) {
+      // Se clicar no mesmo ativo que já está filtrado, volta para ALL
+      const nextVal = (elAsset.value === assetVal && assetVal !== 'ALL') ? 'ALL' : assetVal;
+      elAsset.value = nextVal;
+      if (elType) {
+        if (nextVal === 'NUBANK') elType.value = 'NUBANK';
+        else if (nextVal === 'ALL') elType.value = 'ALL';
+        else if (elType.value === 'NUBANK') elType.value = 'ALL';
+      }
+    }
+    this.renderInvestimentos();
+  },
+
+  renderInvestimentos() {
+    const allStocks = store.data.investments.stocks || [];
+    const allStockEarnings = store.data.investments.stockEarnings || [];
+    const allBoxes = store.data.investments.nubankBoxes || [];
+    const allBoxEarnings = store.data.investments.nubankEarnings || [];
+    const totalAllRecords = allStocks.length + allStockEarnings.length + allBoxes.length + allBoxEarnings.length;
+
+    // Mapa de tipos por ticker (FII vs Ação)
+    const tickerTypeMap = {};
+    allStocks.forEach(s => {
+      const t = (s.ticker || '').toUpperCase().trim();
+      if (t) tickerTypeMap[t] = s.type || (t.endsWith('11') ? 'FII' : 'Ação');
+    });
+    allStockEarnings.forEach(e => {
+      const t = (e.ticker || '').toUpperCase().trim();
+      if (t && !tickerTypeMap[t]) tickerTypeMap[t] = t.endsWith('11') ? 'FII' : 'Ação';
+    });
+
+    const getTickerClass = (ticker, explicitType) => {
+      const tp = (explicitType || tickerTypeMap[ticker] || '').toUpperCase();
+      if (tp.includes('FII') || tp.includes('FIAGRO') || String(ticker).toUpperCase().endsWith('11')) {
+        return 'FII';
+      }
+      return 'ACAO';
+    };
+
+    // Lista única de tickers ordenada por valor investido
+    const rawTotalsByTicker = {};
+    allStocks.forEach(s => {
+      const t = (s.ticker || '').toUpperCase().trim();
+      const val = Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0;
+      if (t) rawTotalsByTicker[t] = (rawTotalsByTicker[t] || 0) + val;
+    });
+    const allTickers = Object.keys(tickerTypeMap).sort((a, b) => (rawTotalsByTicker[b] || 0) - (rawTotalsByTicker[a] || 0));
+
+    // Popula seletor de Ativo / Ticker mantendo seleção atual
+    const selAsset = document.getElementById('invFilterAsset');
+    if (selAsset) {
+      const currentVal = selAsset.value || 'ALL';
+      let optsHtml = `<option value="ALL">Todos os Ativos & Nubank (${allTickers.length} tickers + Nu)</option>`;
+      optsHtml += `<optgroup label="Bolsa de Valores (B3)">`;
+      allTickers.forEach(t => {
+        const cls = getTickerClass(t) === 'FII' ? 'FII' : 'Ação';
+        optsHtml += `<option value="${t}">${t} — ${cls}</option>`;
+      });
+      optsHtml += `</optgroup>`;
+      optsHtml += `<optgroup label="Renda Fixa / Caixinhas">`;
+      optsHtml += `<option value="NUBANK">💜 Nubank Investimento (Caixinhas)</option>`;
+      optsHtml += `</optgroup>`;
+      selAsset.innerHTML = optsHtml;
+      if ([...selAsset.options].some(o => o.value === currentVal)) {
+        selAsset.value = currentVal;
+      }
+    }
+
+    // Popula seletor de Anos dinamicamente mantendo seleção atual
+    const selYear = document.getElementById('invFilterYear');
+    if (selYear) {
+      const currYearVal = selYear.value || 'ALL';
+      const yearsSet = new Set(['2026', '2025', '2024', '2023']);
+      [...allStocks, ...allStockEarnings, ...allBoxes, ...allBoxEarnings].forEach(item => {
+        if (item.date && item.date.length >= 4) yearsSet.add(item.date.substring(0, 4));
+      });
+      const sortedYears = [...yearsSet].sort((a, b) => b.localeCompare(a));
+      selYear.innerHTML = `<option value="ALL">Todos os Anos (${sortedYears[sortedYears.length - 1]}–${sortedYears[0]})</option>` +
+        sortedYears.map(y => `<option value="${y}">${y}</option>`).join('');
+      if ([...selYear.options].some(o => o.value === currYearVal)) {
+        selYear.value = currYearVal;
+      }
+    }
+
+    const filters = this.getInvestFilterState();
+
+    // Helper para identificar modalidade do guardado Nubank (Caixinha vs Dinheiro Separado)
+    const getBoxCategory = (item) => {
+      if (item && item.category) return item.category;
+      const nm = String(item?.name || item?.boxName || '').toLowerCase();
+      return (nm.includes('separado') || nm.includes('saldo separado')) ? 'Dinheiro Separado' : 'Caixinha';
+    };
+
+    // Renderiza Pílulas Rápidas de Ativos no topo do filtro
+    const pillsContainer = document.getElementById('invQuickTickerPills');
+    if (pillsContainer) {
+      const makePill = (label, assetVal, typeVal = null, color = '#60a5fa') => {
+        const isActive = typeVal
+          ? (filters.assetType === typeVal && filters.asset === 'ALL')
+          : (filters.asset === assetVal && (assetVal !== 'ALL' || filters.assetType === 'ALL'));
+        const bg = isActive ? 'rgba(59, 130, 246, 0.28)' : 'rgba(30, 41, 59, 0.7)';
+        const border = isActive ? color : 'rgba(148, 163, 184, 0.22)';
+        const textCol = isActive ? '#ffffff' : '#cbd5e1';
+        const clickArg = typeVal ? `'ALL', '${typeVal}'` : `'${assetVal}'`;
+        return `<button type="button" onclick="app.quickFilterInvestAsset(${clickArg})" style="padding:0.28rem 0.7rem; border-radius:999px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:all 0.15s; background:${bg}; border:1px solid ${border}; color:${textCol}; box-shadow:${isActive ? '0 0 12px rgba(59,130,246,0.3)' : 'none'};">${label}</button>`;
+      };
+
+      let pillsHtml = makePill('🌐 Todos', 'ALL', null, '#60a5fa');
+      pillsHtml += makePill('🏢 Só FIIs', 'ALL', 'FII', '#34d399');
+      pillsHtml += makePill('📈 Só Ações', 'ALL', 'ACAO', '#fbbf24');
+      allTickers.forEach(t => {
+        pillsHtml += makePill(t, t, null, '#38bdf8');
+      });
+      pillsHtml += makePill('💜 Nubank (Tudo)', 'NUBANK', null, '#c084fc');
+      pillsHtml += makePill('📦 Caixinhas Nu', 'ALL', 'NUBANK_CAIXINHA', '#a855f7');
+      pillsHtml += makePill('💵 Dinheiro Separado Nu', 'ALL', 'NUBANK_SEPARADO', '#38bdf8');
+      pillsContainer.innerHTML = pillsHtml;
+    }
+
+    // Função auxiliar de filtro por data
+    const matchesDate = (dateStr) => {
+      if (!dateStr) return filters.year === 'ALL' && filters.month === 'ALL' && !filters.dateFrom && !filters.dateTo;
+      const y = dateStr.substring(0, 4);
+      const m = dateStr.substring(5, 7);
+      if (filters.year !== 'ALL' && y !== filters.year) return false;
+      if (filters.month !== 'ALL' && m !== filters.month) return false;
+      if (filters.dateFrom && dateStr < filters.dateFrom) return false;
+      if (filters.dateTo && dateStr > filters.dateTo) return false;
+      return true;
+    };
+
+    const isNubankOnlyType = (tp) => tp === 'NUBANK' || tp === 'NUBANK_CAIXINHA' || tp === 'NUBANK_SEPARADO';
+
+    // Filtragem dos 4 conjuntos de dados
+    const filteredStocks = allStocks.filter(s => {
+      if (filters.operation === 'RENDIMENTO') return false;
+      const ticker = (s.ticker || '').toUpperCase().trim();
+      const cls = getTickerClass(ticker, s.type);
+      if (isNubankOnlyType(filters.assetType)) return false;
+      if (filters.assetType === 'FII' && cls !== 'FII') return false;
+      if (filters.assetType === 'ACAO' && cls !== 'ACAO') return false;
+      if (filters.asset !== 'ALL' && filters.asset !== ticker) return false;
+      return matchesDate(s.date);
+    });
+
+    const filteredStockEarnings = allStockEarnings.filter(e => {
+      if (filters.operation === 'APORTE') return false;
+      const ticker = (e.ticker || '').toUpperCase().trim();
+      const cls = getTickerClass(ticker);
+      if (isNubankOnlyType(filters.assetType)) return false;
+      if (filters.assetType === 'FII' && cls !== 'FII') return false;
+      if (filters.assetType === 'ACAO' && cls !== 'ACAO') return false;
+      if (filters.asset !== 'ALL' && filters.asset !== ticker) return false;
+      return matchesDate(e.date);
+    });
+
+    const filteredBoxes = allBoxes.filter(b => {
+      if (filters.operation === 'RENDIMENTO') return false;
+      if (filters.assetType === 'FII' || filters.assetType === 'ACAO' || filters.assetType === 'BOLSA_ALL') return false;
+      const cat = getBoxCategory(b);
+      if (filters.assetType === 'NUBANK_CAIXINHA' && cat !== 'Caixinha') return false;
+      if (filters.assetType === 'NUBANK_SEPARADO' && cat !== 'Dinheiro Separado') return false;
+      if (filters.asset !== 'ALL' && filters.asset !== 'NUBANK') return false;
+      return matchesDate(b.date);
+    });
+
+    const filteredBoxEarnings = allBoxEarnings.filter(b => {
+      if (filters.operation === 'APORTE') return false;
+      if (filters.assetType === 'FII' || filters.assetType === 'ACAO' || filters.assetType === 'BOLSA_ALL') return false;
+      const cat = getBoxCategory(b);
+      if (filters.assetType === 'NUBANK_CAIXINHA' && cat !== 'Caixinha') return false;
+      if (filters.assetType === 'NUBANK_SEPARADO' && cat !== 'Dinheiro Separado') return false;
+      if (filters.asset !== 'ALL' && filters.asset !== 'NUBANK') return false;
+      return matchesDate(b.date);
+    });
+
+    // Ordenação conforme seletor
+    const sortItems = (arr, getValFn) => {
+      return [...arr].sort((a, b) => {
+        if (filters.sort === 'date_asc') return (a.date || '').localeCompare(b.date || '');
+        if (filters.sort === 'val_desc') return (getValFn(b) || 0) - (getValFn(a) || 0);
+        if (filters.sort === 'val_asc') return (getValFn(a) || 0) - (getValFn(b) || 0);
+        return (b.date || '').localeCompare(a.date || '');
+      });
+    };
+
+    const sortedStocks = sortItems(filteredStocks, s => Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0);
+    const sortedStockEarnings = sortItems(filteredStockEarnings, e => Number(e.amount) || 0);
+    const sortedBoxes = sortItems(filteredBoxes, b => Number(b.amount) || 0);
+    const sortedBoxEarnings = sortItems(filteredBoxEarnings, b => Number(b.amount) || 0);
+
+    // Cálculo de métricas consolidadas para o recorte atual
+    const totalStocks = sortedStocks.reduce((acc, s) => acc + (Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0), 0);
+    const totalBoxes = sortedBoxes.reduce((acc, b) => acc + (Number(b.amount) || 0), 0);
+    const totalInvested = totalStocks + totalBoxes;
+
+    const totalStockEarnings = sortedStockEarnings.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const totalNubankEarnings = sortedBoxEarnings.reduce((acc, e) => acc + (Number(e.amount) || 0), 0);
+    const totalEarnings = totalStockEarnings + totalNubankEarnings;
+
+    // Base de capital para cálculo de Yield quando o filtro está apenas em "RENDIMENTO" ou em um ano específico sem compras
+    const refInvestedForYield = totalInvested > 0 ? totalInvested : (() => {
+      let base = 0;
+      allStocks.forEach(s => {
+        const ticker = (s.ticker || '').toUpperCase().trim();
+        const cls = getTickerClass(ticker, s.type);
+        if (isNubankOnlyType(filters.assetType)) return;
+        if (filters.assetType === 'FII' && cls !== 'FII') return;
+        if (filters.assetType === 'ACAO' && cls !== 'ACAO') return;
+        if (filters.asset !== 'ALL' && filters.asset !== ticker) return;
+        base += Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0;
+      });
+      if (filters.assetType !== 'FII' && filters.assetType !== 'ACAO' && filters.assetType !== 'BOLSA_ALL') {
+        if (filters.asset === 'ALL' || filters.asset === 'NUBANK') {
+          base += allBoxes.reduce((acc, b) => acc + (Number(b.amount) || 0), 0);
+        }
+      }
+      return base;
+    })();
+
+    const yieldGlobal = refInvestedForYield > 0 ? (totalEarnings / refInvestedForYield) * 100 : 0;
+
+    const stocksByAsset = {};
+    sortedStocks.forEach(s => {
+      const ticker = (s.ticker || 'OUTROS').toUpperCase().trim();
+      const val = Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0;
+      stocksByAsset[ticker] = (stocksByAsset[ticker] || 0) + val;
+    });
+
+    const earningsByStock = {};
+    sortedStockEarnings.forEach(e => {
+      const ticker = (e.ticker || 'OUTROS').toUpperCase().trim();
+      const val = Number(e.amount) || 0;
+      earningsByStock[ticker] = (earningsByStock[ticker] || 0) + val;
+    });
+
+    const boxesByName = {};
+    sortedBoxes.forEach(b => {
+      const name = (b.name || 'Geral').trim();
+      const val = Number(b.amount) || 0;
+      boxesByName[name] = (boxesByName[name] || 0) + val;
+    });
+
+    const earningsByBox = {};
+    sortedBoxEarnings.forEach(e => {
+      const name = (e.boxName || 'Geral').trim();
+      const val = Number(e.amount) || 0;
+      earningsByBox[name] = (earningsByBox[name] || 0) + val;
+    });
+
+    // Proventos no Mês Atual (ou no período filtrado)
+    const today = new Date();
+    const currYearMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const currentMonthEarnings = filters.isFiltered
+      ? totalEarnings
+      : (
+          sortedStockEarnings.filter(e => (e.date || '').startsWith(currYearMonth)).reduce((a, e) => a + (Number(e.amount) || 0), 0) +
+          sortedBoxEarnings.filter(e => (e.date || '').startsWith(currYearMonth)).reduce((a, e) => a + (Number(e.amount) || 0), 0)
+        );
+
+    // Maior Posição no recorte
+    let topAssetTicker = '-';
+    let topAssetVal = 0;
+    Object.entries(stocksByAsset).forEach(([ticker, val]) => {
+      if (val > topAssetVal) {
+        topAssetVal = val;
+        topAssetTicker = ticker;
+      }
+    });
+    if (topAssetVal === 0 && Object.keys(boxesByName).length > 0) {
+      Object.entries(boxesByName).forEach(([name, val]) => {
+        if (val > topAssetVal) {
+          topAssetVal = val;
+          topAssetTicker = name;
+        }
+      });
+    }
+    if (topAssetVal === 0 && Object.keys(earningsByStock).length > 0) {
+      Object.entries(earningsByStock).forEach(([ticker, val]) => {
+        if (val > topAssetVal) {
+          topAssetVal = val;
+          topAssetTicker = `${ticker} (Proventos)`;
+        }
+      });
+    }
+    const topAssetShare = totalInvested > 0 ? (topAssetVal / totalInvested) * 100 : 100;
+
+    const summary = {
+      stocks: totalStocks,
+      boxes: totalBoxes,
+      total: totalInvested,
+      totalInvested,
+      totalAccumulated: totalInvested + totalEarnings,
+      totalStockEarnings,
+      totalNubankEarnings,
+      totalEarnings,
+      currentMonthEarnings,
+      stockCount: sortedStocks.length,
+      boxCount: sortedBoxes.length,
+      totalPositions: sortedStocks.length + sortedBoxes.length,
+      earningsCount: sortedStockEarnings.length + sortedBoxEarnings.length,
+      topAssetTicker,
+      topAssetVal,
+      topAssetShare,
+      yieldGlobal,
+      stocksByAsset,
+      earningsByStock,
+      boxesByName,
+      earningsByBox
+    };
+
+    // Atualiza Badge de Status do Filtro
+    const totalFilteredRecords = sortedStocks.length + sortedStockEarnings.length + sortedBoxes.length + sortedBoxEarnings.length;
+    const elFilterBadge = document.getElementById('invFilterStatusBadge');
+    if (elFilterBadge) {
+      if (filters.isFiltered) {
+        elFilterBadge.textContent = `Filtro Ativo: ${totalFilteredRecords} de ${totalAllRecords} lançamentos`;
+        elFilterBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+        elFilterBadge.style.color = '#34d399';
+        elFilterBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+      } else {
+        elFilterBadge.textContent = `Exibindo Tudo (${totalAllRecords} lançamentos)`;
+        elFilterBadge.style.background = 'rgba(59, 130, 246, 0.18)';
+        elFilterBadge.style.color = '#93c5fd';
+        elFilterBadge.style.borderColor = 'rgba(59, 130, 246, 0.35)';
+      }
+    }
+
+    // Atualiza Banner Principal Superior
     const elTotal = document.getElementById('investTotalAssets');
     if (elTotal) elTotal.textContent = formatBRL(summary.totalInvested);
 
@@ -4364,9 +4752,8 @@ const app = {
     const elNubankEarnings = document.getElementById('investNubankEarnings');
     if (elNubankEarnings) elNubankEarnings.textContent = `+ ${formatBRL(summary.totalNubankEarnings)} rendimentos`;
 
-    // Métricas executivas enriquecidas no banner superior
     const elAssetsBadge = document.getElementById('investAssetsBadge');
-    if (elAssetsBadge) elAssetsBadge.textContent = `${summary.totalPositions} posições ativas`;
+    if (elAssetsBadge) elAssetsBadge.textContent = `${summary.totalPositions} aportes`;
 
     const elEarningsCount = document.getElementById('investEarningsCountBadge');
     if (elEarningsCount) elEarningsCount.textContent = `(${summary.earningsCount} lançamentos)`;
@@ -4378,10 +4765,10 @@ const app = {
     if (elCurrMonthEarnings) elCurrMonthEarnings.textContent = `+ ${formatBRL(summary.currentMonthEarnings)}`;
 
     const elStockCount = document.getElementById('investStockCount');
-    if (elStockCount) elStockCount.textContent = `${summary.stockCount} ativos`;
+    if (elStockCount) elStockCount.textContent = `${summary.stockCount} compras`;
 
     const elBoxCount = document.getElementById('investBoxCount');
-    if (elBoxCount) elBoxCount.textContent = `${summary.boxCount} caixinhas`;
+    if (elBoxCount) elBoxCount.textContent = `${summary.boxCount} aplicações`;
 
     const elTopAsset = document.getElementById('investTopAsset');
     if (elTopAsset) elTopAsset.textContent = summary.topAssetTicker;
@@ -4389,7 +4776,7 @@ const app = {
     const elTopAssetDetail = document.getElementById('investTopAssetDetail');
     if (elTopAssetDetail) {
       elTopAssetDetail.textContent = summary.topAssetVal > 0 
-        ? `${formatBRL(summary.topAssetVal)} (${summary.topAssetShare.toFixed(1)}% da carteira)`
+        ? `${formatBRL(summary.topAssetVal)} (${summary.topAssetShare.toFixed(1)}% do recorte)`
         : '0% da carteira';
     }
 
@@ -4399,151 +4786,492 @@ const app = {
     const elTotalReturnSub = document.getElementById('investTotalReturnSub');
     if (elTotalReturnSub) elTotalReturnSub.textContent = `+ ${formatBRL(summary.totalEarnings)} em rendimentos`;
 
-    // Badges de Contagem
+    // =========================================================================
+    // CONSOLIDAÇÃO POR ATIVO (RAIO-X DA CARTEIRA B3) & FATORES ANALÍTICOS
+    // =========================================================================
+    const consolidatedMap = {};
+    sortedStocks.forEach(s => {
+      const t = (s.ticker || 'OUTROS').toUpperCase().trim();
+      if (!consolidatedMap[t]) {
+        consolidatedMap[t] = {
+          ticker: t,
+          type: s.type || (t.endsWith('11') ? 'FII' : 'Ação'),
+          purchasesCount: 0,
+          shares: 0,
+          invested: 0,
+          earningsCount: 0,
+          earnings: 0
+        };
+      }
+      consolidatedMap[t].purchasesCount += 1;
+      consolidatedMap[t].shares += Number(s.shares) || 0;
+      consolidatedMap[t].invested += Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0;
+    });
+
+    sortedStockEarnings.forEach(e => {
+      const t = (e.ticker || 'OUTROS').toUpperCase().trim();
+      if (!consolidatedMap[t]) {
+        consolidatedMap[t] = {
+          ticker: t,
+          type: tickerTypeMap[t] || (t.endsWith('11') ? 'FII' : 'Ação'),
+          purchasesCount: 0,
+          shares: 0,
+          invested: 0,
+          earningsCount: 0,
+          earnings: 0
+        };
+      }
+      consolidatedMap[t].earningsCount += 1;
+      consolidatedMap[t].earnings += Number(e.amount) || 0;
+    });
+
+    // Se o usuário filtrou apenas RENDIMENTO (ou um período sem compras), preenche a base de cotas/investido histórico para cálculo de YoC
+    Object.values(consolidatedMap).forEach(item => {
+      if (item.invested === 0) {
+        const histStocks = allStocks.filter(s => (s.ticker || '').toUpperCase().trim() === item.ticker);
+        item.historicalShares = histStocks.reduce((a, s) => a + (Number(s.shares) || 0), 0);
+        item.historicalInvested = histStocks.reduce((a, s) => a + (Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0), 0);
+      }
+      const baseInv = item.invested > 0 ? item.invested : (item.historicalInvested || 0);
+      const baseSh = item.shares > 0 ? item.shares : (item.historicalShares || 0);
+      item.avgPrice = item.shares > 0 ? (item.invested / item.shares) : (baseSh > 0 ? baseInv / baseSh : 0);
+      item.yoc = baseInv > 0 ? (item.earnings / baseInv) * 100 : 0;
+      item.earningPerShare = baseSh > 0 ? (item.earnings / baseSh) : 0;
+      item.accumulated = item.invested + item.earnings;
+    });
+
+    const consolidatedList = Object.values(consolidatedMap).sort((a, b) => {
+      if (filters.sort === 'val_asc') return (a.invested || a.earnings) - (b.invested || b.earnings);
+      return (b.invested || b.earnings) - (a.invested || a.earnings);
+    });
+
+    // Atualiza os 4 Mini-Cards de Fatores Analíticos
+    const totalSharesFiltered = sortedStocks.reduce((a, s) => a + (Number(s.shares) || 0), 0);
+    const totalAportesCount = sortedStocks.length + sortedBoxes.length;
+    const avgTicketAporte = totalAportesCount > 0 ? (totalInvested / totalAportesCount) : 0;
+
+    const elFactorTicketMain = document.getElementById('invFactorTicketMain');
+    const elFactorTicketSub = document.getElementById('invFactorTicketSub');
+    if (elFactorTicketMain) {
+      elFactorTicketMain.textContent = totalSharesFiltered > 0
+        ? `${totalSharesFiltered} cotas (${sortedStocks.length} compras)`
+        : `${totalAportesCount} aplicações`;
+    }
+    if (elFactorTicketSub) {
+      elFactorTicketSub.textContent = `Ticket médio: ${formatBRL(avgTicketAporte)} / aporte`;
+    }
+
+    const earningMonthsSet = new Set();
+    [...sortedStockEarnings, ...sortedBoxEarnings].forEach(e => {
+      if (e.date && e.date.length >= 7) earningMonthsSet.add(e.date.substring(0, 7));
+    });
+    const activeEarningMonths = Math.max(1, earningMonthsSet.size);
+    const avgMonthlyEarning = earningMonthsSet.size > 0 ? (totalEarnings / activeEarningMonths) : 0;
+    const avgPerPayment = summary.earningsCount > 0 ? (totalEarnings / summary.earningsCount) : 0;
+
+    const elFactorAvgEarnMain = document.getElementById('invFactorAvgEarnMain');
+    const elFactorAvgEarnSub = document.getElementById('invFactorAvgEarnSub');
+    if (elFactorAvgEarnMain) {
+      elFactorAvgEarnMain.textContent = `${formatBRL(avgMonthlyEarning)} / mês`;
+    }
+    if (elFactorAvgEarnSub) {
+      elFactorAvgEarnSub.textContent = `Em ${earningMonthsSet.size} meses | ${formatBRL(avgPerPayment)} / pgto`;
+    }
+
+    const bestYieldAsset = [...consolidatedList].sort((a, b) => b.yoc - a.yoc)[0];
+    const elFactorBestYieldMain = document.getElementById('invFactorBestYieldMain');
+    const elFactorBestYieldSub = document.getElementById('invFactorBestYieldSub');
+    if (elFactorBestYieldMain) {
+      elFactorBestYieldMain.textContent = bestYieldAsset && bestYieldAsset.yoc > 0
+        ? `${bestYieldAsset.ticker} (${bestYieldAsset.yoc.toFixed(2)}% YoC)`
+        : (summary.boxes > 0 ? `Nubank (${((totalNubankEarnings / summary.boxes) * 100).toFixed(2)}%)` : '-');
+    }
+    if (elFactorBestYieldSub) {
+      elFactorBestYieldSub.textContent = bestYieldAsset && bestYieldAsset.earnings > 0
+        ? `+ ${formatBRL(bestYieldAsset.earnings)} em ${bestYieldAsset.earningsCount} proventos`
+        : 'Maior retorno proporcional sobre custo';
+    }
+
+    const elFactorCoverageMain = document.getElementById('invFactorCoverageMain');
+    const elFactorCoverageSub = document.getElementById('invFactorCoverageSub');
+    if (elFactorCoverageMain) {
+      elFactorCoverageMain.textContent = `${summary.yieldGlobal.toFixed(2)}% de Retorno`;
+    }
+    if (elFactorCoverageSub) {
+      elFactorCoverageSub.textContent = `Proventos: ${formatBRL(totalEarnings)} vs Aportes: ${formatBRL(refInvestedForYield)}`;
+    }
+
+    // Divisão Nubank: Caixinhas vs Dinheiro Separado
+    const sortedCaixinhasOnly = sortedBoxes.filter(b => getBoxCategory(b) === 'Caixinha');
+    const sortedSeparadoOnly = sortedBoxes.filter(b => getBoxCategory(b) === 'Dinheiro Separado');
+    const totalCaixinhasOnly = sortedCaixinhasOnly.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+    const totalSeparadoOnly = sortedSeparadoOnly.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+    const pctCaixinhas = totalBoxes > 0 ? ((totalCaixinhasOnly / totalBoxes) * 100) : 0;
+    const pctSeparado = totalBoxes > 0 ? ((totalSeparadoOnly / totalBoxes) * 100) : 0;
+
+    // Atualiza Cards de Divisão dentro da Seção Nubank
+    const elSplitCxTotal = document.getElementById('nubankSplitCaixinhasTotal');
+    if (elSplitCxTotal) elSplitCxTotal.textContent = formatBRL(totalCaixinhasOnly);
+    const elSplitCxCount = document.getElementById('nubankSplitCaixinhasCount');
+    if (elSplitCxCount) elSplitCxCount.textContent = `${sortedCaixinhasOnly.length} ${sortedCaixinhasOnly.length === 1 ? 'caixinha' : 'caixinhas'}`;
+    const elSplitCxShare = document.getElementById('nubankSplitCaixinhasShare');
+    if (elSplitCxShare) elSplitCxShare.textContent = `${pctCaixinhas.toFixed(1)}% do Nubank`;
+
+    const elSplitSepTotal = document.getElementById('nubankSplitSeparadoTotal');
+    if (elSplitSepTotal) elSplitSepTotal.textContent = formatBRL(totalSeparadoOnly);
+    const elSplitSepCount = document.getElementById('nubankSplitSeparadoCount');
+    if (elSplitSepCount) elSplitSepCount.textContent = `${sortedSeparadoOnly.length} ${sortedSeparadoOnly.length === 1 ? 'registro' : 'registros'}`;
+    const elSplitSepShare = document.getElementById('nubankSplitSeparadoShare');
+    if (elSplitSepShare) elSplitSepShare.textContent = `${pctSeparado.toFixed(1)}% do Nubank`;
+
+    const elSplitEarnTotal = document.getElementById('nubankSplitEarningsTotal');
+    if (elSplitEarnTotal) elSplitEarnTotal.textContent = `+ ${formatBRL(totalNubankEarnings)}`;
+    const elSplitEarnCount = document.getElementById('nubankSplitEarningsCount');
+    if (elSplitEarnCount) elSplitEarnCount.textContent = `${sortedBoxEarnings.length} ${sortedBoxEarnings.length === 1 ? 'lançamento' : 'lançamentos'}`;
+    const elSplitPatrimonio = document.getElementById('nubankSplitTotalPatrimonio');
+    if (elSplitPatrimonio) elSplitPatrimonio.textContent = `Patrimônio Nu: ${formatBRL(totalBoxes + totalNubankEarnings)}`;
+
+    // Badges de Contagem nas Abas
+    const badgeCons = document.getElementById('countStockConsolidatedBadge');
+    if (badgeCons) badgeCons.textContent = consolidatedList.length;
+
+    const badgeStockPurchases = document.getElementById('countStockPurchasesBadge');
+    if (badgeStockPurchases) badgeStockPurchases.textContent = sortedStocks.length;
+
     const badgeStockEarn = document.getElementById('countStockEarningsBadge');
-    if (badgeStockEarn) badgeStockEarn.textContent = (store.data.investments.stockEarnings || []).length;
+    if (badgeStockEarn) badgeStockEarn.textContent = sortedStockEarnings.length;
+
+    const badgeNubankBoxes = document.getElementById('countNubankBoxesBadge');
+    if (badgeNubankBoxes) badgeNubankBoxes.textContent = sortedBoxes.length;
+
+    const badgeNubankCxOnly = document.getElementById('countNubankCaixinhasOnlyBadge');
+    if (badgeNubankCxOnly) badgeNubankCxOnly.textContent = sortedCaixinhasOnly.length;
+
+    const badgeNubankSepOnly = document.getElementById('countNubankSeparadoOnlyBadge');
+    if (badgeNubankSepOnly) badgeNubankSepOnly.textContent = sortedSeparadoOnly.length;
 
     const badgeNubankEarn = document.getElementById('countNubankEarningsBadge');
-    if (badgeNubankEarn) badgeNubankEarn.textContent = (store.data.investments.nubankEarnings || []).length;
+    if (badgeNubankEarn) badgeNubankEarn.textContent = sortedBoxEarnings.length;
 
-    // 1. Tabela Bolsa - Ativos em Carteira
+    // 0. Tabela Bolsa - Visão Consolidada por Ativo (Raio-X)
+    const tbodyCons = document.getElementById('stocksConsolidatedTableBody');
+    const tfootCons = document.getElementById('stocksConsolidatedTableFoot');
+    if (tbodyCons) {
+      tbodyCons.innerHTML = consolidatedList.length === 0 ? `
+        <tr><td colspan="10" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum ativo de Bolsa encontrado para os filtros selecionados.</td></tr>
+      ` : consolidatedList.map(c => {
+        const sharePct = totalStocks > 0 ? ((c.invested / totalStocks) * 100) : 0;
+        const isCurrentlyFiltered = (filters.asset === c.ticker);
+        return `
+        <tr>
+          <td>
+            <strong style="color:#60a5fa; font-size:0.98rem; cursor:pointer;" onclick="app.quickFilterInvestAsset('${c.ticker}')" title="Clique para filtrar ${c.ticker}">
+              ${c.ticker}
+            </strong>
+          </td>
+          <td><span class="status-badge neutral">${c.type}</span></td>
+          <td>${c.purchasesCount} ${c.purchasesCount === 1 ? 'compra' : 'compras'}</td>
+          <td style="font-weight:700; color:#e2e8f0;">${c.shares > 0 ? c.shares : `<span style="color:#94a3b8;" title="Base histórica">${c.historicalShares || 0}*</span>`}</td>
+          <td>${formatBRL(c.avgPrice)}</td>
+          <td>
+            <div style="font-weight:800; color:#fff;">${formatBRL(c.invested)}</div>
+            <div style="display:flex; align-items:center; gap:0.4rem; margin-top:0.2rem;">
+              <div style="flex:1; max-width:70px; height:5px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden;">
+                <div style="width:${Math.min(100, sharePct).toFixed(1)}%; height:100%; background:#3b82f6;"></div>
+              </div>
+              <span style="font-size:0.72rem; color:#93c5fd;">${sharePct.toFixed(1)}%</span>
+            </div>
+          </td>
+          <td>
+            <div style="font-weight:800; color:#4ade80;">+ ${formatBRL(c.earnings)}</div>
+            <div style="font-size:0.72rem; color:#94a3b8;">${c.earningsCount} ${c.earningsCount === 1 ? 'pagamento' : 'pagamentos'}</div>
+          </td>
+          <td>
+            <span class="status-badge paid" style="font-weight:800;">${c.yoc.toFixed(2)}%</span>
+            <div style="font-size:0.71rem; color:#94a3b8; margin-top:0.15rem;">${formatBRL(c.earningPerShare)} / cota</div>
+          </td>
+          <td style="font-weight:800; color:#38bdf8;">${formatBRL(c.accumulated)}</td>
+          <td>
+            <button type="button" class="btn-header" style="padding:0.25rem 0.55rem; font-size:0.73rem; background:${isCurrentlyFiltered ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.15)'}; color:${isCurrentlyFiltered ? '#34d399' : '#93c5fd'}; border-color:${isCurrentlyFiltered ? 'rgba(16,185,129,0.4)' : 'rgba(59,130,246,0.3)'};" onclick="app.quickFilterInvestAsset('${c.ticker}')">
+              ${isCurrentlyFiltered ? '✅ Ativo' : '🔍 Focar'}
+            </button>
+          </td>
+        </tr>
+      `;}).join('');
+
+      if (tfootCons) {
+        const totalB3Yoc = totalStocks > 0 ? ((totalStockEarnings / totalStocks) * 100) : 0;
+        tfootCons.innerHTML = consolidatedList.length === 0 ? '' : `
+          <tr style="background:rgba(15, 23, 42, 0.9); font-weight:800; border-top:2px solid rgba(59, 130, 246, 0.35);">
+            <td colspan="2" style="color:#93c5fd;">TOTAL BOLSA (${consolidatedList.length} ativos)</td>
+            <td>${sortedStocks.length} compras</td>
+            <td style="color:#fff;">${totalSharesFiltered} cotas</td>
+            <td>—</td>
+            <td style="color:#fff;">${formatBRL(totalStocks)} (100%)</td>
+            <td style="color:#4ade80;">+ ${formatBRL(totalStockEarnings)} (${sortedStockEarnings.length})</td>
+            <td><span class="status-badge paid">${totalB3Yoc.toFixed(2)}% YoC</span></td>
+            <td style="color:#38bdf8;">${formatBRL(totalStocks + totalStockEarnings)}</td>
+            <td></td>
+          </tr>
+        `;
+      }
+    }
+
+    // 1. Tabela Bolsa - Histórico de Compras
     const tbodyStocks = document.getElementById('stocksTableBody');
+    const tfootStocks = document.getElementById('stocksTableFoot');
     if (tbodyStocks) {
-      const stocksList = store.data.investments.stocks || [];
-      tbodyStocks.innerHTML = stocksList.length === 0 ? `
-        <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum ativo de Bolsa (Ações/FIIs) cadastrado.</td></tr>
-      ` : stocksList.map(s => {
+      tbodyStocks.innerHTML = sortedStocks.length === 0 ? `
+        <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma compra de Bolsa (Ações/FIIs) encontrada para este filtro.</td></tr>
+      ` : sortedStocks.map(s => {
         const totalVal = Number(s.total) || (Number(s.shares) * Number(s.pricePerShare)) || 0;
         return `
         <tr>
-          <td><strong style="color:#60a5fa; font-size:0.95rem;">${s.ticker}</strong></td>
+          <td><strong style="color:#60a5fa; font-size:0.95rem; cursor:pointer;" onclick="app.quickFilterInvestAsset('${s.ticker}')">${s.ticker}</strong></td>
           <td><span class="status-badge neutral">${s.type || 'Ação'}</span></td>
           <td>${formatDateBR(s.date)}</td>
           <td>${s.shares}</td>
           <td>${formatBRL(s.pricePerShare)}</td>
           <td style="font-weight: 800; color: #fff;">${formatBRL(totalVal)}</td>
           <td>
-            <div class="table-actions">
-              <button class="btn-table-icon delete" title="Excluir Ativo" onclick="app.deleteStock('${s.id}')">
+            <div class="table-actions" style="display:flex; gap:0.35rem; align-items:center;">
+              <button type="button" class="btn-header" style="padding:0.25rem 0.55rem; font-size:0.75rem; background:rgba(59,130,246,0.18); border:1px solid rgba(59,130,246,0.45); color:#93c5fd; font-weight:700;" title="Editar Compra" onclick="app.openModalNovoAtivoBolsa('${s.id}')">
+                ✏️ Editar
+              </button>
+              <button type="button" class="btn-table-icon delete" title="Excluir Ativo" onclick="app.deleteStock('${s.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
           </td>
         </tr>
       `;}).join('');
+
+      if (tfootStocks) {
+        const avgUnit = totalSharesFiltered > 0 ? (totalStocks / totalSharesFiltered) : 0;
+        tfootStocks.innerHTML = sortedStocks.length === 0 ? '' : `
+          <tr style="background:rgba(15, 23, 42, 0.9); font-weight:800; border-top:2px solid rgba(59, 130, 246, 0.35);">
+            <td colspan="3" style="color:#93c5fd;">TOTAL FILTRADO (${sortedStocks.length} compras)</td>
+            <td style="color:#fff;">${totalSharesFiltered} cotas</td>
+            <td style="color:#cbd5e1;">PM: ${formatBRL(avgUnit)}</td>
+            <td style="color:#60a5fa; font-size:1rem;">${formatBRL(totalStocks)}</td>
+            <td></td>
+          </tr>
+        `;
+      }
     }
 
     // 2. Tabela Bolsa - Rendimentos / Proventos Recebidos
     const tbodyStockEarnings = document.getElementById('stockEarningsTableBody');
+    const tfootStockEarnings = document.getElementById('stockEarningsTableFoot');
     if (tbodyStockEarnings) {
-      const earnList = store.data.investments.stockEarnings || [];
-      tbodyStockEarnings.innerHTML = earnList.length === 0 ? `
-        <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum provento ou dividendo lançado. Clique em "+ Inserir Rendimento / Provento" para cadastrar.</td></tr>
-      ` : earnList.map(e => `
+      tbodyStockEarnings.innerHTML = sortedStockEarnings.length === 0 ? `
+        <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum provento ou dividendo encontrado para este filtro.</td></tr>
+      ` : sortedStockEarnings.map(e => `
         <tr>
-          <td><strong style="color:#34d399; font-size:0.95rem;">${e.ticker}</strong></td>
+          <td><strong style="color:#34d399; font-size:0.95rem; cursor:pointer;" onclick="app.quickFilterInvestAsset('${e.ticker}')">${e.ticker}</strong></td>
           <td><span class="status-badge paid">${e.type || 'Dividendo'}</span></td>
           <td>${formatDateBR(e.date)}</td>
           <td style="font-weight: 800; color: #4ade80;">+ ${formatBRL(e.amount)}</td>
           <td style="font-size: 0.85rem; color: var(--text-secondary);">${e.notes || '-'}</td>
           <td>
-            <div class="table-actions">
-              <button class="btn-table-icon delete" title="Excluir Rendimento" onclick="app.deleteStockEarning('${e.id}')">
+            <div class="table-actions" style="display:flex; gap:0.35rem; align-items:center;">
+              <button type="button" class="btn-header" style="padding:0.25rem 0.55rem; font-size:0.75rem; background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.45); color:#6ee7b7; font-weight:700;" title="Editar Provento" onclick="app.openModalNovoRendimentoBolsa('${e.id}')">
+                ✏️ Editar
+              </button>
+              <button type="button" class="btn-table-icon delete" title="Excluir Rendimento" onclick="app.deleteStockEarning('${e.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
           </td>
         </tr>
       `).join('');
+
+      if (tfootStockEarnings) {
+        const avgStockEarn = sortedStockEarnings.length > 0 ? (totalStockEarnings / sortedStockEarnings.length) : 0;
+        tfootStockEarnings.innerHTML = sortedStockEarnings.length === 0 ? '' : `
+          <tr style="background:rgba(15, 23, 42, 0.9); font-weight:800; border-top:2px solid rgba(16, 185, 129, 0.35);">
+            <td colspan="3" style="color:#34d399;">TOTAL DE PROVENTOS (${sortedStockEarnings.length} lançamentos)</td>
+            <td style="color:#4ade80; font-size:1rem;">+ ${formatBRL(totalStockEarnings)}</td>
+            <td style="color:#94a3b8; font-size:0.8rem;">Média: ${formatBRL(avgStockEarn)} / lançamento</td>
+            <td></td>
+          </tr>
+        `;
+      }
     }
 
-    // 3. Tabela Nubank Caixinhas
+    // 3. Tabela Nubank (Todos, Só Caixinhas ou Dinheiro Separado conforme sub-aba ativa)
     const tbodyBoxes = document.getElementById('nubankBoxesTableBody');
+    const tfootBoxes = document.getElementById('nubankBoxesTableFoot');
+    const boxesForSubtab = this.activeNubankSubtab === 'caixinhas'
+      ? sortedCaixinhasOnly
+      : (this.activeNubankSubtab === 'separado' ? sortedSeparadoOnly : sortedBoxes);
+    const totalBoxesForSubtab = boxesForSubtab.reduce((a, b) => a + (Number(b.amount) || 0), 0);
+
     if (tbodyBoxes) {
-      const boxesList = store.data.investments.nubankBoxes || [];
-      tbodyBoxes.innerHTML = boxesList.length === 0 ? `
-        <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma caixinha ou renda fixa Nubank cadastrada.</td></tr>
-      ` : boxesList.map(b => `
+      const emptyLabel = this.activeNubankSubtab === 'separado'
+        ? `Nenhum registro de "Dinheiro Separado" encontrado. Clique em "+ Dinheiro Separado" para adicionar ou alterne um item existente com 1 clique!`
+        : (this.activeNubankSubtab === 'caixinhas'
+            ? 'Nenhuma Caixinha Nubank encontrada para este filtro.'
+            : 'Nenhuma Caixinha ou Dinheiro Separado encontrado para este filtro.');
+
+      tbodyBoxes.innerHTML = boxesForSubtab.length === 0 ? `
+        <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">${emptyLabel}</td></tr>
+      ` : boxesForSubtab.map(b => {
+        const cat = getBoxCategory(b);
+        const isSeparado = (cat === 'Dinheiro Separado');
+        const badgeStyle = isSeparado
+          ? 'background:rgba(56, 189, 248, 0.18); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.4);'
+          : 'background:rgba(168, 85, 247, 0.18); color:#d8b4fe; border:1px solid rgba(168, 85, 247, 0.4);';
+        const badgeIcon = isSeparado ? '💵 Dinheiro Separado' : '📦 Caixinha';
+        const nameColor = isSeparado ? '#38bdf8' : '#c084fc';
+        return `
         <tr>
-          <td><strong style="color:#c084fc; font-size:0.95rem;">${b.name}</strong></td>
+          <td>
+            <strong style="color:${nameColor}; font-size:0.95rem;">${escapeHtml(b.name)}</strong>
+            ${b.notes ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:0.15rem;">${escapeHtml(b.notes)}</div>` : ''}
+          </td>
+          <td>
+            <span class="status-badge" style="${badgeStyle} cursor:pointer; font-weight:700;" onclick="app.toggleNubankCategory('${b.id}')" title="Clique para alternar entre Caixinha e Dinheiro Separado">
+              ${badgeIcon} ⇄
+            </span>
+          </td>
           <td>${formatDateBR(b.date)}</td>
           <td style="font-weight: 800; color: #fff;">${formatBRL(b.amount)}</td>
           <td><span class="status-badge paid">${b.status || 'Ativo'}</span></td>
           <td>
-            <div class="table-actions">
-              <button class="btn-table-icon delete" title="Excluir Caixinha" onclick="app.deleteNubankBox('${b.id}')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
+            <div class="table-actions" style="display:flex; gap:0.35rem; align-items:center;">
+              <button type="button" class="btn-table-icon" title="Mover para ${isSeparado ? 'Caixinha' : 'Dinheiro Separado'}" onclick="app.toggleNubankCategory('${b.id}')" style="color:${isSeparado ? '#c084fc' : '#38bdf8'};">
+                ⇄
+              </button>
+              <button type="button" class="btn-header" style="padding:0.25rem 0.55rem; font-size:0.75rem; background:rgba(168,85,247,0.18); border:1px solid rgba(168,85,247,0.45); color:#d8b4fe; font-weight:700;" title="Editar Lançamento" onclick="app.openModalNovaCaixinhaNubank(null, '${b.id}')">
+                ✏️ Editar
+              </button>
+              <button type="button" class="btn-table-icon delete" title="Excluir Registro" onclick="app.deleteNubankBox('${b.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
           </td>
         </tr>
-      `).join('');
+      `;}).join('');
+
+      if (tfootBoxes) {
+        const subLabel = this.activeNubankSubtab === 'caixinhas'
+          ? `TOTAL SÓ CAIXINHAS (${boxesForSubtab.length})`
+          : (this.activeNubankSubtab === 'separado'
+              ? `TOTAL DINHEIRO SEPARADO (${boxesForSubtab.length})`
+              : `TOTAL GUARDADO NUBANK (${boxesForSubtab.length} aplicações)`);
+        tfootBoxes.innerHTML = boxesForSubtab.length === 0 ? '' : `
+          <tr style="background:rgba(15, 23, 42, 0.9); font-weight:800; border-top:2px solid rgba(168, 85, 247, 0.35);">
+            <td colspan="3" style="color:#c084fc;">${subLabel}</td>
+            <td style="color:#fff; font-size:1rem;">${formatBRL(totalBoxesForSubtab)}</td>
+            <td colspan="2" style="font-size:0.78rem; color:#94a3b8;">
+              📦 Caixinhas: ${formatBRL(totalCaixinhasOnly)} | 💵 Separado: ${formatBRL(totalSeparadoOnly)}
+            </td>
+          </tr>
+        `;
+      }
     }
 
     // 4. Tabela Nubank Rendimentos
     const tbodyNubankEarnings = document.getElementById('nubankEarningsTableBody');
+    const tfootNubankEarnings = document.getElementById('nubankEarningsTableFoot');
     if (tbodyNubankEarnings) {
-      const boxEarnList = store.data.investments.nubankEarnings || [];
-      tbodyNubankEarnings.innerHTML = boxEarnList.length === 0 ? `
-        <tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum rendimento de caixinha lançado. Clique em "+ Inserir Rendimento Caixinha" para adicionar.</td></tr>
-      ` : boxEarnList.map(b => `
+      tbodyNubankEarnings.innerHTML = sortedBoxEarnings.length === 0 ? `
+        <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhum rendimento de Nubank encontrado para este filtro.</td></tr>
+      ` : sortedBoxEarnings.map(b => {
+        const cat = getBoxCategory(b);
+        const isSeparado = (cat === 'Dinheiro Separado');
+        const badgeStyle = isSeparado
+          ? 'background:rgba(56, 189, 248, 0.18); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.4);'
+          : 'background:rgba(168, 85, 247, 0.18); color:#d8b4fe; border:1px solid rgba(168, 85, 247, 0.4);';
+        return `
         <tr>
-          <td><strong style="color:#c084fc; font-size:0.95rem;">${b.boxName}</strong></td>
+          <td><strong style="color:#c084fc; font-size:0.95rem;">${escapeHtml(b.boxName)}</strong></td>
+          <td><span class="status-badge" style="${badgeStyle}">${isSeparado ? '💵 Dinheiro Separado' : '📦 Caixinha'}</span></td>
           <td>${formatDateBR(b.date)}</td>
           <td style="font-weight: 800; color: #4ade80;">+ ${formatBRL(b.amount)}</td>
-          <td style="font-size: 0.85rem; color: var(--text-secondary);">${b.notes || '-'}</td>
+          <td style="font-size: 0.85rem; color: var(--text-secondary);">${escapeHtml(b.notes || '-')}</td>
           <td>
-            <div class="table-actions">
-              <button class="btn-table-icon delete" title="Excluir Rendimento" onclick="app.deleteNubankEarning('${b.id}')">
+            <div class="table-actions" style="display:flex; gap:0.35rem; align-items:center;">
+              <button type="button" class="btn-header" style="padding:0.25rem 0.55rem; font-size:0.75rem; background:rgba(16,185,129,0.18); border:1px solid rgba(16,185,129,0.45); color:#6ee7b7; font-weight:700;" title="Editar Rendimento" onclick="app.openModalNovoRendimentoNubank('${b.id}')">
+                ✏️ Editar
+              </button>
+              <button type="button" class="btn-table-icon delete" title="Excluir Rendimento" onclick="app.deleteNubankEarning('${b.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
           </td>
         </tr>
-      `).join('');
+      `;}).join('');
+
+      if (tfootNubankEarnings) {
+        const avgNuEarn = sortedBoxEarnings.length > 0 ? (totalNubankEarnings / sortedBoxEarnings.length) : 0;
+        tfootNubankEarnings.innerHTML = sortedBoxEarnings.length === 0 ? '' : `
+          <tr style="background:rgba(15, 23, 42, 0.9); font-weight:800; border-top:2px solid rgba(16, 185, 129, 0.35);">
+            <td colspan="3" style="color:#34d399;">TOTAL RENDIMENTOS NUBANK (${sortedBoxEarnings.length} lançamentos)</td>
+            <td style="color:#4ade80; font-size:1rem;">+ ${formatBRL(totalNubankEarnings)}</td>
+            <td style="color:#94a3b8; font-size:0.8rem;">Média: ${formatBRL(avgNuEarn)} / mês</td>
+            <td></td>
+          </tr>
+        `;
+      }
     }
 
-    // Renderiza os Gráficos Exclusivos de Investimentos
+    // Oculta/Exibe cards de seção caso o filtro seja exclusivo de Bolsa ou exclusivo de Nubank
+    const cardBolsa = document.getElementById('cardInvestBolsa');
+    const cardNubank = document.getElementById('cardInvestNubank');
+    if (cardBolsa) {
+      cardBolsa.style.display = (isNubankOnlyType(filters.assetType) || filters.asset === 'NUBANK') ? 'none' : '';
+    }
+    if (cardNubank) {
+      const onlyBolsa = (filters.assetType === 'FII' || filters.assetType === 'ACAO' || filters.assetType === 'BOLSA_ALL' || (filters.asset !== 'ALL' && filters.asset !== 'NUBANK'));
+      cardNubank.style.display = onlyBolsa ? 'none' : '';
+    }
+
+    // Renderiza os Gráficos Exclusivos de Investimentos refletindo o filtro atual
     this.renderInvestCharts(summary);
   },
 
   // Alternar abas da Bolsa
   switchInvestStockTab(tab) {
+    const btnCons = document.getElementById('btnTabStocksConsolidated');
     const btnPos = document.getElementById('btnTabStocksPositions');
     const btnEarn = document.getElementById('btnTabStocksEarnings');
+    const pnlCons = document.getElementById('panelStocksConsolidated');
     const pnlPos = document.getElementById('panelStocksPositions');
     const pnlEarn = document.getElementById('panelStocksEarnings');
 
-    if (tab === 'positions') {
-      btnPos?.classList.add('active');
-      btnEarn?.classList.remove('active');
-      if (pnlPos) pnlPos.style.display = 'block';
-      if (pnlEarn) pnlEarn.style.display = 'none';
-    } else {
-      btnPos?.classList.remove('active');
-      btnEarn?.classList.add('active');
-      if (pnlPos) pnlPos.style.display = 'none';
-      if (pnlEarn) pnlEarn.style.display = 'block';
-    }
+    btnCons?.classList.toggle('active', tab === 'consolidated');
+    btnPos?.classList.toggle('active', tab === 'positions');
+    btnEarn?.classList.toggle('active', tab === 'earnings');
+
+    if (pnlCons) pnlCons.style.display = tab === 'consolidated' ? 'block' : 'none';
+    if (pnlPos) pnlPos.style.display = tab === 'positions' ? 'block' : 'none';
+    if (pnlEarn) pnlEarn.style.display = tab === 'earnings' ? 'block' : 'none';
   },
 
-  // Alternar abas do Nubank
+  // Alternar abas do Nubank (Todos, Só Caixinhas, Dinheiro Separado, Rendimentos)
   switchInvestNubankTab(tab) {
+    this.activeNubankSubtab = tab || 'boxes';
     const btnBox = document.getElementById('btnTabNubankBoxes');
+    const btnCx = document.getElementById('btnTabNubankCaixinhasOnly');
+    const btnSep = document.getElementById('btnTabNubankSeparadoOnly');
     const btnEarn = document.getElementById('btnTabNubankEarnings');
     const pnlBox = document.getElementById('panelNubankBoxes');
     const pnlEarn = document.getElementById('panelNubankEarnings');
 
-    if (tab === 'boxes') {
-      btnBox?.classList.add('active');
-      btnEarn?.classList.remove('active');
-      if (pnlBox) pnlBox.style.display = 'block';
-      if (pnlEarn) pnlEarn.style.display = 'none';
-    } else {
-      btnBox?.classList.remove('active');
-      btnEarn?.classList.add('active');
+    btnBox?.classList.toggle('active', tab === 'boxes');
+    btnCx?.classList.toggle('active', tab === 'caixinhas');
+    btnSep?.classList.toggle('active', tab === 'separado');
+    btnEarn?.classList.toggle('active', tab === 'earnings');
+
+    if (tab === 'earnings') {
       if (pnlBox) pnlBox.style.display = 'none';
       if (pnlEarn) pnlEarn.style.display = 'block';
+    } else {
+      if (pnlBox) pnlBox.style.display = 'block';
+      if (pnlEarn) pnlEarn.style.display = 'none';
+      this.renderInvestimentos();
     }
   },
 
@@ -4858,16 +5586,16 @@ const app = {
   },
 
   deleteNubankBox(id) {
-    if (confirm('Deseja excluir esta caixinha do Nubank?')) {
+    if (confirm('Deseja excluir este registro do Nubank?')) {
       store.deleteNubankBox(id);
       this.renderInvestimentos();
       this.renderResumo();
-      this.showToast('Caixinha excluída.', 'info');
+      this.showToast('Registro excluído.', 'info');
     }
   },
 
   deleteNubankEarning(id) {
-    if (confirm('Deseja excluir este rendimento da caixinha?')) {
+    if (confirm('Deseja excluir este rendimento do Nubank?')) {
       store.deleteNubankEarning(id);
       this.renderInvestimentos();
       this.renderResumo();
@@ -4875,12 +5603,232 @@ const app = {
     }
   },
 
-  prepareModalNovoRendimentoBolsa() {
+  toggleNubankCategory(id) {
+    const updated = store.toggleNubankBoxCategory(id);
+    if (updated) {
+      this.renderInvestimentos();
+      this.renderResumo();
+      const label = updated.category === 'Dinheiro Separado' ? '💵 Dinheiro Separado' : '📦 Caixinha';
+      this.showToast(`"${updated.name}" movido para ${label}!`, 'success');
+    }
+  },
+
+  // --- MODAIS E HANDLERS DE SALVAMENTO DE INVESTIMENTOS ---
+  openModalNovoAtivoBolsa(editId = null) {
+    const form = document.getElementById('formNovoAtivoBolsa');
+    if (form) form.reset();
+    const editInp = document.getElementById('stk_edit_id');
+    const titleEl = document.getElementById('modalNovoAtivoBolsaTitle');
+    const dateInp = document.getElementById('stk_date');
+    const convGroup = document.getElementById('stkConvertTypeGroup');
+    const convSel = document.getElementById('stk_record_dest');
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    if (editId) {
+      const item = (store.data.investments.stocks || []).find(s => s.id === editId);
+      if (item) {
+        if (editInp) editInp.value = item.id;
+        if (titleEl) titleEl.textContent = `✏️ Editar Compra (${item.ticker})`;
+        if (convGroup) convGroup.style.display = 'block';
+        if (convSel) convSel.value = 'STOCK';
+        document.getElementById('stk_ticker').value = item.ticker || '';
+        document.getElementById('stk_type').value = item.type || 'Ação';
+        if (dateInp) dateInp.value = item.date || todayStr;
+        document.getElementById('stk_shares').value = item.shares || '';
+        document.getElementById('stk_price').value = formatMoneyDisplay(item.pricePerShare);
+      }
+    } else {
+      if (editInp) editInp.value = '';
+      if (titleEl) titleEl.textContent = '📈 Adicionar Ativo de Bolsa (B3)';
+      if (convGroup) convGroup.style.display = 'none';
+      if (convSel) convSel.value = 'STOCK';
+      if (dateInp) dateInp.value = todayStr;
+    }
+
+    const modal = document.getElementById('modalNovoAtivoBolsa');
+    if (modal) {
+      modal.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+  },
+
+  handleSaveAtivoBolsa(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const editId = document.getElementById('stk_edit_id')?.value || '';
+    const dest = document.getElementById('stk_record_dest')?.value || 'STOCK';
+    const ticker = (document.getElementById('stk_ticker')?.value || '').toUpperCase().trim();
+    const type = document.getElementById('stk_type')?.value || (ticker.endsWith('11') ? 'FII' : 'Ação');
+    const date = document.getElementById('stk_date')?.value || new Date().toISOString().split('T')[0];
+    const shares = store._parseNum(document.getElementById('stk_shares')?.value);
+    const pricePerShare = parseMoney(document.getElementById('stk_price')?.value);
+
+    if (!ticker) {
+      this.showToast('Informe o código (Ticker) do ativo.', 'warning');
+      return;
+    }
+    if (shares <= 0 || pricePerShare <= 0) {
+      this.showToast('Informe quantidade e preço unitário válidos.', 'warning');
+      return;
+    }
+
+    if (editId) {
+      if (dest === 'EARNING') {
+        const totalAmount = Number((shares * pricePerShare).toFixed(2));
+        store.deleteStock(editId);
+        store.addStockEarning({
+          ticker,
+          type: ticker.endsWith('11') ? 'Rendimento FII' : 'Dividendo',
+          date,
+          amount: totalAmount,
+          notes: `Movido de Compra para Provento (${ticker})`
+        });
+        this.showToast(`🔄 Lançamento de ${ticker} (${formatBRL(totalAmount)}) movido para Proventos da Bolsa!`, 'success');
+      } else {
+        store.updateStock(editId, { ticker, type, date, shares, pricePerShare });
+        this.showToast(`✅ Compra de ${ticker} atualizada com sucesso!`, 'success');
+      }
+    } else {
+      store.addStock({ ticker, type, date, shares, pricePerShare });
+      this.showToast(`📈 Compra de ${shares} cotas de ${ticker} adicionada!`, 'success');
+    }
+
+    this.closeModal('modalNovoAtivoBolsa');
+    document.getElementById('formNovoAtivoBolsa')?.reset();
+    this.renderInvestimentos();
+    this.renderResumo();
+  },
+
+  selectNubankModalCategory(cat) {
+    const category = cat === 'Dinheiro Separado' ? 'Dinheiro Separado' : 'Caixinha';
+    const hidden = document.getElementById('box_category');
+    if (hidden) hidden.value = category;
+
+    const btnCx = document.getElementById('btnPickCatCaixinha');
+    const btnSep = document.getElementById('btnPickCatSeparado');
+    const lblName = document.getElementById('lblBoxNameField');
+    const inpName = document.getElementById('box_name');
+    const titleEl = document.getElementById('modalNovaCaixinhaNubankTitle') || document.getElementById('modalNovaCaixinhaTitle');
+    const editId = document.getElementById('box_edit_id')?.value;
+
+    if (category === 'Dinheiro Separado') {
+      if (btnSep) {
+        btnSep.style.border = '2px solid #38bdf8';
+        btnSep.style.background = 'rgba(56, 189, 248, 0.22)';
+        btnSep.style.color = '#fff';
+      }
+      if (btnCx) {
+        btnCx.style.border = '2px solid rgba(148, 163, 184, 0.25)';
+        btnCx.style.background = 'rgba(30, 41, 59, 0.6)';
+        btnCx.style.color = '#cbd5e1';
+      }
+      if (lblName) lblName.textContent = 'Descrição / Destino do Dinheiro Separado *';
+      if (inpName && !inpName.value) inpName.placeholder = 'Ex: Dinheiro Separado Conta, Reserva Rápida, Giro Mensal...';
+      if (titleEl && !editId) titleEl.textContent = '💵 Guardar em Dinheiro Separado (Nubank)';
+    } else {
+      if (btnCx) {
+        btnCx.style.border = '2px solid #a855f7';
+        btnCx.style.background = 'rgba(168, 85, 247, 0.22)';
+        btnCx.style.color = '#fff';
+      }
+      if (btnSep) {
+        btnSep.style.border = '2px solid rgba(148, 163, 184, 0.25)';
+        btnSep.style.background = 'rgba(30, 41, 59, 0.6)';
+        btnSep.style.color = '#cbd5e1';
+      }
+      if (lblName) lblName.textContent = 'Nome da Caixinha / Finalidade *';
+      if (inpName && !inpName.value) inpName.placeholder = 'Ex: Reserva de Emergência, Férias, Impostos...';
+      if (titleEl && !editId) titleEl.textContent = '📦 Nova Caixinha Nubank';
+    }
+  },
+
+  openModalNovaCaixinhaNubank(defaultCategory = 'Caixinha', editId = null) {
+    const form = document.getElementById('formNovaCaixinhaNubank');
+    if (form) form.reset();
+
+    const editInp = document.getElementById('box_edit_id');
+    const dateInp = document.getElementById('box_date');
+    const titleEl = document.getElementById('modalNovaCaixinhaNubankTitle') || document.getElementById('modalNovaCaixinhaTitle');
+    const convGroup = document.getElementById('boxConvertTypeGroup');
+    const convSel = document.getElementById('box_record_dest');
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    if (editId) {
+      const item = (store.data.investments.nubankBoxes || []).find(b => b.id === editId);
+      if (item) {
+        if (editInp) editInp.value = item.id;
+        if (convGroup) convGroup.style.display = 'block';
+        if (convSel) convSel.value = 'BOX';
+        const cat = item.category || (String(item.name || '').toLowerCase().includes('separado') ? 'Dinheiro Separado' : 'Caixinha');
+        this.selectNubankModalCategory(cat);
+        if (titleEl) titleEl.textContent = `✏️ Editar ${cat} (${item.name})`;
+        document.getElementById('box_name').value = item.name || '';
+        if (dateInp) dateInp.value = item.date || todayStr;
+        document.getElementById('box_val').value = formatMoneyDisplay(item.amount);
+        const notesInp = document.getElementById('box_notes');
+        if (notesInp) notesInp.value = item.notes || '';
+      }
+    } else {
+      if (editInp) editInp.value = '';
+      if (convGroup) convGroup.style.display = 'none';
+      if (convSel) convSel.value = 'BOX';
+      if (dateInp) dateInp.value = todayStr;
+      const cat = defaultCategory || (this.activeNubankSubtab === 'separado' ? 'Dinheiro Separado' : 'Caixinha');
+      this.selectNubankModalCategory(cat);
+    }
+
+    const modal = document.getElementById('modalNovaCaixinhaNubank');
+    if (modal) {
+      modal.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+  },
+
+  handleSaveCaixinhaNubank(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const editId = document.getElementById('box_edit_id')?.value || '';
+    const dest = document.getElementById('box_record_dest')?.value || 'BOX';
+    const category = document.getElementById('box_category')?.value || 'Caixinha';
+    const name = (document.getElementById('box_name')?.value || '').trim() || category;
+    const date = document.getElementById('box_date')?.value || new Date().toISOString().split('T')[0];
+    const amount = parseMoney(document.getElementById('box_val')?.value);
+    const notes = (document.getElementById('box_notes')?.value || '').trim();
+
+    if (amount <= 0) {
+      this.showToast('Por favor, informe um valor válido para guardar.', 'warning');
+      return;
+    }
+
+    if (editId) {
+      if (dest === 'EARNING') {
+        store.deleteNubankBox(editId);
+        store.addNubankEarning({ boxName: name, category, date, amount, notes: notes || 'Movido para Rendimento Nubank' });
+        this.showToast(`🔄 Lançamento "${name}" (${formatBRL(amount)}) movido para Rendimentos do Nubank!`, 'success');
+      } else {
+        store.updateNubankBox(editId, { name, category, date, amount, notes });
+        this.showToast(`✅ ${category} "${name}" atualizado (${formatBRL(amount)})!`, 'success');
+      }
+    } else {
+      store.addNubankBox({ name, category, date, amount, notes, status: 'Ativo' });
+      this.showToast(`💜 ${category} "${name}" (${formatBRL(amount)}) cadastrado com sucesso!`, 'success');
+    }
+
+    this.closeModal('modalNovaCaixinhaNubank');
+    document.getElementById('formNovaCaixinhaNubank')?.reset();
+    this.renderInvestimentos();
+    this.renderResumo();
+  },
+
+  prepareModalNovoRendimentoBolsa(editId = null) {
     const form = document.getElementById('formNovoRendimentoBolsa');
     if (form) form.reset();
 
+    const editInp = document.getElementById('stk_earn_edit_id');
+    const titleEl = document.getElementById('modalNovoRendimentoBolsaTitle');
     const dateInp = document.getElementById('stk_earn_date');
-    if (dateInp) dateInp.value = new Date().toISOString().split('T')[0];
+    const convGroup = document.getElementById('stkEarnConvertTypeGroup');
+    const convSel = document.getElementById('stk_earn_record_dest');
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dateInp) dateInp.value = todayStr;
 
     const datalist = document.getElementById('stockTickersDatalist');
     if (datalist) {
@@ -4894,20 +5842,170 @@ const app = {
       bankSelect.innerHTML = `<option value="">Selecione o banco (opcional)</option>` + 
         accounts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
     }
+
+    if (editId) {
+      const item = (store.data.investments.stockEarnings || []).find(e => e.id === editId);
+      if (item) {
+        if (editInp) editInp.value = item.id;
+        if (titleEl) titleEl.textContent = `✏️ Editar Provento (${item.ticker})`;
+        if (convGroup) convGroup.style.display = 'block';
+        if (convSel) convSel.value = 'EARNING';
+        document.getElementById('stk_earn_ticker').value = item.ticker || '';
+        document.getElementById('stk_earn_type').value = item.type || 'Dividendo';
+        if (dateInp) dateInp.value = item.date || todayStr;
+        document.getElementById('stk_earn_val').value = formatMoneyDisplay(item.amount);
+        if (bankSelect && item.bank) bankSelect.value = item.bank;
+        document.getElementById('stk_earn_notes').value = item.notes || '';
+      }
+    } else {
+      if (editInp) editInp.value = '';
+      if (titleEl) titleEl.textContent = '💰 Lançar Rendimento / Provento da Bolsa';
+      if (convGroup) convGroup.style.display = 'none';
+      if (convSel) convSel.value = 'EARNING';
+    }
   },
 
-  prepareModalNovoRendimentoNubank() {
+  openModalNovoRendimentoBolsa(editId = null) {
+    this.prepareModalNovoRendimentoBolsa(editId);
+    const modal = document.getElementById('modalNovoRendimentoBolsa');
+    if (modal) {
+      modal.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+  },
+
+  handleSaveRendimentoBolsa(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const editId = document.getElementById('stk_earn_edit_id')?.value || '';
+    const dest = document.getElementById('stk_earn_record_dest')?.value || 'EARNING';
+    const ticker = (document.getElementById('stk_earn_ticker')?.value || '').toUpperCase().trim();
+    const type = document.getElementById('stk_earn_type')?.value || 'Dividendo';
+    const date = document.getElementById('stk_earn_date')?.value || new Date().toISOString().split('T')[0];
+    const amount = parseMoney(document.getElementById('stk_earn_val')?.value);
+    const bank = document.getElementById('stk_earn_bank')?.value || '';
+    const notes = (document.getElementById('stk_earn_notes')?.value || '').trim();
+
+    if (!ticker || amount <= 0) {
+      this.showToast('Informe o Ticker e um valor de provento válido.', 'warning');
+      return;
+    }
+
+    if (editId) {
+      if (dest === 'STOCK') {
+        store.deleteStockEarning(editId);
+        store.addStock({
+          ticker,
+          type: ticker.endsWith('11') ? 'FII' : 'Ação',
+          date,
+          shares: 1,
+          pricePerShare: amount
+        });
+        this.showToast(`🔄 Lançamento de ${ticker} (${formatBRL(amount)}) movido para Compras de Ativo!`, 'success');
+      } else {
+        store.updateStockEarning(editId, { ticker, type, date, amount, bank, notes });
+        this.showToast(`✅ Provento de ${ticker} (${formatBRL(amount)}) atualizado!`, 'success');
+      }
+    } else {
+      store.addStockEarning({ ticker, type, date, amount, bank, notes });
+      this.showToast(`💰 Provento de ${ticker} (+ ${formatBRL(amount)}) lançado com sucesso!`, 'success');
+    }
+
+    this.closeModal('modalNovoRendimentoBolsa');
+    document.getElementById('formNovoRendimentoBolsa')?.reset();
+    this.renderInvestimentos();
+    this.renderResumo();
+  },
+
+  prepareModalNovoRendimentoNubank(editId = null) {
     const form = document.getElementById('formNovoRendimentoNubank');
     if (form) form.reset();
 
+    const editInp = document.getElementById('box_earn_edit_id');
+    const titleEl = document.getElementById('modalNovoRendimentoNubankTitle');
     const dateInp = document.getElementById('box_earn_date');
-    if (dateInp) dateInp.value = new Date().toISOString().split('T')[0];
+    const convGroup = document.getElementById('boxEarnConvertTypeGroup');
+    const convSel = document.getElementById('box_earn_record_dest');
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (dateInp) dateInp.value = todayStr;
 
     const datalist = document.getElementById('nubankBoxesDatalist');
     if (datalist) {
       const boxNames = [...new Set((store.data.investments.nubankBoxes || []).map(b => b.name).filter(Boolean))];
       datalist.innerHTML = boxNames.map(b => `<option value="${b}">`).join('');
     }
+
+    if (editId) {
+      const item = (store.data.investments.nubankEarnings || []).find(e => e.id === editId);
+      if (item) {
+        if (editInp) editInp.value = item.id;
+        if (titleEl) titleEl.textContent = `✏️ Editar Rendimento Nubank`;
+        if (convGroup) convGroup.style.display = 'block';
+        if (convSel) convSel.value = 'EARNING';
+        document.getElementById('box_earn_name').value = item.boxName || '';
+        const catSel = document.getElementById('box_earn_category');
+        if (catSel) catSel.value = item.category || 'Caixinha';
+        if (dateInp) dateInp.value = item.date || todayStr;
+        document.getElementById('box_earn_val').value = formatMoneyDisplay(item.amount);
+        document.getElementById('box_earn_notes').value = item.notes || '';
+      }
+    } else {
+      if (editInp) editInp.value = '';
+      if (titleEl) titleEl.textContent = '✨ Lançar Rendimento do Nubank';
+      if (convGroup) convGroup.style.display = 'none';
+      if (convSel) convSel.value = 'EARNING';
+    }
+  },
+
+  openModalNovoRendimentoNubank(editId = null) {
+    this.prepareModalNovoRendimentoNubank(editId);
+    const modal = document.getElementById('modalNovoRendimentoNubank');
+    if (modal) {
+      modal.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+  },
+
+  handleSaveRendimentoNubank(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const editId = document.getElementById('box_earn_edit_id')?.value || '';
+    const dest = document.getElementById('box_earn_record_dest')?.value || 'EARNING';
+    const boxName = (document.getElementById('box_earn_name')?.value || '').trim() || 'Rendimento das Caixinhas';
+    const category = document.getElementById('box_earn_category')?.value || 'Caixinha';
+    const date = document.getElementById('box_earn_date')?.value || new Date().toISOString().split('T')[0];
+    const amount = parseMoney(document.getElementById('box_earn_val')?.value);
+    const notes = (document.getElementById('box_earn_notes')?.value || '').trim();
+
+    if (amount <= 0) {
+      this.showToast('Informe um valor válido de rendimento.', 'warning');
+      return;
+    }
+
+    if (editId) {
+      if (dest === 'BOX_CAIXINHA' || dest === 'BOX_SEPARADO') {
+        const targetCat = dest === 'BOX_SEPARADO' ? 'Dinheiro Separado' : 'Caixinha';
+        store.deleteNubankEarning(editId);
+        store.addNubankBox({
+          name: boxName,
+          category: targetCat,
+          date,
+          amount,
+          notes,
+          status: 'Ativo'
+        });
+        this.showToast(`🔄 Lançamento "${boxName}" (${formatBRL(amount)}) movido para ${targetCat}!`, 'success');
+      } else {
+        store.updateNubankEarning(editId, { boxName, category, date, amount, notes });
+        this.showToast(`✅ Rendimento "${boxName}" (${formatBRL(amount)}) atualizado!`, 'success');
+      }
+    } else {
+      store.addNubankEarning({ boxName, category, date, amount, notes });
+      this.showToast(`✨ Rendimento "${boxName}" (+ ${formatBRL(amount)}) cadastrado!`, 'success');
+    }
+
+    this.closeModal('modalNovoRendimentoNubank');
+    document.getElementById('formNovoRendimentoNubank')?.reset();
+    this.renderInvestimentos();
+    this.renderResumo();
   },
 
   // =========================================================================
@@ -5706,6 +6804,14 @@ const app = {
   // GERENCIADOR DE MODAIS
   // =========================================================================
   openModal(modalId) {
+    if (modalId === 'modalNovoAtivoBolsa') {
+      this.openModalNovoAtivoBolsa();
+      return;
+    }
+    if (modalId === 'modalNovaCaixinhaNubank') {
+      this.openModalNovaCaixinhaNubank();
+      return;
+    }
     const modal = document.getElementById(modalId);
     if (modal) {
       if (modalId === 'modalConfigSupabase') {
@@ -7238,7 +8344,7 @@ const app = {
 
         const updated = {
           source: document.getElementById('edit_rev_source').value.trim(),
-          value: document.getElementById('edit_rev_value').value,
+          value: parseMoney(document.getElementById('edit_rev_value').value),
           date: document.getElementById('edit_rev_date').value,
           status: document.getElementById('edit_rev_status').value,
           bank: document.getElementById('edit_rev_bank').value
@@ -7416,7 +8522,7 @@ const app = {
         const exp = {
           description: document.getElementById('var_desc').value,
           date: document.getElementById('var_date').value,
-          value: document.getElementById('var_val').value,
+          value: parseMoney(document.getElementById('var_val').value),
           bank: document.getElementById('var_bank').value
         };
         store.addVariableExpense(this.activeMonth, exp);
@@ -7511,6 +8617,9 @@ const app = {
         const place = document.getElementById('edit_card_place').value.trim();
         const card = document.getElementById('edit_card_type').value;
         const dateVal = document.getElementById('edit_card_date').value;
+        const totalAmount = parseMoney(document.getElementById('edit_card_val')?.value);
+        const startMonth = Number(document.getElementById('edit_card_start_month')?.value) || 1;
+        const startYear = Number(document.getElementById('edit_card_start_year')?.value) || (Number(store.activeYear) || new Date().getFullYear());
         const rawEditInst = document.getElementById('edit_card_installments').value;
         const isRecEdit = rawEditInst === 'recorrente';
         const installments = isRecEdit ? 'recorrente' : (Number(rawEditInst) || 1);
@@ -7553,7 +8662,7 @@ const app = {
 
         const dream = {
           title: title,
-          value: Number(document.getElementById('dream_val').value) || 0,
+          value: parseMoney(document.getElementById('dream_val').value) || 0,
           targetDate: document.getElementById('dream_date').value,
           imageUrl: imageUrl || '',
           deposits: []
@@ -7575,7 +8684,7 @@ const app = {
       formAporte.addEventListener('submit', (e) => {
         e.preventDefault();
         const dreamId = document.getElementById('aporte_dream_id').value;
-        const val = Number(document.getElementById('aporte_val').value) || 0;
+        const val = parseMoney(document.getElementById('aporte_val').value) || 0;
         const date = document.getElementById('aporte_date').value;
         const notes = document.getElementById('aporte_notes').value.trim();
 
@@ -7658,88 +8767,7 @@ const app = {
       });
     }
 
-    // Formulário Ativo Bolsa
-    const formStock = document.getElementById('formNovoAtivoBolsa');
-    if (formStock) {
-      formStock.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const stock = {
-          ticker: document.getElementById('stk_ticker').value.toUpperCase(),
-          type: document.getElementById('stk_type').value,
-          date: document.getElementById('stk_date').value,
-          shares: document.getElementById('stk_shares').value,
-          pricePerShare: document.getElementById('stk_price').value
-        };
-        store.addStock(stock);
-        this.closeModal('modalNovoAtivoBolsa');
-        formStock.reset();
-        this.renderInvestimentos();
-        this.renderResumo();
-        this.showToast('Ativo de Bolsa adicionado com sucesso!', 'success');
-      });
-    }
-
-    // Formulário Caixinha Nubank
-    const formBox = document.getElementById('formNovaCaixinhaNubank');
-    if (formBox) {
-      formBox.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const box = {
-          name: document.getElementById('box_name').value,
-          date: document.getElementById('box_date').value,
-          amount: document.getElementById('box_val').value,
-          status: 'Ativo'
-        };
-        store.addNubankBox(box);
-        this.closeModal('modalNovaCaixinhaNubank');
-        formBox.reset();
-        this.renderInvestimentos();
-        this.renderResumo();
-        this.showToast('Caixinha Nubank cadastrada!', 'success');
-      });
-    }
-
-    // Formulário Novo Rendimento da Bolsa
-    const formStockEarn = document.getElementById('formNovoRendimentoBolsa');
-    if (formStockEarn) {
-      formStockEarn.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const earn = {
-          ticker: document.getElementById('stk_earn_ticker').value.toUpperCase().trim(),
-          type: document.getElementById('stk_earn_type').value,
-          date: document.getElementById('stk_earn_date').value,
-          amount: document.getElementById('stk_earn_val').value,
-          bank: document.getElementById('stk_earn_bank') ? document.getElementById('stk_earn_bank').value : '',
-          notes: document.getElementById('stk_earn_notes').value
-        };
-        store.addStockEarning(earn);
-        this.closeModal('modalNovoRendimentoBolsa');
-        formStockEarn.reset();
-        this.renderInvestimentos();
-        this.renderResumo();
-        this.showToast('💰 Rendimento da Bolsa lançado com sucesso!', 'success');
-      });
-    }
-
-    // Formulário Novo Rendimento Nubank
-    const formBoxEarn = document.getElementById('formNovoRendimentoNubank');
-    if (formBoxEarn) {
-      formBoxEarn.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const earn = {
-          boxName: document.getElementById('box_earn_name').value.trim(),
-          date: document.getElementById('box_earn_date').value,
-          amount: document.getElementById('box_earn_val').value,
-          notes: document.getElementById('box_earn_notes').value
-        };
-        store.addNubankEarning(earn);
-        this.closeModal('modalNovoRendimentoNubank');
-        formBoxEarn.reset();
-        this.renderInvestimentos();
-        this.renderResumo();
-        this.showToast('✨ Rendimento do Nubank cadastrado com sucesso!', 'success');
-      });
-    }
+    // (Os formulários de Investimentos formNovoAtivoBolsa, formNovaCaixinhaNubank, formNovoRendimentoBolsa e formNovoRendimentoNubank usam onsubmit="app.handleSave...(event)")
 
     // Formulário Banco e Cartão (8 Colunas)
     const formBanco = document.getElementById('formBancoCartao');

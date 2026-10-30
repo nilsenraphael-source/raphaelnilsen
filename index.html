@@ -1296,9 +1296,153 @@
           </div>
 
           <!-- ==================================================================
+               PAINEL DE FILTROS & ANÁLISE DE FATORES DE INVESTIMENTOS
+               ================================================================== -->
+          <div class="card" style="background:linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(9, 13, 22, 0.98) 100%); border:1px solid rgba(59, 130, 246, 0.25);">
+            <div class="card-header" style="flex-wrap:wrap; gap:0.85rem; padding-bottom:0.85rem; border-bottom:1px solid rgba(255,255,255,0.06);">
+              <div class="card-title-group">
+                <div class="card-icon" style="background:rgba(59, 130, 246, 0.15); color:#60a5fa;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                </div>
+                <div>
+                  <h3 class="card-title" style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                    <span>Filtros & Análise de Fatores</span>
+                    <span id="invFilterStatusBadge" style="font-size:0.73rem; font-weight:700; padding:0.18rem 0.65rem; border-radius:999px; background:rgba(59, 130, 246, 0.18); color:#93c5fd; border:1px solid rgba(59, 130, 246, 0.35);">Exibindo Tudo (257 lançamentos)</span>
+                  </h3>
+                  <span class="card-subtitle">Combine filtros por ativo, classe, operação e período para analisar o desempenho e evolução da carteira</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+                <button type="button" class="btn-header" onclick="app.resetInvestFilters()" style="background:rgba(239, 68, 68, 0.12); color:#fca5a5; border-color:rgba(239, 68, 68, 0.28); font-size:0.8rem;">
+                  🔄 Limpar Filtros
+                </button>
+              </div>
+            </div>
+
+            <!-- Atalhos Rápidos por Ativo (Pílulas Clicáveis) -->
+            <div style="margin-top:0.9rem; display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
+              <span style="font-size:0.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.04em; margin-right:0.25rem;">Atalho Rápido:</span>
+              <div id="invQuickTickerPills" style="display:flex; gap:0.4rem; flex-wrap:wrap;"></div>
+            </div>
+
+            <!-- Grid de Controles de Filtro -->
+            <div style="margin-top:0.95rem; display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr)); gap:0.75rem;">
+              
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.74rem; color:#94a3b8; margin-bottom:0.25rem;">🎯 Ativo / Ticker</label>
+                <select id="invFilterAsset" class="form-select" onchange="app.applyInvestFilters()">
+                  <option value="ALL">Todos os Ativos & Nubank</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.74rem; color:#94a3b8; margin-bottom:0.25rem;">🏷️ Tipo / Classe de Ativo</label>
+                <select id="invFilterAssetType" class="form-select" onchange="app.applyInvestFilters()">
+                  <option value="ALL">Todas as Classes</option>
+                  <option value="FII">Somente FIIs / Fiagro</option>
+                  <option value="ACAO">Somente Ações (B3)</option>
+                  <option value="BOLSA_ALL">Toda a Bolsa (FIIs + Ações)</option>
+                  <option value="NUBANK">Todo o Nubank (Caixinhas + Separado)</option>
+                  <option value="NUBANK_CAIXINHA">📦 Nubank: Só Caixinhas</option>
+                  <option value="NUBANK_SEPARADO">💵 Nubank: Só Dinheiro Separado</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.74rem; color:#94a3b8; margin-bottom:0.25rem;">⚡ Natureza da Operação</label>
+                <select id="invFilterOperation" class="form-select" onchange="app.applyInvestFilters()">
+                  <option value="ALL">Tudo (Compras + Rendimentos)</option>
+                  <option value="APORTE">Somente Compras / Aportes</option>
+                  <option value="RENDIMENTO">Somente Proventos / Rendimentos</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.74rem; color:#94a3b8; margin-bottom:0.25rem;">📅 Ano</label>
+                <select id="invFilterYear" class="form-select" onchange="app.applyInvestFilters()">
+                  <option value="ALL">Todos os Anos (2023–2026)</option>
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.74rem; color:#94a3b8; margin-bottom:0.25rem;">🗓️ Mês</label>
+                <select id="invFilterMonth" class="form-select" onchange="app.applyInvestFilters()">
+                  <option value="ALL">Todos os Meses</option>
+                  <option value="01">01 - Janeiro</option>
+                  <option value="02">02 - Fevereiro</option>
+                  <option value="03">03 - Março</option>
+                  <option value="04">04 - Abril</option>
+                  <option value="05">05 - Maio</option>
+                  <option value="06">06 - Junho</option>
+                  <option value="07">07 - Julho</option>
+                  <option value="08">08 - Agosto</option>
+                  <option value="09">09 - Setembro</option>
+                  <option value="10">10 - Outubro</option>
+                  <option value="11">11 - Novembro</option>
+                  <option value="12">12 - Dezembro</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.74rem; color:#94a3b8; margin-bottom:0.25rem;">📆 Data Inicial (De)</label>
+                <input type="date" id="invFilterDateFrom" class="form-input" onchange="app.applyInvestFilters()">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.74rem; color:#94a3b8; margin-bottom:0.25rem;">📆 Data Final (Até)</label>
+                <input type="date" id="invFilterDateTo" class="form-input" onchange="app.applyInvestFilters()">
+              </div>
+
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.74rem; color:#94a3b8; margin-bottom:0.25rem;">↕️ Ordenar Tabelas Por</label>
+                <select id="invFilterSort" class="form-select" onchange="app.applyInvestFilters()">
+                  <option value="date_desc">Data (Mais recente → Mais antiga)</option>
+                  <option value="date_asc">Data (Mais antiga → Mais recente)</option>
+                  <option value="val_desc">Valor (Maior → Menor)</option>
+                  <option value="val_asc">Valor (Menor → Maior)</option>
+                </select>
+              </div>
+
+            </div>
+
+            <!-- Faixa de Fatores Analíticos do Recorte Atual -->
+            <div style="margin-top:1.1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.06); display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:0.85rem;">
+              
+              <div style="background:rgba(30, 41, 59, 0.55); border:1px solid rgba(148, 163, 184, 0.14); border-radius:10px; padding:0.75rem 1rem;">
+                <div style="font-size:0.72rem; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">📦 Volume & Ticket Médio (Aportes)</div>
+                <div id="invFactorTicketMain" style="font-size:1.1rem; font-weight:800; color:#60a5fa; margin-top:0.2rem;">0 cotas</div>
+                <div id="invFactorTicketSub" style="font-size:0.75rem; color:#cbd5e1; margin-top:0.15rem;">Ticket médio: R$ 0,00 / aporte</div>
+              </div>
+
+              <div style="background:rgba(30, 41, 59, 0.55); border:1px solid rgba(148, 163, 184, 0.14); border-radius:10px; padding:0.75rem 1rem;">
+                <div style="font-size:0.72rem; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">💸 Média de Renda Passiva</div>
+                <div id="invFactorAvgEarnMain" style="font-size:1.1rem; font-weight:800; color:#4ade80; margin-top:0.2rem;">R$ 0,00 / mês</div>
+                <div id="invFactorAvgEarnSub" style="font-size:0.75rem; color:#cbd5e1; margin-top:0.15rem;">Média por pagamento: R$ 0,00</div>
+              </div>
+
+              <div style="background:rgba(30, 41, 59, 0.55); border:1px solid rgba(148, 163, 184, 0.14); border-radius:10px; padding:0.75rem 1rem;">
+                <div style="font-size:0.72rem; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">🏆 Destaque de Yield (YoC)</div>
+                <div id="invFactorBestYieldMain" style="font-size:1.1rem; font-weight:800; color:#fbbf24; margin-top:0.2rem;">-</div>
+                <div id="invFactorBestYieldSub" style="font-size:0.75rem; color:#cbd5e1; margin-top:0.15rem;">Maior retorno sobre capital investido</div>
+              </div>
+
+              <div style="background:rgba(30, 41, 59, 0.55); border:1px solid rgba(148, 163, 184, 0.14); border-radius:10px; padding:0.75rem 1rem;">
+                <div style="font-size:0.72rem; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">⚖️ Cobertura por Renda Passiva</div>
+                <div id="invFactorCoverageMain" style="font-size:1.1rem; font-weight:800; color:#c084fc; margin-top:0.2rem;">0.00%</div>
+                <div id="invFactorCoverageSub" style="font-size:0.75rem; color:#cbd5e1; margin-top:0.15rem;">Proporção Rendimentos ÷ Aportes</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ==================================================================
                SEÇÃO BOLSA DE VALORES (AÇÕES / FIIS)
                ================================================================== -->
-          <div class="card">
+          <div class="card" id="cardInvestBolsa">
             <div class="card-header" style="flex-wrap:wrap; gap:1rem;">
               <div class="card-title-group">
                 <div class="card-icon" style="background:#eff6ff; color:#2563eb;">
@@ -1306,14 +1450,14 @@
                 </div>
                 <div>
                   <h3 class="card-title">Bolsa de Valores (Ações / FIIs)</h3>
-                  <span class="card-subtitle">Posições em carteira e histórico de dividendos/proventos</span>
+                  <span class="card-subtitle">Raio-X consolidado por ticker, histórico de compras e dividendos/proventos</span>
                 </div>
               </div>
               <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                <button class="btn-header" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);" onclick="app.openModal('modalNovoRendimentoBolsa')">
+                <button type="button" class="btn-header" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);" onclick="app.openModalNovoRendimentoBolsa()">
                   💰 + Inserir Rendimento / Provento
                 </button>
-                <button class="btn-header primary" onclick="app.openModal('modalNovoAtivoBolsa')">
+                <button type="button" class="btn-header primary" onclick="app.openModalNovoAtivoBolsa()">
                   + Nova Compra de Ativo
                 </button>
               </div>
@@ -1321,16 +1465,41 @@
 
             <!-- SUB-ABAS BOLSA -->
             <div class="invest-subtabs">
-              <button class="invest-subtab-btn active" id="btnTabStocksPositions" onclick="app.switchInvestStockTab('positions')">
-                📊 Ativos em Carteira
+              <button class="invest-subtab-btn active" id="btnTabStocksConsolidated" onclick="app.switchInvestStockTab('consolidated')">
+                📌 Visão Consolidada por Ativo (<span id="countStockConsolidatedBadge">0</span>)
+              </button>
+              <button class="invest-subtab-btn" id="btnTabStocksPositions" onclick="app.switchInvestStockTab('positions')">
+                📊 Histórico de Compras (<span id="countStockPurchasesBadge">0</span>)
               </button>
               <button class="invest-subtab-btn" id="btnTabStocksEarnings" onclick="app.switchInvestStockTab('earnings')">
                 💰 Proventos / Dividendos Recebidos (<span id="countStockEarningsBadge">0</span>)
               </button>
             </div>
 
-            <!-- TABELA 1: ATIVOS EM CARTEIRA -->
-            <div id="panelStocksPositions" class="table-responsive">
+            <!-- TABELA 0: VISÃO CONSOLIDADA POR ATIVO (RAIO-X) -->
+            <div id="panelStocksConsolidated" class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ativo / Ticker</th>
+                    <th>Classe</th>
+                    <th>Compras</th>
+                    <th>Total de Cotas</th>
+                    <th>Preço Médio</th>
+                    <th>Total Investido (% Carteira)</th>
+                    <th>Proventos Recebidos</th>
+                    <th>Yield on Cost (YoC)</th>
+                    <th>Patrimônio Acumulado</th>
+                    <th style="width: 95px;">Análise</th>
+                  </tr>
+                </thead>
+                <tbody id="stocksConsolidatedTableBody"></tbody>
+                <tfoot id="stocksConsolidatedTableFoot"></tfoot>
+              </table>
+            </div>
+
+            <!-- TABELA 1: ATIVOS EM CARTEIRA (HISTÓRICO DE COMPRAS) -->
+            <div id="panelStocksPositions" class="table-responsive" style="display:none;">
               <table class="data-table">
                 <thead>
                   <tr>
@@ -1344,6 +1513,7 @@
                   </tr>
                 </thead>
                 <tbody id="stocksTableBody"></tbody>
+                <tfoot id="stocksTableFoot"></tfoot>
               </table>
             </div>
 
@@ -1361,57 +1531,113 @@
                   </tr>
                 </thead>
                 <tbody id="stockEarningsTableBody"></tbody>
+                <tfoot id="stockEarningsTableFoot"></tfoot>
               </table>
             </div>
           </div>
 
           <!-- ==================================================================
-               SEÇÃO NUBANK CAIXINHAS (RENDA FIXA & LIQUIDEZ)
+               SEÇÃO NUBANK (CAIXINHAS & DINHEIRO SEPARADO)
                ================================================================== -->
-          <div class="card">
+          <div class="card" id="cardInvestNubank">
             <div class="card-header" style="flex-wrap:wrap; gap:1rem;">
               <div class="card-title-group">
                 <div class="card-icon" style="background:#f5f3ff; color:#8b5cf6;">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
                 </div>
                 <div>
-                  <h3 class="card-title">Nubank (Renda Fixa & Caixinhas)</h3>
-                  <span class="card-subtitle">Reservas de emergência, aplicações e histórico de rendimentos</span>
+                  <h3 class="card-title">Nubank (Caixinhas & Dinheiro Separado)</h3>
+                  <span class="card-subtitle">Divisão entre Caixinhas (RDB/Objetivos), Dinheiro Separado na conta e histórico de rendimentos</span>
                 </div>
               </div>
               <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                <button class="btn-header" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);" onclick="app.openModal('modalNovoRendimentoNubank')">
-                  💰 + Inserir Rendimento Caixinha
+                <button type="button" class="btn-header" style="background:rgba(16, 185, 129, 0.15); color:#34d399; border-color:rgba(16, 185, 129, 0.3);" onclick="app.openModalNovoRendimentoNubank()">
+                  💰 + Inserir Rendimento
                 </button>
-                <button class="btn-header primary" onclick="app.openModal('modalNovaCaixinhaNubank')">
-                  + Nova Caixinha
+                <button type="button" class="btn-header" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8; border-color:rgba(56, 189, 248, 0.35); font-weight:700;" onclick="app.openModalNovaCaixinhaNubank('Dinheiro Separado')">
+                  💵 + Dinheiro Separado
+                </button>
+                <button type="button" class="btn-header primary" style="background:linear-gradient(135deg, #8b5cf6, #6d28d9); border:none;" onclick="app.openModalNovaCaixinhaNubank('Caixinha')">
+                  📦 + Nova Caixinha
                 </button>
               </div>
             </div>
 
-            <!-- SUB-ABAS NUBANK -->
-            <div class="invest-subtabs">
+            <!-- RESUMO DIVIDIDO: CAIXINHAS vs DINHEIRO SEPARADO vs RENDIMENTOS -->
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:0.9rem; margin-bottom:1.15rem;">
+              
+              <!-- Bloco 1: Caixinhas Nubank -->
+              <div style="background:linear-gradient(145deg, rgba(139, 92, 246, 0.14), rgba(15, 23, 42, 0.8)); border:1px solid rgba(168, 85, 247, 0.32); border-radius:12px; padding:0.95rem 1.15rem; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+                  <span style="font-size:0.76rem; font-weight:700; text-transform:uppercase; color:#e9d5ff; letter-spacing:0.04em;">📦 Caixinhas Nubank</span>
+                  <span id="nubankSplitCaixinhasCount" style="font-size:0.71rem; color:#c084fc; background:rgba(168,85,247,0.2); padding:0.12rem 0.5rem; border-radius:999px; font-weight:700;">0 lançamentos</span>
+                </div>
+                <div id="nubankSplitCaixinhasTotal" style="font-size:1.5rem; font-weight:800; color:#c084fc; margin:0.35rem 0;">R$ 0,00</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#cbd5e1;">
+                  <span id="nubankSplitCaixinhasShare">0% do saldo Nubank</span>
+                  <button type="button" onclick="app.openModalNovaCaixinhaNubank('Caixinha')" style="background:none; border:none; color:#c084fc; font-weight:700; cursor:pointer; font-size:0.75rem; text-decoration:underline;">+ Lançar</button>
+                </div>
+              </div>
+
+              <!-- Bloco 2: Dinheiro Separado -->
+              <div style="background:linear-gradient(145deg, rgba(14, 165, 233, 0.14), rgba(15, 23, 42, 0.8)); border:1px solid rgba(56, 189, 248, 0.32); border-radius:12px; padding:0.95rem 1.15rem; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+                  <span style="font-size:0.76rem; font-weight:700; text-transform:uppercase; color:#bae6fd; letter-spacing:0.04em;">💵 Dinheiro Separado</span>
+                  <span id="nubankSplitSeparadoCount" style="font-size:0.71rem; color:#38bdf8; background:rgba(56,189,248,0.2); padding:0.12rem 0.5rem; border-radius:999px; font-weight:700;">0 lançamentos</span>
+                </div>
+                <div id="nubankSplitSeparadoTotal" style="font-size:1.5rem; font-weight:800; color:#38bdf8; margin:0.35rem 0;">R$ 0,00</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#cbd5e1;">
+                  <span id="nubankSplitSeparadoShare">0% do saldo Nubank</span>
+                  <button type="button" onclick="app.openModalNovaCaixinhaNubank('Dinheiro Separado')" style="background:none; border:none; color:#38bdf8; font-weight:700; cursor:pointer; font-size:0.75rem; text-decoration:underline;">+ Lançar</button>
+                </div>
+              </div>
+
+              <!-- Bloco 3: Rendimentos Nubank -->
+              <div style="background:linear-gradient(145deg, rgba(16, 185, 129, 0.14), rgba(15, 23, 42, 0.8)); border:1px solid rgba(52, 211, 153, 0.32); border-radius:12px; padding:0.95rem 1.15rem; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+                  <span style="font-size:0.76rem; font-weight:700; text-transform:uppercase; color:#a7f3d0; letter-spacing:0.04em;">✨ Rendimentos Nubank</span>
+                  <span id="nubankSplitEarningsCount" style="font-size:0.71rem; color:#34d399; background:rgba(16,185,129,0.2); padding:0.12rem 0.5rem; border-radius:999px; font-weight:700;">0 lançamentos</span>
+                </div>
+                <div id="nubankSplitEarningsTotal" style="font-size:1.5rem; font-weight:800; color:#4ade80; margin:0.35rem 0;">+ R$ 0,00</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#cbd5e1;">
+                  <span id="nubankSplitTotalPatrimonio">Patrimônio Nu: R$ 0,00</span>
+                  <button type="button" onclick="app.openModalNovoRendimentoNubank()" style="background:none; border:none; color:#34d399; font-weight:700; cursor:pointer; font-size:0.75rem; text-decoration:underline;">+ Lançar</button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- SUB-ABAS NUBANK DIVIDIDAS -->
+            <div class="invest-subtabs" style="flex-wrap:wrap;">
               <button class="invest-subtab-btn active" id="btnTabNubankBoxes" onclick="app.switchInvestNubankTab('boxes')">
-                💜 Caixinhas / Aplicações
+                📋 Todos os Guardados (<span id="countNubankAllBadge">0</span>)
+              </button>
+              <button class="invest-subtab-btn" id="btnTabNubankOnlyCaixinhas" onclick="app.switchInvestNubankTab('caixinhas')">
+                📦 Só Caixinhas (<span id="countNubankBoxesBadge">0</span>)
+              </button>
+              <button class="invest-subtab-btn" id="btnTabNubankOnlySeparado" onclick="app.switchInvestNubankTab('separado')">
+                💵 Dinheiro Separado (<span id="countNubankSeparatedBadge">0</span>)
               </button>
               <button class="invest-subtab-btn" id="btnTabNubankEarnings" onclick="app.switchInvestNubankTab('earnings')">
                 ✨ Rendimentos Acumulados (<span id="countNubankEarningsBadge">0</span>)
               </button>
             </div>
 
-            <!-- TABELA 1: CAIXINHAS NUBANK -->
+            <!-- TABELA 1: CAIXINHAS & DINHEIRO SEPARADO NUBANK -->
             <div id="panelNubankBoxes" class="table-responsive">
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>Nome da Caixinha / Aplicação</th>
+                    <th>Modalidade</th>
+                    <th>Nome da Caixinha / Finalidade</th>
                     <th>Data</th>
                     <th>Valor Guardado</th>
                     <th>Status</th>
-                    <th style="width: 80px;">Ações</th>
+                    <th style="width: 140px;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="nubankBoxesTableBody"></tbody>
+                <tfoot id="nubankBoxesTableFoot"></tfoot>
               </table>
             </div>
 
@@ -1420,14 +1646,16 @@
               <table class="data-table">
                 <thead>
                   <tr>
+                    <th>Modalidade / Origem</th>
                     <th>Caixinha / Aplicação</th>
                     <th>Data</th>
                     <th>Valor Rendido</th>
                     <th>Observações</th>
-                    <th style="width: 80px;">Ações</th>
+                    <th style="width: 100px;">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="nubankEarningsTableBody"></tbody>
+                <tfoot id="nubankEarningsTableFoot"></tfoot>
               </table>
             </div>
           </div>
@@ -2533,76 +2761,116 @@
   <div id="modalNovoAtivoBolsa" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">Novo Ativo na Bolsa de Valores</h3>
-        <button class="btn-close-modal" onclick="app.closeModal('modalNovoAtivoBolsa')">✕</button>
+        <h3 class="modal-title" id="modalNovoAtivoBolsaTitle">📈 Nova Compra de Ativo na Bolsa</h3>
+        <button type="button" class="btn-close-modal" onclick="app.closeModal('modalNovoAtivoBolsa')">✕</button>
       </div>
-      <form id="formNovoAtivoBolsa">
+      <form id="formNovoAtivoBolsa" onsubmit="app.handleSaveAtivoBolsa(event)">
+        <input type="hidden" id="stk_edit_id">
         <div class="modal-body">
+          <div class="form-group" id="stkConvertTypeGroup" style="display:none; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); padding:0.65rem; border-radius:8px; margin-bottom:0.85rem;">
+            <label class="form-label" style="color:#93c5fd; font-size:0.78rem;">🔄 Tipo de Lançamento (Corrigir se lançou na aba errada)</label>
+            <select id="stk_record_dest" class="form-input">
+              <option value="STOCK">📈 Manter como Compra de Ativo (Bolsa)</option>
+              <option value="EARNING">💰 Mover para Provento / Rendimento Recebido (Bolsa)</option>
+            </select>
+          </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Código / Ticker</label>
-              <input type="text" id="stk_ticker" class="form-input" required placeholder="Ex: PETR4, MXRF11, ITUB4">
+              <label class="form-label">Código / Ticker *</label>
+              <input type="text" id="stk_ticker" list="stockTickersDatalist" class="form-input" required placeholder="Ex: KISU11, BBAS3, RURA11" style="text-transform:uppercase; font-weight:700;">
             </div>
             <div class="form-group">
-              <label class="form-label">Tipo de Ativo</label>
+              <label class="form-label">Tipo de Ativo *</label>
               <select id="stk_type" class="form-input">
+                <option value="FII">Fundo Imobiliário (FII / Fiagro)</option>
                 <option value="Ação">Ação</option>
-                <option value="FII">Fundo Imobiliário (FII)</option>
                 <option value="ETF">ETF</option>
                 <option value="BDR">BDR</option>
               </select>
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Data da Aplicação</label>
+            <label class="form-label">Data da Compra *</label>
             <input type="date" id="stk_date" class="form-input" required>
           </div>
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Quantidade de Cotas</label>
-              <input type="number" id="stk_shares" class="form-input" required placeholder="Ex: 100">
+              <label class="form-label">Quantidade de Cotas *</label>
+              <input type="text" inputmode="numeric" id="stk_shares" class="form-input" required placeholder="Ex: 10">
             </div>
             <div class="form-group">
-              <label class="form-label">Valor por Cota (R$)</label>
-              <input type="number" step="0.01" id="stk_price" class="form-input" required placeholder="0,00">
+              <label class="form-label">Valor por Cota (R$) *</label>
+              <input type="text" inputmode="decimal" id="stk_price" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalNovoAtivoBolsa')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Ativo</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Alterações</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal: Caixinha Nubank -->
+  <!-- Modal: Caixinha / Dinheiro Separado Nubank -->
   <div id="modalNovaCaixinhaNubank" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">Nova Caixinha / Renda Fixa Nubank</h3>
-        <button class="btn-close-modal" onclick="app.closeModal('modalNovaCaixinhaNubank')">✕</button>
+        <h3 class="modal-title" id="modalNovaCaixinhaNubankTitle">💜 Novo Lançamento Nubank</h3>
+        <button type="button" class="btn-close-modal" onclick="app.closeModal('modalNovaCaixinhaNubank')">✕</button>
       </div>
-      <form id="formNovaCaixinhaNubank">
+      <form id="formNovaCaixinhaNubank" onsubmit="app.handleSaveCaixinhaNubank(event)">
+        <input type="hidden" id="box_edit_id">
         <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">Nome da Caixinha / Finalidade</label>
-            <input type="text" id="box_name" class="form-input" required placeholder="Ex: Reserva de Emergência, Férias, IPVA">
+          <div class="form-group" id="boxConvertTypeGroup" style="display:none; background:rgba(168,85,247,0.1); border:1px solid rgba(168,85,247,0.3); padding:0.65rem; border-radius:8px; margin-bottom:0.85rem;">
+            <label class="form-label" style="color:#d8b4fe; font-size:0.78rem;">🔄 Tipo de Lançamento (Corrigir se lançou na aba errada)</label>
+            <select id="box_record_dest" class="form-input">
+              <option value="BOX">💰 Manter como Valor Guardado (Caixinha / Dinheiro Separado)</option>
+              <option value="EARNING">✨ Mover para Rendimento do Nubank</option>
+            </select>
           </div>
+          
+          <div class="form-group">
+            <label class="form-label">Onde o dinheiro está guardado? *</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.65rem; margin-bottom:0.4rem;">
+              <button type="button" id="btnPickCatCaixinha" onclick="app.selectNubankModalCategory('Caixinha')" style="padding:0.7rem; border-radius:10px; border:2px solid #8b5cf6; background:rgba(139,92,246,0.18); color:#fff; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.45rem;">
+                <span>📦</span> <span>Caixinha Nubank</span>
+              </button>
+              <button type="button" id="btnPickCatSeparado" onclick="app.selectNubankModalCategory('Dinheiro Separado')" style="padding:0.7rem; border-radius:10px; border:1px solid rgba(148,163,184,0.25); background:rgba(15,23,42,0.6); color:#94a3b8; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.45rem;">
+                <span>💵</span> <span>Dinheiro Separado</span>
+              </button>
+            </div>
+            <input type="hidden" id="box_category" value="Caixinha">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" id="lblBoxNameField">Nome da Caixinha / Finalidade *</label>
+            <input type="text" id="box_name" list="nubankBoxesDatalist" class="form-input" required placeholder="Ex: Reserva de Emergência, Nubank Investimento, Dinheiro Separado">
+            <div style="display:flex; gap:0.35rem; flex-wrap:wrap; margin-top:0.4rem;">
+              <button type="button" class="btn-chip" onclick="document.getElementById('box_name').value='Nubank Investimento'">Nubank Investimento</button>
+              <button type="button" class="btn-chip" onclick="document.getElementById('box_name').value='Reserva de Emergência'">Reserva de Emergência</button>
+              <button type="button" class="btn-chip" onclick="document.getElementById('box_name').value='Dinheiro Separado'">Dinheiro Separado</button>
+            </div>
+          </div>
+
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Data</label>
+              <label class="form-label">Data do Lançamento *</label>
               <input type="date" id="box_date" class="form-input" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Valor Aplicado (R$)</label>
-              <input type="number" step="0.01" id="box_val" class="form-input" required placeholder="0,00">
+              <label class="form-label">Valor Guardado (R$) *</label>
+              <input type="text" inputmode="decimal" id="box_val" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Observações (Opcional)</label>
+            <input type="text" id="box_notes" class="form-input" placeholder="Ex: Guardado para reserva ou objetivo específico">
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalNovaCaixinhaNubank')">Cancelar</button>
-          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Caixinha</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">Salvar Lançamento</button>
         </div>
       </form>
     </div>
@@ -2612,22 +2880,30 @@
   <div id="modalNovoRendimentoBolsa" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">💰 Inserir Rendimento / Provento da Bolsa</h3>
-        <button class="btn-close-modal" onclick="app.closeModal('modalNovoRendimentoBolsa')">✕</button>
+        <h3 class="modal-title" id="modalNovoRendimentoBolsaTitle">💰 Inserir Rendimento / Provento da Bolsa</h3>
+        <button type="button" class="btn-close-modal" onclick="app.closeModal('modalNovoRendimentoBolsa')">✕</button>
       </div>
-      <form id="formNovoRendimentoBolsa">
+      <form id="formNovoRendimentoBolsa" onsubmit="app.handleSaveRendimentoBolsa(event)">
+        <input type="hidden" id="stk_earn_edit_id">
         <div class="modal-body">
+          <div class="form-group" id="stkEarnConvertTypeGroup" style="display:none; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:0.65rem; border-radius:8px; margin-bottom:0.85rem;">
+            <label class="form-label" style="color:#6ee7b7; font-size:0.78rem;">🔄 Tipo de Lançamento (Corrigir se lançou na aba errada)</label>
+            <select id="stk_earn_record_dest" class="form-input">
+              <option value="EARNING">💰 Manter como Provento / Rendimento (Bolsa)</option>
+              <option value="STOCK">📈 Mover para Compra de Ativo (1 cota)</option>
+            </select>
+          </div>
           <div class="form-grid-2">
             <div class="form-group">
               <label class="form-label">Ativo / Ticker *</label>
-              <input type="text" id="stk_earn_ticker" list="stockTickersDatalist" class="form-input" required placeholder="Ex: PETR4, MXRF11, ITUB4">
+              <input type="text" id="stk_earn_ticker" list="stockTickersDatalist" class="form-input" required placeholder="Ex: KISU11, BBAS3, RURA11" style="text-transform:uppercase; font-weight:700;">
               <datalist id="stockTickersDatalist"></datalist>
             </div>
             <div class="form-group">
               <label class="form-label">Tipo de Provento *</label>
               <select id="stk_earn_type" class="form-input">
-                <option value="Dividendo">Dividendo</option>
                 <option value="Rendimento FII">Rendimento FII</option>
+                <option value="Dividendo">Dividendo</option>
                 <option value="JCP">JCP (Juros s/ Capital Próprio)</option>
                 <option value="Bonificação">Bonificação em Dinheiro</option>
                 <option value="Amortização">Amortização</option>
@@ -2642,7 +2918,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Valor Recebido (R$) *</label>
-              <input type="number" step="0.01" id="stk_earn_val" class="form-input" required placeholder="0,00">
+              <input type="text" inputmode="decimal" id="stk_earn_val" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
           </div>
           <div class="form-group">
@@ -2658,19 +2934,37 @@
     </div>
   </div>
 
-  <!-- Modal: Novo Rendimento Caixinha Nubank -->
+  <!-- Modal: Novo Rendimento Caixinha / Dinheiro Separado Nubank -->
   <div id="modalNovoRendimentoNubank" class="modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 class="modal-title">✨ Inserir Rendimento da Caixinha Nubank</h3>
-        <button class="btn-close-modal" onclick="app.closeModal('modalNovoRendimentoNubank')">✕</button>
+        <h3 class="modal-title" id="modalNovoRendimentoNubankTitle">✨ Inserir Rendimento do Nubank</h3>
+        <button type="button" class="btn-close-modal" onclick="app.closeModal('modalNovoRendimentoNubank')">✕</button>
       </div>
-      <form id="formNovoRendimentoNubank">
+      <form id="formNovoRendimentoNubank" onsubmit="app.handleSaveRendimentoNubank(event)">
+        <input type="hidden" id="box_earn_edit_id">
         <div class="modal-body">
-          <div class="form-group">
-            <label class="form-label">Caixinha / Aplicação Nubank *</label>
-            <input type="text" id="box_earn_name" list="nubankBoxesDatalist" class="form-input" required placeholder="Ex: Reserva de Emergência, IPVA, Férias">
-            <datalist id="nubankBoxesDatalist"></datalist>
+          <div class="form-group" id="boxEarnConvertTypeGroup" style="display:none; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); padding:0.65rem; border-radius:8px; margin-bottom:0.85rem;">
+            <label class="form-label" style="color:#6ee7b7; font-size:0.78rem;">🔄 Corrigir Tipo de Lançamento (se lançou como Rendimento por engano)</label>
+            <select id="box_earn_record_dest" class="form-input">
+              <option value="EARNING">✨ Manter como Rendimento do Nubank</option>
+              <option value="BOX_CAIXINHA">📦 Mover para Caixinha Nubank (Valor Guardado)</option>
+              <option value="BOX_SEPARADO">💵 Mover para Dinheiro Separado (Valor Guardado)</option>
+            </select>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Origem do Rendimento *</label>
+              <select id="box_earn_category" class="form-input">
+                <option value="Caixinha">📦 Caixinha Nubank</option>
+                <option value="Dinheiro Separado">💵 Dinheiro Separado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nome da Caixinha / Aplicação *</label>
+              <input type="text" id="box_earn_name" list="nubankBoxesDatalist" class="form-input" required placeholder="Ex: Nubank Investimento, Reserva, Dinheiro Separado">
+              <datalist id="nubankBoxesDatalist"></datalist>
+            </div>
           </div>
           <div class="form-grid-2">
             <div class="form-group">
@@ -2679,12 +2973,12 @@
             </div>
             <div class="form-group">
               <label class="form-label">Valor Rendido (R$) *</label>
-              <input type="number" step="0.01" id="box_earn_val" class="form-input" required placeholder="0,00">
+              <input type="text" inputmode="decimal" id="box_earn_val" class="form-input" required placeholder="0,00" onblur="if(this.value) this.value = formatMoneyDisplay(parseMoney(this.value))">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Observações</label>
-            <input type="text" id="box_earn_notes" class="form-input" placeholder="Ex: Rendimento apurado no fechamento do mês">
+            <input type="text" id="box_earn_notes" class="form-input" placeholder="Ex: Nubank Rendimento apurado no mês">
           </div>
         </div>
         <div class="modal-footer">
@@ -3118,8 +3412,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261027_v12"></script>
-  <script src="js/supabase.js?v=20261027_v12"></script>
-  <script src="js/app.js?v=20261027_v12"></script>
+  <script src="js/data.js?v=20261030_v16"></script>
+  <script src="js/supabase.js?v=20261030_v16"></script>
+  <script src="js/app.js?v=20261030_v16"></script>
 </body>
 </html>

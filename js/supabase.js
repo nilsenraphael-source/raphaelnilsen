@@ -75,6 +75,7 @@ class SupabaseService {
 
   // Sincronização Individual para cada Tabela Relacional
   async syncToRelationalTables(data) {
+    if (!this.client) this.init();
     if (!this.client || !this.isConfigured()) return;
     const email = (data.settings?.userEmail || 'raphael_nilsen@hotmail.com').trim().toLowerCase();
     const nowIso = new Date().toISOString();
@@ -245,20 +246,6 @@ class SupabaseService {
         await this.client.from('investimentos_caixinhas').upsert(boxRows);
       }
 
-      // 7.1 Rendimentos Caixinhas Nubank
-      if (data.investments && Array.isArray(data.investments.nubankEarnings) && data.investments.nubankEarnings.length > 0) {
-        const boxEarnRows = data.investments.nubankEarnings.map(e => ({
-          id: String(e.id),
-          user_email: email,
-          caixinha: e.boxName || '',
-          data: e.date || '',
-          valor: Number(e.amount) || 0,
-          notas: e.notes || '',
-          updated_at: nowIso
-        }));
-        await this.client.from('investimentos_rendimentos_caixinhas').upsert(boxEarnRows);
-      }
-
       // 8. Troco Jotur
       if (data.jotur && Array.isArray(data.jotur.history) && data.jotur.history.length > 0) {
         const joturRows = data.jotur.history.map(j => ({
@@ -341,6 +328,7 @@ class SupabaseService {
 
   // Deletar linha específica de qualquer tabela
   async deleteRowFromTable(tableName, id) {
+    if (!this.client) this.init();
     if (!this.client || !this.isConfigured()) return;
     try {
       await this.client.from(tableName).delete().eq('id', String(id));
@@ -392,12 +380,48 @@ class SupabaseService {
       }
 
       if (data && data.data_json && data.data_json.accounts && Array.isArray(data.data_json.accounts)) {
+        const localBefore = store.data || {};
+        const hasPendingLocalMutation = store._hasPendingCloudSync || (store._lastLocalMutationAt && (Date.now() - store._lastLocalMutationAt < 10000));
+
+        const cloudInv = data.data_json.investments || {};
+        const localInv = localBefore.investments || {};
+
         store.data = { ...INITIAL_DATABASE, ...data.data_json };
         if (!store.data.settings) store.data.settings = {};
         store.data.settings = { ...INITIAL_DATABASE.settings, ...store.data.settings };
         if (!store.data.settings.userEmail) store.data.settings.userEmail = 'raphael_nilsen@hotmail.com';
         if (!store.data.settings.userPasswordHash) store.data.settings.userPasswordHash = '12345';
         store.data.settings.lastSync = data.updated_at;
+
+        // Usa a nuvem como fonte da verdade para refletir edições e exclusões em todos os dispositivos,
+        // preservando alterações locais apenas se o usuário acabou de editar antes da sincronização concluir.
+        const pickInvList = (cloudArr, localArr, fallbackArr) => {
+          if (hasPendingLocalMutation && Array.isArray(localArr)) return localArr;
+          if (Array.isArray(cloudArr) && cloudArr.length > 0) return cloudArr;
+          if (Array.isArray(localArr) && localArr.length > 0) return localArr;
+          return JSON.parse(JSON.stringify(fallbackArr || []));
+        };
+
+        store.data.investments = {
+          stocks: pickInvList(cloudInv.stocks, localInv.stocks, INITIAL_DATABASE.investments.stocks),
+          stockEarnings: pickInvList(cloudInv.stockEarnings, localInv.stockEarnings, INITIAL_DATABASE.investments.stockEarnings),
+          nubankBoxes: pickInvList(cloudInv.nubankBoxes, localInv.nubankBoxes, INITIAL_DATABASE.investments.nubankBoxes),
+          nubankEarnings: pickInvList(cloudInv.nubankEarnings, localInv.nubankEarnings, INITIAL_DATABASE.investments.nubankEarnings)
+        };
+
+        // Garante vínculo correto entre years e months ativo após restaurar da nuvem
+        const currYear = new Date().getFullYear();
+        if (!store.data.years || typeof store.data.years !== 'object') {
+          store.data.years = {};
+        }
+        if (!store.data.years[currYear]) {
+          store.data.years[currYear] = store.data.months || createEmptyMonths();
+        }
+        store.activeYear = Number(store.data.activeYear) || currYear;
+        if (!store.data.years[store.activeYear]) {
+          store.data.years[store.activeYear] = createEmptyMonths();
+        }
+        store.data.months = store.data.years[store.activeYear];
 
         // IMPORTANTE: Carrega todas as compras reais da tabela compras_cartao
         try {

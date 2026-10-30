@@ -72,12 +72,274 @@ const INITIAL_DATABASE = {
     annualAccumulated: []
   },
 
-  // 7. Investimentos
+  // 7. Investimentos (257 registros - INVESTIMENTOS 2026 - Dados.pdf)
   investments: {
-    stocks: [],          // Bolsa de Valores: Ações / FIIs
-    stockEarnings: [],   // Rendimentos / Proventos da Bolsa (Dividendos / JCP / Rendimentos FII)
-    nubankBoxes: [],     // Caixinhas Nubank / Renda Fixa
-    nubankEarnings: []   // Rendimentos das Caixinhas Nubank
+    stocks: [
+      {"id":"stk_2026_001","ticker":"BTCI11","type":"FII","date":"2026-10-14","shares":33,"pricePerShare":9,"total":297},
+      {"id":"stk_2026_002","ticker":"MXRF11","type":"FII","date":"2026-09-08","shares":31,"pricePerShare":9.18,"total":284.58},
+      {"id":"stk_2026_003","ticker":"RURA11","type":"FII","date":"2026-08-11","shares":35,"pricePerShare":8.04,"total":281.4},
+      {"id":"stk_2026_004","ticker":"RURA11","type":"FII","date":"2026-07-08","shares":32,"pricePerShare":8.14,"total":260.48},
+      {"id":"stk_2026_005","ticker":"MXRF11","type":"FII","date":"2026-06-09","shares":25,"pricePerShare":9.73,"total":243.25},
+      {"id":"stk_2026_006","ticker":"BTCI11","type":"FII","date":"2026-05-27","shares":6,"pricePerShare":9.22,"total":55.32},
+      {"id":"stk_2026_007","ticker":"KISU11","type":"FII","date":"2026-05-11","shares":35,"pricePerShare":6.63,"total":232.05},
+      {"id":"stk_2026_008","ticker":"KISU11","type":"FII","date":"2026-04-15","shares":42,"pricePerShare":7.03,"total":295.26},
+      {"id":"stk_2026_009","ticker":"BTCI11","type":"FII","date":"2026-03-10","shares":34,"pricePerShare":9.28,"total":315.52},
+      {"id":"stk_2026_010","ticker":"BBAS3","type":"AÃ§Ã£o","date":"2026-01-26","shares":1,"pricePerShare":24.09,"total":24.09},
+      {"id":"stk_2026_011","ticker":"TAEE3","type":"AÃ§Ã£o","date":"2026-01-28","shares":14,"pricePerShare":14.4,"total":201.6},
+      {"id":"stk_2026_012","ticker":"TAEE3","type":"AÃ§Ã£o","date":"2026-01-28","shares":14,"pricePerShare":14.39,"total":201.46},
+      {"id":"stk_2026_013","ticker":"KISU11","type":"FII","date":"2025-12-16","shares":39,"pricePerShare":6.74,"total":262.86},
+      {"id":"stk_2026_014","ticker":"KISU11","type":"FII","date":"2025-11-24","shares":38,"pricePerShare":6.77,"total":257.26},
+      {"id":"stk_2026_015","ticker":"RURA11","type":"FII","date":"2025-10-17","shares":31,"pricePerShare":8.2,"total":254.2},
+      {"id":"stk_2026_016","ticker":"KISU11","type":"FII","date":"2025-09-30","shares":25,"pricePerShare":6.83,"total":170.75},
+      {"id":"stk_2026_017","ticker":"MXRF11","type":"FII","date":"2025-09-30","shares":8,"pricePerShare":9.78,"total":78.24},
+      {"id":"stk_2026_018","ticker":"BBAS3","type":"AÃ§Ã£o","date":"2025-08-13","shares":13,"pricePerShare":19.3,"total":250.9},
+      {"id":"stk_2026_019","ticker":"KISU11","type":"FII","date":"2025-07-14","shares":36,"pricePerShare":6.89,"total":248.04},
+      {"id":"stk_2026_020","ticker":"BBAS3","type":"AÃ§Ã£o","date":"2025-06-13","shares":14,"pricePerShare":21.61,"total":302.54},
+      {"id":"stk_2026_021","ticker":"KISU11","type":"FII","date":"2025-06-13","shares":2,"pricePerShare":6.85,"total":13.7},
+      {"id":"stk_2026_022","ticker":"RURA11","type":"FII","date":"2025-04-28","shares":43,"pricePerShare":7.88,"total":338.84},
+      {"id":"stk_2026_023","ticker":"BTCI11","type":"FII","date":"2025-04-28","shares":15,"pricePerShare":8.99,"total":134.85},
+      {"id":"stk_2026_024","ticker":"KISU11","type":"FII","date":"2025-04-28","shares":34,"pricePerShare":7.2,"total":244.8},
+      {"id":"stk_2026_025","ticker":"XPML11","type":"FII","date":"2025-02-21","shares":2,"pricePerShare":97.23,"total":194.46},
+      {"id":"stk_2026_026","ticker":"RURA11","type":"FII","date":"2025-02-21","shares":5,"pricePerShare":7.27,"total":36.35},
+      {"id":"stk_2026_027","ticker":"XPML11","type":"FII","date":"2025-01-20","shares":2,"pricePerShare":95.06,"total":190.12},
+      {"id":"stk_2026_028","ticker":"KISU11","type":"FII","date":"2025-01-20","shares":5,"pricePerShare":6.89,"total":34.45},
+      {"id":"stk_2026_029","ticker":"BBAS3","type":"AÃ§Ã£o","date":"2024-12-27","shares":40,"pricePerShare":24.01,"total":960.4},
+      {"id":"stk_2026_030","ticker":"RURA11","type":"FII","date":"2024-10-23","shares":31,"pricePerShare":8.19,"total":253.89},
+      {"id":"stk_2026_031","ticker":"BBAS3","type":"AÃ§Ã£o","date":"2024-09-13","shares":11,"pricePerShare":28.38,"total":312.18},
+      {"id":"stk_2026_032","ticker":"KISU11","type":"FII","date":"2024-09-13","shares":30,"pricePerShare":8.08,"total":242.4},
+      {"id":"stk_2026_033","ticker":"KISU11","type":"FII","date":"2024-07-12","shares":32,"pricePerShare":8.3,"total":265.6},
+      {"id":"stk_2026_034","ticker":"RURA11","type":"FII","date":"2024-07-12","shares":28,"pricePerShare":9.39,"total":262.92},
+      {"id":"stk_2026_035","ticker":"BBAS3","type":"AÃ§Ã£o","date":"2024-05-20","shares":36,"pricePerShare":27.94,"total":1005.84},
+      {"id":"stk_2026_036","ticker":"RURA11","type":"FII","date":"2024-05-15","shares":20,"pricePerShare":9.57,"total":191.4},
+      {"id":"stk_2026_037","ticker":"RURA11","type":"FII","date":"2024-05-15","shares":23,"pricePerShare":9.59,"total":220.57},
+      {"id":"stk_2026_038","ticker":"KISU11","type":"FII","date":"2024-04-23","shares":26,"pricePerShare":8.35,"total":217.1},
+      {"id":"stk_2026_039","ticker":"KISU11","type":"FII","date":"2024-03-27","shares":12,"pricePerShare":8.31,"total":99.72},
+      {"id":"stk_2026_040","ticker":"XPML11","type":"FII","date":"2024-03-27","shares":1,"pricePerShare":116.1,"total":116.1},
+      {"id":"stk_2026_041","ticker":"RURA11","type":"FII","date":"2024-02-23","shares":21,"pricePerShare":10.03,"total":210.63},
+      {"id":"stk_2026_042","ticker":"KISU11","type":"FII","date":"2024-01-15","shares":1,"pricePerShare":8.68,"total":8.68},
+      {"id":"stk_2026_043","ticker":"RURA11","type":"FII","date":"2024-01-15","shares":19,"pricePerShare":10.65,"total":202.35},
+      {"id":"stk_2026_044","ticker":"KISU11","type":"FII","date":"2023-12-29","shares":13,"pricePerShare":8.68,"total":112.84},
+      {"id":"stk_2026_045","ticker":"KISU11","type":"FII","date":"2023-11-21","shares":13,"pricePerShare":8.26,"total":107.38},
+      {"id":"stk_2026_046","ticker":"BTCI11","type":"FII","date":"2023-10-17","shares":17,"pricePerShare":9.77,"total":166.09},
+      {"id":"stk_2026_047","ticker":"KISU11","type":"FII","date":"2023-08-19","shares":12,"pricePerShare":8.65,"total":103.8},
+      {"id":"stk_2026_048","ticker":"RURA11","type":"FII","date":"2023-07-20","shares":10,"pricePerShare":10.32,"total":103.2},
+      {"id":"stk_2026_049","ticker":"XPML11","type":"FII","date":"2023-07-20","shares":2,"pricePerShare":103.64,"total":207.28},
+      {"id":"stk_2026_050","ticker":"KISU11","type":"FII","date":"2023-07-20","shares":20,"pricePerShare":8.66,"total":173.2},
+      {"id":"stk_2026_051","ticker":"BTCI11","type":"FII","date":"2023-07-20","shares":7,"pricePerShare":9.44,"total":66.08},
+      {"id":"stk_2026_052","ticker":"BTCI11","type":"FII","date":"2023-06-21","shares":6,"pricePerShare":9.15,"total":54.9},
+      {"id":"stk_2026_053","ticker":"KISU11","type":"FII","date":"2023-05-11","shares":1,"pricePerShare":7.9,"total":7.9},
+      {"id":"stk_2026_054","ticker":"BTCI11","type":"FII","date":"2023-05-11","shares":1,"pricePerShare":9.14,"total":9.14},
+      {"id":"stk_2026_055","ticker":"KISU11","type":"FII","date":"2023-05-11","shares":3,"pricePerShare":9.12,"total":27.36}
+    ],
+    stockEarnings: [
+      {"id":"stk_earn_2026_001","ticker":"XPML11","type":"Rendimento FII","date":"2026-09-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_002","ticker":"KISU11","type":"Rendimento FII","date":"2026-09-25","amount":29.12,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_003","ticker":"BBAS3","type":"Dividendo","date":"2026-09-22","amount":0.02,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_004","ticker":"MXRF11","type":"Rendimento FII","date":"2026-09-15","amount":3.3,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_005","ticker":"BTCI11","type":"Rendimento FII","date":"2026-09-15","amount":8.98,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_006","ticker":"BBAS3","type":"Dividendo","date":"2026-09-11","amount":13.24,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_007","ticker":"RURA11","type":"Rendimento FII","date":"2026-09-08","amount":31.29,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_008","ticker":"TAEE3","type":"Dividendo","date":"2026-08-26","amount":4.77,"bank":"Nubank (Nu)","notes":"Rendimento TAEE3"},
+      {"id":"stk_earn_2026_009","ticker":"XPML11","type":"Rendimento FII","date":"2026-08-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_010","ticker":"KISU11","type":"Rendimento FII","date":"2026-08-25","amount":29.12,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_011","ticker":"MXRF11","type":"Rendimento FII","date":"2026-08-14","amount":3.3,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_012","ticker":"BTCI11","type":"Rendimento FII","date":"2026-08-14","amount":9.16,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_013","ticker":"RURA11","type":"Rendimento FII","date":"2026-08-07","amount":28.93,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_014","ticker":"KISU11","type":"Rendimento FII","date":"2026-07-27","amount":29.12,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_015","ticker":"XPML11","type":"Rendimento FII","date":"2026-07-24","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_016","ticker":"MXRF11","type":"Rendimento FII","date":"2026-07-14","amount":3.3,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_017","ticker":"BTCI11","type":"Rendimento FII","date":"2026-07-14","amount":9.34,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_018","ticker":"RURA11","type":"Rendimento FII","date":"2026-07-07","amount":25.41,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_019","ticker":"XPML11","type":"Rendimento FII","date":"2026-06-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_020","ticker":"KISU11","type":"Rendimento FII","date":"2026-06-25","amount":29.12,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_021","ticker":"MXRF11","type":"Rendimento FII","date":"2026-06-15","amount":0.8,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_022","ticker":"BTCI11","type":"Rendimento FII","date":"2026-06-15","amount":9.34,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_023","ticker":"BBAS3","type":"Dividendo","date":"2026-06-11","amount":5.66,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_024","ticker":"BBAS3","type":"Dividendo","date":"2026-06-11","amount":7.74,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_025","ticker":"RURA11","type":"Rendimento FII","date":"2026-06-08","amount":25.41,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_026","ticker":"TAEE3","type":"Dividendo","date":"2026-05-27","amount":7.8,"bank":"Nubank (Nu)","notes":"Rendimento TAEE3"},
+      {"id":"stk_earn_2026_027","ticker":"TAEE3","type":"Dividendo","date":"2026-05-27","amount":1.58,"bank":"Nubank (Nu)","notes":"Rendimento TAEE3"},
+      {"id":"stk_earn_2026_028","ticker":"XPML11","type":"Rendimento FII","date":"2026-05-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_029","ticker":"MXRF11","type":"Rendimento FII","date":"2026-05-15","amount":0.8,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_030","ticker":"KISU11","type":"Rendimento FII","date":"2026-05-15","amount":26.67,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_031","ticker":"BTCI11","type":"Rendimento FII","date":"2026-05-15","amount":7.88,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_032","ticker":"RURA11","type":"Rendimento FII","date":"2026-05-08","amount":26.1,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_033","ticker":"XPML11","type":"Rendimento FII","date":"2026-04-24","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_034","ticker":"MXRF11","type":"Rendimento FII","date":"2026-04-15","amount":0.76,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_035","ticker":"KISU11","type":"Rendimento FII","date":"2026-04-15","amount":23.73,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_036","ticker":"BTCI11","type":"Rendimento FII","date":"2026-04-15","amount":7.71,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_037","ticker":"RURA11","type":"Rendimento FII","date":"2026-04-08","amount":27.72,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_038","ticker":"XPML11","type":"Rendimento FII","date":"2026-03-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_039","ticker":"KISU11","type":"Rendimento FII","date":"2026-03-16","amount":23.73,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_040","ticker":"BTCI11","type":"Rendimento FII","date":"2026-03-13","amount":4.55,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_041","ticker":"MXRF11","type":"Rendimento FII","date":"2026-03-13","amount":0.8,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_042","ticker":"BBAS3","type":"Dividendo","date":"2026-03-11","amount":6.65,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_043","ticker":"RURA11","type":"Rendimento FII","date":"2026-03-06","amount":27.72,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_044","ticker":"BBAS3","type":"Dividendo","date":"2026-03-05","amount":20.98,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_045","ticker":"XPML11","type":"Rendimento FII","date":"2026-02-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_046","ticker":"BTCI11","type":"Rendimento FII","date":"2026-02-13","amount":4.55,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_047","ticker":"KISU11","type":"Rendimento FII","date":"2026-02-13","amount":23.73,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_048","ticker":"MXRF11","type":"Rendimento FII","date":"2026-02-13","amount":0.8,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_049","ticker":"RURA11","type":"Rendimento FII","date":"2026-02-06","amount":27.72,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_050","ticker":"XPML11","type":"Rendimento FII","date":"2026-01-23","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_051","ticker":"BTCI11","type":"Rendimento FII","date":"2026-01-15","amount":4.75,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_052","ticker":"KISU11","type":"Rendimento FII","date":"2026-01-15","amount":23.73,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_053","ticker":"MXRF11","type":"Rendimento FII","date":"2026-01-15","amount":0.8,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_054","ticker":"RURA11","type":"Rendimento FII","date":"2026-01-08","amount":25.41,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_055","ticker":"XPML11","type":"Rendimento FII","date":"2025-12-23","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_056","ticker":"BTCI11","type":"Rendimento FII","date":"2025-12-12","amount":4.7,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_057","ticker":"MXRF11","type":"Rendimento FII","date":"2025-12-12","amount":0.8,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_058","ticker":"KISU11","type":"Rendimento FII","date":"2025-12-12","amount":21,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_059","ticker":"BBAS3","type":"Dividendo","date":"2025-12-11","amount":6.97,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_060","ticker":"RURA11","type":"Rendimento FII","date":"2025-12-05","amount":25.41,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_061","ticker":"XPML11","type":"Rendimento FII","date":"2025-11-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_062","ticker":"BTCI11","type":"Rendimento FII","date":"2025-11-14","amount":4.65,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_063","ticker":"KISU11","type":"Rendimento FII","date":"2025-11-14","amount":18.34,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_064","ticker":"MXRF11","type":"Rendimento FII","date":"2025-11-14","amount":0.8,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_065","ticker":"RURA11","type":"Rendimento FII","date":"2025-11-07","amount":25.41,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_066","ticker":"XPML11","type":"Rendimento FII","date":"2025-10-24","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_067","ticker":"MXRF11","type":"Rendimento FII","date":"2025-10-14","amount":0.8,"bank":"Nubank (Nu)","notes":"Rendimento MXRF11"},
+      {"id":"stk_earn_2026_068","ticker":"KISU11","type":"Rendimento FII","date":"2025-10-14","amount":18.34,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_069","ticker":"BTCI11","type":"Rendimento FII","date":"2025-10-14","amount":4.9,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_070","ticker":"RURA11","type":"Rendimento FII","date":"2025-10-07","amount":22,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_071","ticker":"XPML11","type":"Rendimento FII","date":"2025-09-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_072","ticker":"BTCI11","type":"Rendimento FII","date":"2025-09-12","amount":4.9,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_073","ticker":"KISU11","type":"Rendimento FII","date":"2025-09-12","amount":16.59,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_074","ticker":"RURA11","type":"Rendimento FII","date":"2025-09-05","amount":21,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_075","ticker":"XPML11","type":"Rendimento FII","date":"2025-08-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_076","ticker":"KISU11","type":"Rendimento FII","date":"2025-08-14","amount":16.59,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_077","ticker":"BTCI11","type":"Rendimento FII","date":"2025-08-14","amount":4.9,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_078","ticker":"RURA11","type":"Rendimento FII","date":"2025-08-07","amount":21,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_079","ticker":"XPML11","type":"Rendimento FII","date":"2025-07-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_080","ticker":"BTCI11","type":"Rendimento FII","date":"2025-07-14","amount":4.9,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_081","ticker":"KISU11","type":"Rendimento FII","date":"2025-07-14","amount":14.07,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_082","ticker":"RURA11","type":"Rendimento FII","date":"2025-07-07","amount":21,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_083","ticker":"XPML11","type":"Rendimento FII","date":"2025-06-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_084","ticker":"BTCI11","type":"Rendimento FII","date":"2025-06-13","amount":4.8,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_085","ticker":"KISU11","type":"Rendimento FII","date":"2025-06-13","amount":13.93,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_086","ticker":"BBAS3","type":"Dividendo","date":"2025-06-12","amount":6.69,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_087","ticker":"BBAS3","type":"Dividendo","date":"2025-06-12","amount":24.72,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_088","ticker":"RURA11","type":"Rendimento FII","date":"2025-06-06","amount":20,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_089","ticker":"XPML11","type":"Rendimento FII","date":"2025-05-23","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_090","ticker":"BTCI11","type":"Rendimento FII","date":"2025-05-15","amount":13.93,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_091","ticker":"KISU11","type":"Rendimento FII","date":"2025-05-15","amount":4.7,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_092","ticker":"RURA11","type":"Rendimento FII","date":"2025-05-08","amount":20,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_093","ticker":"XPML11","type":"Rendimento FII","date":"2025-04-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_094","ticker":"BTCI11","type":"Rendimento FII","date":"2025-04-14","amount":3.19,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_095","ticker":"KISU11","type":"Rendimento FII","date":"2025-04-14","amount":11.55,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_096","ticker":"RURA11","type":"Rendimento FII","date":"2025-04-07","amount":13.34,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_097","ticker":"XPML11","type":"Rendimento FII","date":"2025-03-25","amount":6.44,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_098","ticker":"BBAS3","type":"Dividendo","date":"2025-03-20","amount":11.05,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_099","ticker":"BBAS3","type":"Dividendo","date":"2025-03-20","amount":25.33,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_100","ticker":"BBAS3","type":"Dividendo","date":"2025-03-20","amount":11.83,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_101","ticker":"BBAS3","type":"Dividendo","date":"2025-03-20","amount":0.24,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_102","ticker":"BBAS3","type":"Dividendo","date":"2025-03-20","amount":0.6,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_103","ticker":"KISU11","type":"Rendimento FII","date":"2025-03-18","amount":11.55,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_104","ticker":"BTCI11","type":"Rendimento FII","date":"2025-03-18","amount":3.16,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_105","ticker":"RURA11","type":"Rendimento FII","date":"2025-03-11","amount":13.34,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_106","ticker":"XPML11","type":"Rendimento FII","date":"2025-02-25","amount":4.6,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_107","ticker":"BTCI11","type":"Rendimento FII","date":"2025-02-14","amount":3.12,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_108","ticker":"KISU11","type":"Rendimento FII","date":"2025-02-14","amount":11.55,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_109","ticker":"RURA11","type":"Rendimento FII","date":"2025-02-07","amount":10.64,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_110","ticker":"XPML11","type":"Rendimento FII","date":"2025-01-24","amount":2.76,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_111","ticker":"BTCI11","type":"Rendimento FII","date":"2025-01-15","amount":3.12,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_112","ticker":"KISU11","type":"Rendimento FII","date":"2025-01-15","amount":10.72,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_113","ticker":"RURA11","type":"Rendimento FII","date":"2025-01-08","amount":9.12,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_114","ticker":"BBAS3","type":"Dividendo","date":"2024-12-27","amount":7.05,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_115","ticker":"XPML11","type":"Rendimento FII","date":"2024-12-23","amount":2.76,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_116","ticker":"BTCI11","type":"Rendimento FII","date":"2024-12-13","amount":3.09,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_117","ticker":"KISU11","type":"Rendimento FII","date":"2024-12-13","amount":10.72,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_118","ticker":"BBAS3","type":"Dividendo","date":"2024-12-06","amount":19.31,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_119","ticker":"RURA11","type":"Rendimento FII","date":"2024-12-06","amount":9.12,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_120","ticker":"XPML11","type":"Rendimento FII","date":"2024-11-25","amount":2.76,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_121","ticker":"BTCI11","type":"Rendimento FII","date":"2024-11-14","amount":3.09,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_122","ticker":"KISU11","type":"Rendimento FII","date":"2024-11-14","amount":10.56,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_123","ticker":"RURA11","type":"Rendimento FII","date":"2024-11-07","amount":9.12,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_124","ticker":"XPML11","type":"Rendimento FII","date":"2024-10-25","amount":2.76,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_125","ticker":"BTCI11","type":"Rendimento FII","date":"2024-10-14","amount":3.06,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_126","ticker":"KISU11","type":"Rendimento FII","date":"2024-10-14","amount":10.88,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_127","ticker":"RURA11","type":"Rendimento FII","date":"2024-10-07","amount":12.1,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_128","ticker":"BBAS3","type":"Dividendo","date":"2024-09-27","amount":5.71,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_129","ticker":"XPML11","type":"Rendimento FII","date":"2024-09-25","amount":2.76,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_130","ticker":"BTCI11","type":"Rendimento FII","date":"2024-09-13","amount":3.12,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_131","ticker":"KISU11","type":"Rendimento FII","date":"2024-09-13","amount":9.1,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_132","ticker":"RURA11","type":"Rendimento FII","date":"2024-09-06","amount":12.1,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_133","ticker":"BBAS3","type":"Dividendo","date":"2024-08-30","amount":9.63,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_134","ticker":"BBAS3","type":"Dividendo","date":"2024-08-30","amount":0.07,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_135","ticker":"BBAS3","type":"Dividendo","date":"2024-08-30","amount":0.16,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_136","ticker":"BBAS3","type":"Dividendo","date":"2024-08-30","amount":5.46,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_137","ticker":"XPML11","type":"Rendimento FII","date":"2024-08-23","amount":2.76,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_138","ticker":"KISU11","type":"Rendimento FII","date":"2024-08-14","amount":9.1,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_139","ticker":"BTCI11","type":"Rendimento FII","date":"2024-08-14","amount":3.19,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_140","ticker":"RURA11","type":"Rendimento FII","date":"2024-08-07","amount":12.7,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_141","ticker":"XPML11","type":"Rendimento FII","date":"2024-07-25","amount":2.76,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_142","ticker":"KISU11","type":"Rendimento FII","date":"2024-07-12","amount":7.35,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_143","ticker":"BTCI11","type":"Rendimento FII","date":"2024-07-12","amount":3.19,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_144","ticker":"RURA11","type":"Rendimento FII","date":"2024-07-05","amount":8.55,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_145","ticker":"BBAS3","type":"Dividendo","date":"2024-06-21","amount":8.97,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_146","ticker":"BBAS3","type":"Dividendo","date":"2024-06-21","amount":5.93,"bank":"Nubank (Nu)","notes":"Rendimento BBAS3"},
+      {"id":"stk_earn_2026_147","ticker":"KISU11","type":"Rendimento FII","date":"2024-06-14","amount":7.35,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_148","ticker":"BTCI11","type":"Rendimento FII","date":"2024-06-14","amount":3.16,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_149","ticker":"RURA11","type":"Rendimento FII","date":"2024-06-07","amount":10.23,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_150","ticker":"XPML11","type":"Rendimento FII","date":"2024-05-24","amount":2.76,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_151","ticker":"KISU11","type":"Rendimento FII","date":"2024-05-15","amount":7.35,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_152","ticker":"BTCI11","type":"Rendimento FII","date":"2024-05-15","amount":3.12,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_153","ticker":"RURA11","type":"Rendimento FII","date":"2024-05-08","amount":6.15,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_154","ticker":"XPML11","type":"Rendimento FII","date":"2024-04-25","amount":2.73,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_155","ticker":"KISU11","type":"Rendimento FII","date":"2024-04-12","amount":5.4,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_156","ticker":"BTCI11","type":"Rendimento FII","date":"2024-04-12","amount":3.12,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_157","ticker":"RURA11","type":"Rendimento FII","date":"2024-04-05","amount":5.15,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_158","ticker":"XPML11","type":"Rendimento FII","date":"2024-03-25","amount":1.8,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_159","ticker":"KISU11","type":"Rendimento FII","date":"2024-03-14","amount":4.5,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_160","ticker":"BTCI11","type":"Rendimento FII","date":"2024-03-14","amount":3.12,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_161","ticker":"RURA11","type":"Rendimento FII","date":"2024-03-07","amount":5.15,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_162","ticker":"XPML11","type":"Rendimento FII","date":"2024-02-23","amount":1.8,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_163","ticker":"BTCI11","type":"Rendimento FII","date":"2024-02-16","amount":3.12,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_164","ticker":"KISU11","type":"Rendimento FII","date":"2024-02-16","amount":4.5,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_165","ticker":"RURA11","type":"Rendimento FII","date":"2024-02-07","amount":3.19,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_166","ticker":"XPML11","type":"Rendimento FII","date":"2024-01-25","amount":1.84,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_167","ticker":"BTCI11","type":"Rendimento FII","date":"2024-01-15","amount":3.19,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_168","ticker":"KISU11","type":"Rendimento FII","date":"2024-01-15","amount":4.72,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_169","ticker":"RURA11","type":"Rendimento FII","date":"2024-01-08","amount":1,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_170","ticker":"XPML11","type":"Rendimento FII","date":"2023-12-22","amount":1.8,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_171","ticker":"KISU11","type":"Rendimento FII","date":"2023-12-14","amount":3.45,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_172","ticker":"BTCI11","type":"Rendimento FII","date":"2023-12-14","amount":3.29,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_173","ticker":"RURA11","type":"Rendimento FII","date":"2023-12-07","amount":1,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_174","ticker":"XPML11","type":"Rendimento FII","date":"2023-11-24","amount":1.7,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_175","ticker":"KISU11","type":"Rendimento FII","date":"2023-11-16","amount":2.47,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_176","ticker":"BTCI11","type":"Rendimento FII","date":"2023-11-16","amount":3.29,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_177","ticker":"RURA11","type":"Rendimento FII","date":"2023-11-08","amount":1.2,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_178","ticker":"XPML11","type":"Rendimento FII","date":"2023-10-25","amount":1.7,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_179","ticker":"KISU11","type":"Rendimento FII","date":"2023-10-16","amount":2.47,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_180","ticker":"BTCI11","type":"Rendimento FII","date":"2023-10-16","amount":1.71,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_181","ticker":"RURA11","type":"Rendimento FII","date":"2023-10-06","amount":1.2,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_182","ticker":"XPML11","type":"Rendimento FII","date":"2023-09-25","amount":1.7,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_183","ticker":"KISU11","type":"Rendimento FII","date":"2023-09-15","amount":2.31,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_184","ticker":"BTCI11","type":"Rendimento FII","date":"2023-09-15","amount":1.71,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_185","ticker":"RURA11","type":"Rendimento FII","date":"2023-09-08","amount":1.2,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_186","ticker":"XPML11","type":"Rendimento FII","date":"2023-08-25","amount":1.68,"bank":"Nubank (Nu)","notes":"Rendimento XPML11"},
+      {"id":"stk_earn_2026_187","ticker":"KISU11","type":"Rendimento FII","date":"2023-08-14","amount":1.71,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_188","ticker":"BTCI11","type":"Rendimento FII","date":"2023-08-14","amount":1.47,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_189","ticker":"RURA11","type":"Rendimento FII","date":"2023-08-07","amount":1.3,"bank":"Nubank (Nu)","notes":"Rendimento RURA11"},
+      {"id":"stk_earn_2026_190","ticker":"KISU11","type":"Rendimento FII","date":"2023-07-14","amount":0.08,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"},
+      {"id":"stk_earn_2026_191","ticker":"BTCI11","type":"Rendimento FII","date":"2023-07-14","amount":1.01,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_192","ticker":"BTCI11","type":"Rendimento FII","date":"2023-06-15","amount":0.42,"bank":"Nubank (Nu)","notes":"Rendimento BTCI11"},
+      {"id":"stk_earn_2026_193","ticker":"KISU11","type":"Rendimento FII","date":"2023-06-15","amount":0.07,"bank":"Nubank (Nu)","notes":"Rendimento KISU11"}
+    ],
+    nubankBoxes: [
+      {"id":"box_2026_001","name":"Nubank Investimento","category":"Caixinha","date":"2026-03-08","amount":450,"status":"Ativo"},
+      {"id":"box_2026_002","name":"Nubank Investimento","category":"Caixinha","date":"2026-07-08","amount":550,"status":"Ativo"},
+      {"id":"box_2026_003","name":"Nubank Investimento","category":"Caixinha","date":"2026-06-01","amount":1000,"status":"Ativo"},
+      {"id":"box_2026_004","name":"Nubank Investimento","category":"Caixinha","date":"2026-05-01","amount":13811.54,"status":"Ativo"},
+      {"id":"box_1793399151673","name":"Nubank","category":"Caixinha","date":"2026-10-30","amount":2724.09,"status":"Ativo"}
+    ],
+    nubankEarnings: [
+      {"id":"box_earn_2026_001","boxName":"Nubank Investimento","date":"2026-10-01","amount":160.5,"notes":"Nubank Rendimento"},
+      {"id":"box_earn_2026_002","boxName":"Nubank Investimento","date":"2026-09-01","amount":151.85,"notes":"Nubank Rendimento"},
+      {"id":"box_earn_2026_003","boxName":"Nubank Investimento","date":"2026-08-01","amount":158.33,"notes":"Nubank Rendimento"},
+      {"id":"box_earn_2026_004","boxName":"Nubank Investimento","date":"2026-07-01","amount":136.61,"notes":"Nubank Rendimento"},
+      {"id":"box_earn_2026_005","boxName":"Nubank Investimento","date":"2026-06-01","amount":116.17,"notes":"Nubank Rendimento"}
+    ]
   },
 
   // 8. Cofre de Senhas
@@ -140,12 +402,35 @@ class DataStore {
 
         // Garante estruturas de investimentos e rendimentos
         if (!merged.investments || typeof merged.investments !== 'object') {
-          merged.investments = { stocks: [], stockEarnings: [], nubankBoxes: [], nubankEarnings: [] };
+          merged.investments = JSON.parse(JSON.stringify(INITIAL_DATABASE.investments));
         } else {
           if (!Array.isArray(merged.investments.stocks)) merged.investments.stocks = [];
           if (!Array.isArray(merged.investments.stockEarnings)) merged.investments.stockEarnings = [];
           if (!Array.isArray(merged.investments.nubankBoxes)) merged.investments.nubankBoxes = [];
           if (!Array.isArray(merged.investments.nubankEarnings)) merged.investments.nubankEarnings = [];
+          if (merged.investments.stocks.length === 0 &&
+              merged.investments.stockEarnings.length === 0 &&
+              merged.investments.nubankBoxes.length === 0 &&
+              merged.investments.nubankEarnings.length === 0) {
+            merged.investments = JSON.parse(JSON.stringify(INITIAL_DATABASE.investments));
+          }
+        }
+        // Normaliza modalidade (Caixinha vs Dinheiro Separado) nos guardados do Nubank
+        if (merged.investments && Array.isArray(merged.investments.nubankBoxes)) {
+          merged.investments.nubankBoxes.forEach(b => {
+            if (!b.category) {
+              const nm = String(b.name || '').toLowerCase();
+              b.category = (nm.includes('separado') || nm.includes('saldo separado')) ? 'Dinheiro Separado' : 'Caixinha';
+            }
+          });
+        }
+        if (merged.investments && Array.isArray(merged.investments.nubankEarnings)) {
+          merged.investments.nubankEarnings.forEach(e => {
+            if (!e.category) {
+              const nm = String(e.boxName || '').toLowerCase();
+              e.category = (nm.includes('separado') || nm.includes('saldo separado')) ? 'Dinheiro Separado' : 'Caixinha';
+            }
+          });
         }
 
         // Garante estruturas de troco (Jotur e Mastes) e acumulados anuais
@@ -289,6 +574,10 @@ class DataStore {
 
   save(skipCloudSync = false) {
     try {
+      if (!skipCloudSync) {
+        this._lastLocalMutationAt = Date.now();
+        this._hasPendingCloudSync = true;
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
       if (!skipCloudSync && typeof window !== 'undefined' && window.supabaseService && window.supabaseService.isConfigured()) {
         if (typeof app !== 'undefined' && app.setCloudSyncing) {
@@ -297,10 +586,11 @@ class DataStore {
         if (this._syncTimeout) clearTimeout(this._syncTimeout);
         this._syncTimeout = setTimeout(async () => {
           const res = await window.supabaseService.syncToCloud(true);
+          this._hasPendingCloudSync = false;
           if (typeof app !== 'undefined' && app.setCloudSyncing) {
             app.setCloudSyncing(false, res.success, res.timestamp);
           }
-        }, 500);
+        }, 300);
       }
     } catch (e) {
       console.error('Erro ao salvar no localStorage', e);
@@ -1572,14 +1862,55 @@ class DataStore {
   }
 
   // --- INVESTIMENTOS ---
+  _parseNum(val) {
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    if (val === null || val === undefined) return 0;
+    const str = String(val).trim();
+    if (!str) return 0;
+    if (typeof parseMoney === 'function' && str.includes(',')) {
+      return parseMoney(str);
+    }
+    if (str.includes(',')) {
+      const cleaned = str.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+    const num = parseFloat(str.replace(/[R$\s]/g, ''));
+    return isNaN(num) ? 0 : num;
+  }
+
   addStock(stock) {
-    stock.id = 'stk_' + Date.now();
-    stock.shares = Number(stock.shares) || 0;
-    stock.pricePerShare = Number(stock.pricePerShare) || 0;
-    stock.total = stock.shares * stock.pricePerShare;
+    if (!this.data.investments) this.data.investments = { stocks: [], stockEarnings: [], nubankBoxes: [], nubankEarnings: [] };
+    if (!Array.isArray(this.data.investments.stocks)) this.data.investments.stocks = [];
+    stock.id = stock.id || ('stk_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+    stock.ticker = String(stock.ticker || '').toUpperCase().trim();
+    stock.shares = this._parseNum(stock.shares);
+    stock.pricePerShare = this._parseNum(stock.pricePerShare);
+    stock.total = Number((stock.shares * stock.pricePerShare).toFixed(2));
+    stock.date = stock.date || new Date().toISOString().split('T')[0];
+    stock.type = stock.type || (stock.ticker.endsWith('11') ? 'FII' : 'Ação');
     this.data.investments.stocks.push(stock);
     this.save();
     return stock;
+  }
+
+  updateStock(id, updated) {
+    if (!this.data.investments || !Array.isArray(this.data.investments.stocks)) return null;
+    const idx = this.data.investments.stocks.findIndex(s => s.id === id);
+    if (idx === -1) return null;
+    const curr = this.data.investments.stocks[idx];
+    const shares = updated.shares !== undefined ? this._parseNum(updated.shares) : curr.shares;
+    const pricePerShare = updated.pricePerShare !== undefined ? this._parseNum(updated.pricePerShare) : curr.pricePerShare;
+    this.data.investments.stocks[idx] = {
+      ...curr,
+      ...updated,
+      ticker: updated.ticker !== undefined ? String(updated.ticker).toUpperCase().trim() : curr.ticker,
+      shares,
+      pricePerShare,
+      total: Number((shares * pricePerShare).toFixed(2))
+    };
+    this.save();
+    return this.data.investments.stocks[idx];
   }
 
   deleteStock(id) {
@@ -1591,11 +1922,43 @@ class DataStore {
   }
 
   addNubankBox(box) {
-    box.id = 'box_' + Date.now();
-    box.amount = Number(box.amount) || 0;
+    if (!this.data.investments) this.data.investments = { stocks: [], stockEarnings: [], nubankBoxes: [], nubankEarnings: [] };
+    if (!Array.isArray(this.data.investments.nubankBoxes)) this.data.investments.nubankBoxes = [];
+    box.id = box.id || ('box_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+    box.name = String(box.name || 'Caixinha Nubank').trim();
+    box.category = box.category || (box.name.toLowerCase().includes('separado') ? 'Dinheiro Separado' : 'Caixinha');
+    box.amount = this._parseNum(box.amount);
+    box.date = box.date || new Date().toISOString().split('T')[0];
     this.data.investments.nubankBoxes.push(box);
     this.save();
     return box;
+  }
+
+  updateNubankBox(id, updated) {
+    if (!this.data.investments || !Array.isArray(this.data.investments.nubankBoxes)) return null;
+    const idx = this.data.investments.nubankBoxes.findIndex(b => b.id === id);
+    if (idx === -1) return null;
+    const curr = this.data.investments.nubankBoxes[idx];
+    this.data.investments.nubankBoxes[idx] = {
+      ...curr,
+      ...updated,
+      name: updated.name !== undefined ? String(updated.name).trim() : curr.name,
+      category: updated.category !== undefined ? updated.category : (curr.category || 'Caixinha'),
+      amount: updated.amount !== undefined ? this._parseNum(updated.amount) : curr.amount,
+      date: updated.date !== undefined ? updated.date : curr.date
+    };
+    this.save();
+    return this.data.investments.nubankBoxes[idx];
+  }
+
+  toggleNubankBoxCategory(id) {
+    if (!this.data.investments || !Array.isArray(this.data.investments.nubankBoxes)) return null;
+    const item = this.data.investments.nubankBoxes.find(b => b.id === id);
+    if (!item) return null;
+    const currCat = item.category || (String(item.name || '').toLowerCase().includes('separado') ? 'Dinheiro Separado' : 'Caixinha');
+    item.category = currCat === 'Dinheiro Separado' ? 'Caixinha' : 'Dinheiro Separado';
+    this.save();
+    return item;
   }
 
   deleteNubankBox(id) {
@@ -1608,12 +1971,31 @@ class DataStore {
 
   // --- RENDIMENTOS BOLSA ---
   addStockEarning(earning) {
-    earning.id = 'stk_earn_' + Date.now();
-    earning.amount = Number(earning.amount) || 0;
-    if (!this.data.investments.stockEarnings) this.data.investments.stockEarnings = [];
+    if (!this.data.investments) this.data.investments = { stocks: [], stockEarnings: [], nubankBoxes: [], nubankEarnings: [] };
+    if (!Array.isArray(this.data.investments.stockEarnings)) this.data.investments.stockEarnings = [];
+    earning.id = earning.id || ('stk_earn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+    earning.ticker = String(earning.ticker || '').toUpperCase().trim();
+    earning.amount = this._parseNum(earning.amount);
+    earning.date = earning.date || new Date().toISOString().split('T')[0];
     this.data.investments.stockEarnings.push(earning);
     this.save();
     return earning;
+  }
+
+  updateStockEarning(id, updated) {
+    if (!this.data.investments || !Array.isArray(this.data.investments.stockEarnings)) return null;
+    const idx = this.data.investments.stockEarnings.findIndex(e => e.id === id);
+    if (idx === -1) return null;
+    const curr = this.data.investments.stockEarnings[idx];
+    this.data.investments.stockEarnings[idx] = {
+      ...curr,
+      ...updated,
+      ticker: updated.ticker !== undefined ? String(updated.ticker).toUpperCase().trim() : curr.ticker,
+      amount: updated.amount !== undefined ? this._parseNum(updated.amount) : curr.amount,
+      date: updated.date !== undefined ? updated.date : curr.date
+    };
+    this.save();
+    return this.data.investments.stockEarnings[idx];
   }
 
   deleteStockEarning(id) {
@@ -1627,20 +2009,38 @@ class DataStore {
 
   // --- RENDIMENTOS NUBANK ---
   addNubankEarning(earning) {
-    earning.id = 'box_earn_' + Date.now();
-    earning.amount = Number(earning.amount) || 0;
-    if (!this.data.investments.nubankEarnings) this.data.investments.nubankEarnings = [];
+    if (!this.data.investments) this.data.investments = { stocks: [], stockEarnings: [], nubankBoxes: [], nubankEarnings: [] };
+    if (!Array.isArray(this.data.investments.nubankEarnings)) this.data.investments.nubankEarnings = [];
+    earning.id = earning.id || ('box_earn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+    earning.boxName = String(earning.boxName || 'Rendimento das Caixinhas').trim();
+    earning.category = earning.category || (earning.boxName.toLowerCase().includes('separado') ? 'Dinheiro Separado' : 'Caixinha');
+    earning.amount = this._parseNum(earning.amount);
+    earning.date = earning.date || new Date().toISOString().split('T')[0];
     this.data.investments.nubankEarnings.push(earning);
     this.save();
     return earning;
   }
 
+  updateNubankEarning(id, updated) {
+    if (!this.data.investments || !Array.isArray(this.data.investments.nubankEarnings)) return null;
+    const idx = this.data.investments.nubankEarnings.findIndex(e => e.id === id);
+    if (idx === -1) return null;
+    const curr = this.data.investments.nubankEarnings[idx];
+    this.data.investments.nubankEarnings[idx] = {
+      ...curr,
+      ...updated,
+      boxName: updated.boxName !== undefined ? String(updated.boxName).trim() : curr.boxName,
+      category: updated.category !== undefined ? updated.category : (curr.category || 'Caixinha'),
+      amount: updated.amount !== undefined ? this._parseNum(updated.amount) : curr.amount,
+      date: updated.date !== undefined ? updated.date : curr.date
+    };
+    this.save();
+    return this.data.investments.nubankEarnings[idx];
+  }
+
   deleteNubankEarning(id) {
     if (!this.data.investments.nubankEarnings) return;
     this.data.investments.nubankEarnings = this.data.investments.nubankEarnings.filter(e => e.id !== id);
-    if (typeof window !== 'undefined' && window.supabaseService) {
-      window.supabaseService.deleteRowFromTable('investimentos_rendimentos_caixinhas', id);
-    }
     this.save();
   }
 
