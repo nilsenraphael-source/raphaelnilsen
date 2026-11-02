@@ -113,9 +113,71 @@ const app = {
   senhasRevealedIds: new Set(),
 
   init() {
+    this.preconfigureAllDateFields();
     this.bindEvents();
     this.checkSession();
     this.startRealtimeHeader();
+  },
+
+  // Retorna a data de hoje no fuso horário local (YYYY-MM-DD)
+  getTodayISO() {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  },
+
+  // Retorna a data padrão pré-configurada para um mês/ano específico (YYYY-MM-DD)
+  getDefaultDateForMonth(monthNum = this.activeMonth, yearNum = store?.activeYear) {
+    const now = new Date();
+    const y = Number(yearNum) || now.getFullYear();
+    const m = Math.min(12, Math.max(1, Number(monthNum) || (now.getMonth() + 1)));
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const d = Math.min(now.getDate(), daysInMonth);
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  },
+
+  // Pré-configura todos os campos de data e vencimento do sistema na inicialização
+  preconfigureAllDateFields() {
+    const todayStr = this.getTodayISO();
+    const monthDateStr = this.getDefaultDateForMonth(this.activeMonth);
+    const todayDay = String(new Date().getDate());
+
+    const monthScopedIds = ['rev_date', 'var_date', 'pay_rev_date', 'edit_rev_date'];
+    monthScopedIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = monthDateStr;
+    });
+
+    const todayScopedIds = [
+      'card_date', 'edit_card_date', 'dream_date', 'aporte_date',
+      'ff_date_req', 'ff_temp_date', 'stk_date', 'stk_earn_date',
+      'box_date', 'box_earn_date', 'b3_edit_last_div_date',
+      'fix_payment_date', 'edit_fix_payment_date'
+    ];
+    todayScopedIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.value) el.value = todayStr;
+    });
+
+    const fixDayEl = document.getElementById('fix_due_day');
+    if (fixDayEl && !fixDayEl.value) fixDayEl.value = todayDay;
+  },
+
+  // Alterna visibilidade e pré-configura a data de pagamento da despesa fixa quando marcada como Paga
+  onFixStatusChange(status, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (status === 'Pago') {
+      container.style.display = 'block';
+      const input = container.querySelector('input[type="date"]');
+      if (input && !input.value) {
+        input.value = this.getTodayISO();
+      }
+    } else {
+      container.style.display = 'none';
+    }
   },
 
   showToast(message, type = 'info') {
@@ -342,7 +404,12 @@ const app = {
       }
       const greetingEl = document.getElementById('headerGreeting');
       if (greetingEl) {
-        greetingEl.textContent = `${greeting}, Raphael Natayan Nilsen`;
+        const uName = store?.data?.settings?.userName || 'Raphael Natayan Nilsen';
+        greetingEl.textContent = `${greeting}, ${uName}`;
+      }
+      const sidebarUserEl = document.querySelector('.user-profile-badge .user-name');
+      if (sidebarUserEl && store?.data?.settings?.userName) {
+        sidebarUserEl.textContent = store.data.settings.userName;
       }
 
       // Data Completa Original e Intacta (Ex: Domingo, 4 de outubro de 2026)
@@ -410,8 +477,9 @@ const app = {
       sonhos: 'Sonhos & Planejamento de Compras',
       bombeiro: 'Bombeiro Comunitário (Ressarcimentos)',
       jotur: 'Controle de Troco Jotur',
-      mastes: 'CONTROLE DE TROCO MASTES (R$ 400)',
-      investimentos: 'Gestão de Ativos & Investimentos'
+      mastes: `CONTROLE DE TROCO MASTES (${formatBRL(store?.data?.trocoMastes?.baseAmount || 400)})`,
+      investimentos: 'Gestão de Ativos & Investimentos',
+      configuracoes: 'Configurações do Sistema — Bancos, Cartões & Grupos'
     };
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) titleEl.textContent = titles[tabId] || 'Sistema Financeiro';
@@ -501,9 +569,157 @@ const app = {
     }
   },
 
+  // Gera <option> dinâmicos dos bancos cadastrados em store.data.accounts
+  getBankSelectOptionsHtml(selectedBank = '', emptyLabel = '— Selecionar Banco —', includeOutro = true) {
+    const accounts = Array.isArray(store.data?.accounts) ? store.data.accounts : [];
+    const current = String(selectedBank || '').trim();
+    let matchedAny = !current;
+
+    let html = emptyLabel !== null
+      ? `<option value="" ${!current ? 'selected' : ''}>${emptyLabel}</option>`
+      : '';
+
+    accounts.forEach(acc => {
+      const accName = String(acc.name || '').trim();
+      if (!accName) return;
+      const isSelected = (current === accName) ||
+        (current === 'Banco do Brasil' && accName.includes('Banco do Brasil')) ||
+        (current === 'Caixa Poupança' && accName.includes('Poupança')) ||
+        (current === 'Caixa CP' && accName.includes('Caixa CP')) ||
+        (current === 'Carteira' && accName.includes('Carteira'));
+      if (isSelected) matchedAny = true;
+      html += `<option value="${escapeHtml(accName)}" ${isSelected ? 'selected' : ''}>${escapeHtml(accName)}</option>`;
+    });
+
+    if (includeOutro) {
+      const isOutro = current === 'Outro';
+      if (isOutro) matchedAny = true;
+      html += `<option value="Outro" ${isOutro ? 'selected' : ''}>Outro</option>`;
+    }
+
+    if (current && !matchedAny) {
+      html += `<option value="${escapeHtml(current)}" selected>${escapeHtml(current)}</option>`;
+    }
+
+    return html;
+  },
+
+  // Popula todos os <select> e <datalist> do sistema com os grupos salvos no banco de dados
+  populateSystemSelects() {
+    try {
+      const groups = store.getSystemGroups();
+      const accounts = Array.isArray(store.data?.accounts) ? store.data.accounts : [];
+      const cards = Array.isArray(store.data?.creditCards) ? store.data.creditCards : [];
+
+      // 1. Selects de Bancos em Modais
+      const bankSelectEmptyIds = ['rev_bank', 'pay_rev_bank', 'edit_fix_bank'];
+      bankSelectEmptyIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const prevVal = el.value;
+          const emptyLbl = id === 'edit_fix_bank'
+            ? '— Em branco (selecionar no pagamento) —'
+            : (id === 'pay_rev_bank' ? '— Selecione o Banco —' : '— Em branco (selecionar quando receber) —');
+          el.innerHTML = this.getBankSelectOptionsHtml(prevVal, emptyLbl, true);
+        }
+      });
+
+      const bankSelectDirectIds = ['edit_rev_bank', 'var_bank'];
+      bankSelectDirectIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const prevVal = el.value || (accounts[0] ? accounts[0].name : 'Bradesco');
+          el.innerHTML = this.getBankSelectOptionsHtml(prevVal, null, true);
+        }
+      });
+
+      // 2. Datalist de sugestões de bancos (Cofre de Senhas)
+      const bancosDl = document.getElementById('bancos_sugestoes');
+      if (bancosDl) {
+        bancosDl.innerHTML = accounts.map(a => `<option value="${escapeHtml(a.name)}">`).join('');
+      }
+
+      // 3. Datalists de Fontes de Renda e Categorias de Despesas
+      const revDl = document.getElementById('fontes_renda_sugestoes');
+      if (revDl && Array.isArray(groups.revenueSources)) {
+        revDl.innerHTML = groups.revenueSources.map(s => `<option value="${escapeHtml(s)}">`).join('');
+      }
+      const expDl = document.getElementById('categorias_despesa_sugestoes');
+      if (expDl && Array.isArray(groups.expenseCategories)) {
+        expDl.innerHTML = groups.expenseCategories.map(s => `<option value="${escapeHtml(s)}">`).join('');
+      }
+
+      // 4. Selects de Cartão de Crédito (#card_type, #edit_card_type)
+      ['card_type', 'edit_card_type'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && cards.length > 0) {
+          const prevVal = el.value;
+          el.innerHTML = cards.map(c => `
+            <option value="${escapeHtml(c.name)}" ${c.name === prevVal ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+          `).join('');
+        }
+      });
+
+      // 5. Tipos de Conta Bancária (#banco_tipo_conta no Cofre e #cfg_bank_type em Configurações)
+      ['banco_tipo_conta', 'cfg_bank_type'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && Array.isArray(groups.accountTypes)) {
+          const prevVal = el.value;
+          el.innerHTML = groups.accountTypes.map(t => `
+            <option value="${escapeHtml(t)}" ${t === prevVal ? 'selected' : ''}>${escapeHtml(t)}</option>
+          `).join('');
+        }
+      });
+
+      // 6. Tipos de Ativo na Bolsa (#stk_type, #b3_new_type)
+      ['stk_type', 'b3_new_type'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && Array.isArray(groups.investmentTypes)) {
+          const prevVal = el.value;
+          el.innerHTML = groups.investmentTypes.map(t => `
+            <option value="${escapeHtml(t)}" ${t === prevVal ? 'selected' : ''}>${escapeHtml(t)}</option>
+          `).join('');
+        }
+      });
+
+      // 7. Tipos de Provento (#stk_earn_type)
+      const earnEl = document.getElementById('stk_earn_type');
+      if (earnEl && Array.isArray(groups.earningTypes)) {
+        const prevVal = earnEl.value;
+        earnEl.innerHTML = groups.earningTypes.map(t => `
+          <option value="${escapeHtml(t)}" ${t === prevVal ? 'selected' : ''}>${escapeHtml(t)}</option>
+        `).join('');
+      }
+
+      // 8. Modalidades Nubank (#box_category)
+      const boxCatEl = document.getElementById('box_category');
+      if (boxCatEl && Array.isArray(groups.nubankCategories)) {
+        const prevVal = boxCatEl.value;
+        boxCatEl.innerHTML = groups.nubankCategories.map(c => `
+          <option value="${escapeHtml(c)}" ${c === prevVal ? 'selected' : ''}>${c === 'Dinheiro Separado' ? '💵 ' : '📦 '}${escapeHtml(c)}</option>
+        `).join('');
+      }
+
+      // 9. Abas / Tabelas no Modal de Senha Geral (#geral_tabela)
+      const pwdTabSelect = document.getElementById('geral_tabela');
+      if (pwdTabSelect && Array.isArray(groups.passwordTabs)) {
+        const prevVal = pwdTabSelect.value;
+        const nonBankTabs = groups.passwordTabs.filter(t => t.id !== 'bancos_cartoes');
+        if (nonBankTabs.length > 0) {
+          pwdTabSelect.innerHTML = nonBankTabs.map(t => `
+            <option value="${escapeHtml(t.id)}" ${t.id === prevVal ? 'selected' : ''}>${escapeHtml(t.icon || '🔐')} ${escapeHtml(t.name)}</option>
+          `).join('');
+        }
+      }
+    } catch (e) {
+      console.warn('[Configurações] Aviso ao popular selects:', e);
+    }
+  },
+
   // Disparador de Renderização
   render() {
     this.renderYearSelector();
+    this.populateSystemSelects();
     switch (this.currentTab) {
       case 'resumo':
         this.renderResumo();
@@ -535,6 +751,9 @@ const app = {
       case 'investimentos':
         this.renderInvestimentos();
         break;
+      case 'configuracoes':
+        this.renderConfiguracoes();
+        break;
     }
   },
 
@@ -546,15 +765,18 @@ const app = {
     const grid = document.getElementById('bankCardsGrid');
     if (grid) {
       grid.innerHTML = store.data.accounts.map(acc => `
-        <div class="bank-card ${acc.id}">
+        <div class="bank-card ${acc.id}" style="${acc.color ? `--bank-accent: ${acc.color}; border-top: 3px solid ${acc.color};` : ''}">
           <div class="bank-card-header">
-            <span class="bank-name">${acc.name}</span>
-            <span class="bank-badge">${acc.type}</span>
+            <span class="bank-name" style="display:flex; align-items:center; gap:0.4rem;">
+              <span style="width:9px; height:9px; border-radius:50%; background:${acc.color || '#3b82f6'}; display:inline-block; flex-shrink:0;"></span>
+              ${escapeHtml(acc.name)}
+            </span>
+            <span class="bank-badge">${escapeHtml(acc.type)}</span>
           </div>
           <div class="bank-balance">${formatBRL(acc.balance)}</div>
           <div class="bank-card-footer">
             <span>Disponível</span>
-            <button class="btn-quick-edit-balance" onclick="app.promptEditBalance('${acc.id}', '${acc.name}', ${acc.balance})">
+            <button class="btn-quick-edit-balance" onclick="app.promptEditBalance('${acc.id}', '${escapeHtml(acc.name)}', ${acc.balance})">
               Ajustar Saldo
             </button>
           </div>
@@ -921,7 +1143,7 @@ const app = {
                         <td>
                           <input type="date" 
                                  class="sheet-inline-input sheet-date-input" 
-                                 value="${r.date || ''}" 
+                                 value="${r.date || this.getDefaultDateForMonth(this.activeMonth)}" 
                                  title="Defina a data de recebimento diretamente na planilha"
                                  onchange="app.updateRevenueField(${this.activeMonth}, '${r.id}', 'date', this.value)">
                         </td>
@@ -937,15 +1159,7 @@ const app = {
                           <select class="sheet-inline-select" 
                                   title="Selecione o banco diretamente na planilha"
                                   onchange="app.updateRevenueField(${this.activeMonth}, '${r.id}', 'bank', this.value)">
-                            <option value="" ${!r.bank ? 'selected' : ''}>— Selecionar Banco —</option>
-                            <option value="Nubank (Nu)" ${r.bank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
-                            <option value="Bradesco" ${r.bank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
-                            <option value="Banco do Brasil" ${r.bank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
-                            <option value="Caixa Poupança" ${r.bank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Poupança</option>
-                            <option value="Caixa CP" ${r.bank === 'Caixa CP' ? 'selected' : ''}>Caixa CP</option>
-                            <option value="Seven" ${r.bank === 'Seven' ? 'selected' : ''}>Seven</option>
-                            <option value="Carteira" ${r.bank === 'Carteira' ? 'selected' : ''}>Carteira (Físico)</option>
-                            <option value="Outro" ${r.bank === 'Outro' ? 'selected' : ''}>Outro</option>
+                            ${this.getBankSelectOptionsHtml(r.bank, '— Selecionar Banco —', true)}
                           </select>
                         </td>
                         <td style="text-align: right;">
@@ -1057,13 +1271,9 @@ const app = {
               <div style="min-width:130px;">
                 <select class="form-input" style="padding:0.35rem 0.65rem; height:34px; font-size:0.82rem;" onchange="app.filterReceitas('bank', this.value)">
                   <option value="todos" ${this.receitasFilterBank === 'todos' ? 'selected' : ''}>Banco: Todos</option>
-                  <option value="Bradesco" ${this.receitasFilterBank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
-                  <option value="Nubank (Nu)" ${this.receitasFilterBank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
-                  <option value="Banco do Brasil" ${this.receitasFilterBank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
-                  <option value="Caixa Poupança" ${this.receitasFilterBank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Poupança</option>
-                  <option value="Caixa CP" ${this.receitasFilterBank === 'Caixa CP' ? 'selected' : ''}>Caixa CP</option>
-                  <option value="Seven" ${this.receitasFilterBank === 'Seven' ? 'selected' : ''}>Seven</option>
-                  <option value="Carteira" ${this.receitasFilterBank === 'Carteira' ? 'selected' : ''}>Carteira</option>
+                  ${(store.data.accounts || []).map(acc => `
+                    <option value="${escapeHtml(acc.name)}" ${this.receitasFilterBank === acc.name ? 'selected' : ''}>${escapeHtml(acc.name)}</option>
+                  `).join('')}
                 </select>
               </div>
             </div>
@@ -1112,7 +1322,7 @@ const app = {
                         <td>
                           <input type="date" 
                                  class="sheet-inline-input sheet-date-input" 
-                                 value="${r.date || ''}" 
+                                 value="${r.date || this.getDefaultDateForMonth(r.monthNum)}" 
                                  title="Defina a data de recebimento diretamente na planilha"
                                  onchange="app.updateRevenueField(${r.monthNum}, '${r.id}', 'date', this.value)">
                         </td>
@@ -1128,15 +1338,7 @@ const app = {
                           <select class="sheet-inline-select" 
                                   title="Selecione o banco diretamente na planilha"
                                   onchange="app.updateRevenueField(${r.monthNum}, '${r.id}', 'bank', this.value)">
-                            <option value="" ${!r.bank ? 'selected' : ''}>— Selecionar Banco —</option>
-                            <option value="Nubank (Nu)" ${r.bank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
-                            <option value="Bradesco" ${r.bank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
-                            <option value="Banco do Brasil" ${r.bank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
-                            <option value="Caixa Poupança" ${r.bank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Poupança</option>
-                            <option value="Caixa CP" ${r.bank === 'Caixa CP' ? 'selected' : ''}>Caixa CP</option>
-                            <option value="Seven" ${r.bank === 'Seven' ? 'selected' : ''}>Seven</option>
-                            <option value="Carteira" ${r.bank === 'Carteira' ? 'selected' : ''}>Carteira (Físico)</option>
-                            <option value="Outro" ${r.bank === 'Outro' ? 'selected' : ''}>Outro</option>
+                            ${this.getBankSelectOptionsHtml(r.bank, '— Selecionar Banco —', true)}
                           </select>
                         </td>
                         <td>
@@ -1221,6 +1423,19 @@ const app = {
           </div>
         </div>
 
+        ${(summary.prepaidFromOtherMonths && summary.prepaidFromOtherMonths.length > 0) ? `
+          <div style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid #38bdf8; padding: 0.65rem 0.9rem; border-radius: 4px; margin-bottom: 0.85rem; font-size: 0.82rem; color: #bae6fd;">
+            ℹ️ <strong>Adiantamentos debitados neste mês:</strong> Foram pagas neste mês ${summary.prepaidFromOtherMonths.length} conta(s) pertencente(s) a outros meses (Total: <strong>${formatBRL(summary.prepaidTotal)}</strong>), descontadas do saldo de ${m.name}.
+            <span style="opacity:0.85; font-size:0.75rem; margin-left:4px;">(${summary.prepaidFromOtherMonths.map(x => `${x.description || x.name || 'Conta'} de ${x.originalMonthName}: ${formatBRL(x.valuePaid)}`).join(', ')})</span>
+          </div>
+        ` : ''}
+        ${(summary.paidInOtherMonths && summary.paidInOtherMonths.length > 0) ? `
+          <div style="background: rgba(168, 85, 247, 0.08); border-left: 3px solid #a855f7; padding: 0.65rem 0.9rem; border-radius: 4px; margin-bottom: 0.85rem; font-size: 0.82rem; color: #e9d5ff;">
+            🗓️ <strong>Contas deste mês já adiantadas em outro mês:</strong> ${summary.paidInOtherMonths.length} conta(s) deste mês (Total: <strong>${formatBRL(summary.paidInOtherMonthsTotal)}</strong>) foram pagas e descontadas no caixa de outros meses.
+            <span style="opacity:0.85; font-size:0.75rem; margin-left:4px;">(${summary.paidInOtherMonths.map(x => `${x.description || x.name || 'Conta'} paga em ${x.paidMonthName}: ${formatBRL(x.valuePaid)}`).join(', ')})</span>
+          </div>
+        ` : ''}
+
         <div class="table-responsive">
           <table class="data-table">
             <thead>
@@ -1230,13 +1445,14 @@ const app = {
                 <th>Valor Previsto</th>
                 <th>Valor Realizado</th>
                 <th>Status</th>
+                <th>Data Pagamento</th>
                 <th>Banco / Conta</th>
                 <th style="width: 90px; text-align: center;">Ações</th>
               </tr>
             </thead>
             <tbody>
               ${m.fixedExpenses.length === 0 ? `
-                <tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma despesa fixa cadastrada para este mês.</td></tr>
+                <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma despesa fixa cadastrada para este mês.</td></tr>
               ` : m.fixedExpenses.map(e => {
                 const isPaid = (e.status === 'Pago');
                 const valExp = Number(e.valueExpected) || 0;
@@ -1271,6 +1487,19 @@ const app = {
                         isToday = true;
                       }
                     }
+                  }
+                }
+
+                // Identificação de pagamento em outro mês (Regime de Caixa)
+                let payMonth = null;
+                let payYear = null;
+                let isPaidInDifferentMonth = false;
+                if (e.paymentDate) {
+                  const pParts = e.paymentDate.split('-');
+                  payYear = parseInt(pParts[0], 10);
+                  payMonth = parseInt(pParts[1], 10);
+                  if (payMonth && (payMonth !== actMonth || payYear !== actYear)) {
+                    isPaidInDifferentMonth = true;
                   }
                 }
 
@@ -1328,18 +1557,23 @@ const app = {
                     </button>
                   </td>
                   <td>
+                    <input type="date" 
+                           class="sheet-inline-input sheet-date-input" 
+                           value="${e.paymentDate || ''}" 
+                           title="Data do efetivo pagamento (saída de caixa)" 
+                           onchange="app.updateFixedExpenseField(${this.activeMonth}, '${e.id}', 'paymentDate', this.value)"
+                           style="width: 125px; font-size: 0.8rem; padding: 0.25rem 0.35rem;">
+                    ${isPaidInDifferentMonth ? `
+                      <div style="font-size:0.7rem; color:#38bdf8; font-weight:600; margin-top:2px;" title="Esta despesa foi descontada no caixa de ${store.getMonthName(payMonth)}/${payYear}">
+                        ↳ Descontado em ${store.getMonthName(payMonth).slice(0, 3)}/${payYear}
+                      </div>
+                    ` : ''}
+                  </td>
+                  <td>
                     <select class="sheet-inline-select" 
                             title="Selecione o banco diretamente na tabela"
                             onchange="app.updateFixedExpenseField(${this.activeMonth}, '${e.id}', 'bank', this.value)">
-                      <option value="" ${!e.bank ? 'selected' : ''}>— Selecionar Banco —</option>
-                      <option value="Bradesco" ${e.bank === 'Bradesco' ? 'selected' : ''}>Bradesco</option>
-                      <option value="Nubank (Nu)" ${e.bank === 'Nubank (Nu)' ? 'selected' : ''}>Nubank (Nu)</option>
-                      <option value="Banco do Brasil" ${e.bank === 'Banco do Brasil' ? 'selected' : ''}>Banco do Brasil (BB)</option>
-                      <option value="Caixa Poupança" ${e.bank === 'Caixa Poupança' ? 'selected' : ''}>Caixa Econômica (Poupança)</option>
-                      <option value="Caixa CP" ${e.bank === 'Caixa CP' ? 'selected' : ''}>Caixa Econômica (Caixa CP)</option>
-                      <option value="Seven" ${e.bank === 'Seven' ? 'selected' : ''}>Seven</option>
-                      <option value="Carteira" ${e.bank === 'Carteira' ? 'selected' : ''}>Carteira (Dinheiro)</option>
-                      <option value="Outro" ${e.bank === 'Outro' ? 'selected' : ''}>Outro</option>
+                      ${this.getBankSelectOptionsHtml(e.bank, '— Selecionar Banco —', true)}
                     </select>
                   </td>
                   <td style="text-align: center;">
@@ -1361,7 +1595,7 @@ const app = {
                 <td colspan="2" style="text-align: right; color: var(--text-muted); padding: 0.85rem 1rem;">Total Previsto e Realizado:</td>
                 <td style="color: #fbbf24; padding: 0.85rem 1rem; font-weight:800;">${formatBRL(summary.fixedExpected || 0)}</td>
                 <td style="color: var(--success); padding: 0.85rem 1rem; font-weight:800;">${formatBRL(summary.fixedPaid)}</td>
-                <td colspan="3" style="color: var(--text-muted); font-size: 0.82rem; padding: 0.85rem 1rem;">
+                <td colspan="4" style="color: var(--text-muted); font-size: 0.82rem; padding: 0.85rem 1rem;">
                   Restante a pagar: <strong style="color: #f87171;">${formatBRL(summary.fixedPending)}</strong>
                 </td>
               </tr>
@@ -1468,151 +1702,97 @@ const app = {
           </div>
         </div>
 
-        <!-- CARDS CONSOLIDADOS: MASTERCARD & NUBANK -->
-        ${(() => {
-          const masterIsPaid = masterInv.isPaid || masterInv.totalPaid > 0;
-          const masterIsFull = masterIsPaid && (masterInv.totalExpected === 0 || masterInv.totalPaid >= masterInv.totalExpected);
-          const masterIsUnder = masterIsPaid && (masterInv.totalPaid < masterInv.totalExpected);
-          const masterBorder = masterIsFull 
-            ? 'border: 2px solid rgba(16, 185, 129, 0.75); box-shadow: 0 0 18px rgba(16, 185, 129, 0.2);' 
-            : (masterIsUnder ? 'border: 2px solid rgba(239, 68, 68, 0.75); box-shadow: 0 0 18px rgba(239, 68, 68, 0.2);' : '');
-
-          const nuIsPaid = nubankInv.isPaid || nubankInv.totalPaid > 0;
-          const nuIsFull = nuIsPaid && (nubankInv.totalExpected === 0 || nubankInv.totalPaid >= nubankInv.totalExpected);
-          const nuIsUnder = nuIsPaid && (nubankInv.totalPaid < nubankInv.totalExpected);
-          const nuBorder = nuIsFull 
-            ? 'border: 2px solid rgba(16, 185, 129, 0.75); box-shadow: 0 0 18px rgba(16, 185, 129, 0.2);' 
-            : (nuIsUnder ? 'border: 2px solid rgba(239, 68, 68, 0.75); box-shadow: 0 0 18px rgba(239, 68, 68, 0.2);' : '');
-
-          return `
+        <!-- CARDS CONSOLIDADOS DE TODOS OS CARTÕES CADASTRADOS -->
         <div class="faturas-cards-grid">
-          
-          <!-- CARD: MASTERCARD -->
-          <div class="fatura-card-widget mastercard-theme" style="${masterBorder}">
-            <div>
-              <div class="fatura-widget-header">
-                <div class="fatura-brand-group">
-                  <div class="fatura-brand-icon">
-                    <svg width="34" height="22" viewBox="0 0 34 22" fill="none">
-                      <circle cx="11" cy="11" r="11" fill="#EB001B"/>
-                      <circle cx="23" cy="11" r="11" fill="#F79E1B" fill-opacity="0.85"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="fatura-brand-name">Mastercard</div>
-                    <div style="font-size:0.75rem; color:#f59e0b; font-weight:600;">Fatura de ${m.name}</div>
-                  </div>
-                </div>
+          ${invoices.map(inv => {
+            const invIsPaid = inv.isPaid || inv.totalPaid > 0;
+            const invIsFull = invIsPaid && (inv.totalExpected === 0 || inv.totalPaid >= inv.totalExpected);
+            const invIsUnder = invIsPaid && (inv.totalPaid < inv.totalExpected);
+            const invBorder = invIsFull 
+              ? 'border: 2px solid rgba(16, 185, 129, 0.75); box-shadow: 0 0 18px rgba(16, 185, 129, 0.2);' 
+              : (invIsUnder ? 'border: 2px solid rgba(239, 68, 68, 0.75); box-shadow: 0 0 18px rgba(239, 68, 68, 0.2);' : '');
+            const cLower = String(inv.name || '').toLowerCase();
+            const isMaster = inv.key === 'master' || cLower.includes('master');
+            const isNu = inv.key === 'nubank' || cLower.includes('nu');
+            const themeClass = isMaster ? 'mastercard-theme' : (isNu ? 'nubank-theme' : 'mastercard-theme');
+            const accentColor = inv.color || (isNu ? '#c084fc' : '#f59e0b');
+            const iconHtml = isMaster ? `
+              <div class="fatura-brand-icon">
+                <svg width="34" height="22" viewBox="0 0 34 22" fill="none">
+                  <circle cx="11" cy="11" r="11" fill="#EB001B"/>
+                  <circle cx="23" cy="11" r="11" fill="#F79E1B" fill-opacity="0.85"/>
+                </svg>
+              </div>
+            ` : (isNu ? `
+              <div class="fatura-brand-icon" style="background: rgba(130, 10, 209, 0.45); border: 1px solid rgba(168, 85, 247, 0.4);">
+                <span style="color:#ffffff; font-weight:900; font-size:1.1rem; letter-spacing:-1px;">nu</span>
+              </div>
+            ` : `
+              <div class="fatura-brand-icon" style="background: ${accentColor}26; border: 1px solid ${accentColor}66;">
+                <span style="color:#ffffff; font-weight:900; font-size:1rem;">💳</span>
+              </div>
+            `);
+
+            return `
+              <div class="fatura-card-widget ${themeClass}" style="${invBorder}">
                 <div>
-                  ${masterInv.count === 0 ? `
-                    <span class="status-badge neutral" style="font-size:0.75rem;">Sem Lançamentos</span>
-                  ` : (masterIsFull ? `
-                    <span class="status-badge paid" style="font-size:0.78rem;">✓ Fatura Paga</span>
-                  ` : (masterIsUnder ? `
-                    <span class="status-badge danger" style="font-size:0.78rem;">⚠️ Pago Abaixo</span>
-                  ` : `
-                    <span class="status-badge waiting" style="font-size:0.78rem;">⏳ Pendente</span>
-                  `))}
-                </div>
-              </div>
-
-              <div class="fatura-widget-body">
-                <div class="fatura-amount-label">Valor Total da Fatura (Previsto)</div>
-                <div class="fatura-amount-value" style="color: ${masterInv.totalExpected > 0 ? '#ffffff' : 'var(--text-muted)'};">
-                  ${formatBRL(masterInv.totalExpected)}
-                </div>
-                <div class="fatura-amount-sub" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.35rem; flex-wrap:wrap;">
-                  <span style="color: ${masterIsFull ? '#34d399' : (masterIsUnder ? '#f87171' : '#34d399')}; font-weight:700;">Pago: ${formatBRL(masterInv.totalPaid)}</span>
-                  ${masterInv.totalPending > 0 ? `
-                    <span style="color: #f87171; font-weight:600;">Restante: ${formatBRL(masterInv.totalPending)}</span>
-                  ` : ''}
-                </div>
-
-                <div class="fatura-widget-info">
-                  <span>📅 Vencimento: <strong>Dia ${masterInv.dueDay}</strong></span>
-                  <span>🔒 Fechamento: <strong>Dia ${masterInv.closingDay}</strong></span>
-                  <span>📦 <strong>${masterInv.count}</strong> compra(s)</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="fatura-widget-footer">
-              ${masterInv.count > 0 ? `
-                <button class="btn-fatura-action ${masterIsPaid ? 'btn-fatura-unpay' : 'btn-fatura-pay'}" onclick="app.togglePayCardInvoice(${this.activeMonth}, 'master')">
-                  ${masterIsPaid ? '↩ Desmarcar Fatura' : '✓ Quitar Fatura Mastercard'}
-                </button>
-                <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, 'master')" title="Ajustar valor pago">
-                  ✏️ Ajustar Valor
-                </button>
-              ` : `
-                <span style="font-size:0.82rem; color:var(--text-muted);">Nenhuma compra no Mastercard neste mês.</span>
-              `}
-            </div>
-          </div>
-
-          <!-- CARD: NUBANK -->
-          <div class="fatura-card-widget nubank-theme" style="${nuBorder}">
-            <div>
-              <div class="fatura-widget-header">
-                <div class="fatura-brand-group">
-                  <div class="fatura-brand-icon" style="background: rgba(130, 10, 209, 0.45); border: 1px solid rgba(168, 85, 247, 0.4);">
-                    <span style="color:#ffffff; font-weight:900; font-size:1.1rem; letter-spacing:-1px;">nu</span>
+                  <div class="fatura-widget-header">
+                    <div class="fatura-brand-group">
+                      ${iconHtml}
+                      <div>
+                        <div class="fatura-brand-name">${escapeHtml(inv.name)}</div>
+                        <div style="font-size:0.75rem; color:${accentColor}; font-weight:600;">Fatura de ${m.name}</div>
+                      </div>
+                    </div>
+                    <div>
+                      ${inv.count === 0 ? `
+                        <span class="status-badge neutral" style="font-size:0.75rem;">Sem Lançamentos</span>
+                      ` : (invIsFull ? `
+                        <span class="status-badge paid" style="font-size:0.78rem;">✓ Fatura Paga</span>
+                      ` : (invIsUnder ? `
+                        <span class="status-badge danger" style="font-size:0.78rem;">⚠️ Pago Abaixo</span>
+                      ` : `
+                        <span class="status-badge waiting" style="font-size:0.78rem;">⏳ Pendente</span>
+                      `))}
+                    </div>
                   </div>
-                  <div>
-                    <div class="fatura-brand-name">Nubank (Nu)</div>
-                    <div style="font-size:0.75rem; color:#c084fc; font-weight:600;">Fatura de ${m.name}</div>
+
+                  <div class="fatura-widget-body">
+                    <div class="fatura-amount-label">Valor Total da Fatura (Previsto)</div>
+                    <div class="fatura-amount-value" style="color: ${inv.totalExpected > 0 ? '#ffffff' : 'var(--text-muted)'};">
+                      ${formatBRL(inv.totalExpected)}
+                    </div>
+                    <div class="fatura-amount-sub" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.35rem; flex-wrap:wrap;">
+                      <span style="color: ${invIsFull ? '#34d399' : (invIsUnder ? '#f87171' : '#34d399')}; font-weight:700;">Pago: ${formatBRL(inv.totalPaid)}</span>
+                      ${inv.totalPending > 0 ? `
+                        <span style="color: #f87171; font-weight:600;">Restante: ${formatBRL(inv.totalPending)}</span>
+                      ` : ''}
+                    </div>
+
+                    <div class="fatura-widget-info">
+                      <span>📅 Vencimento: <strong>Dia ${inv.dueDay}</strong></span>
+                      <span>🔒 Fechamento: <strong>Dia ${inv.closingDay}</strong></span>
+                      <span>📦 <strong>${inv.count}</strong> compra(s)</span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  ${nubankInv.count === 0 ? `
-                    <span class="status-badge neutral" style="font-size:0.75rem;">Sem Lançamentos</span>
-                  ` : (nuIsFull ? `
-                    <span class="status-badge paid" style="font-size:0.78rem;">✓ Fatura Paga</span>
-                  ` : (nuIsUnder ? `
-                    <span class="status-badge danger" style="font-size:0.78rem;">⚠️ Pago Abaixo</span>
+
+                <div class="fatura-widget-footer">
+                  ${inv.count > 0 ? `
+                    <button class="btn-fatura-action ${invIsPaid ? 'btn-fatura-unpay' : 'btn-fatura-pay'}" onclick="app.togglePayCardInvoice(${this.activeMonth}, '${inv.key}')">
+                      ${invIsPaid ? '↩ Desmarcar Fatura' : `✓ Quitar Fatura ${escapeHtml(inv.name)}`}
+                    </button>
+                    <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, '${inv.key}')" title="Ajustar valor pago">
+                      ✏️ Ajustar Valor
+                    </button>
                   ` : `
-                    <span class="status-badge waiting" style="font-size:0.78rem;">⏳ Pendente</span>
-                  `))}
+                    <span style="font-size:0.82rem; color:var(--text-muted);">Nenhuma compra no ${escapeHtml(inv.name)} neste mês.</span>
+                  `}
                 </div>
               </div>
-
-              <div class="fatura-widget-body">
-                <div class="fatura-amount-label">Valor Total da Fatura (Previsto)</div>
-                <div class="fatura-amount-value" style="color: ${nubankInv.totalExpected > 0 ? '#ffffff' : 'var(--text-muted)'};">
-                  ${formatBRL(nubankInv.totalExpected)}
-                </div>
-                <div class="fatura-amount-sub" style="display:flex; align-items:center; gap:0.6rem; margin-top:0.35rem; flex-wrap:wrap;">
-                  <span style="color: ${nuIsFull ? '#34d399' : (nuIsUnder ? '#f87171' : '#34d399')}; font-weight:700;">Pago: ${formatBRL(nubankInv.totalPaid)}</span>
-                  ${nubankInv.totalPending > 0 ? `
-                    <span style="color: #f87171; font-weight:600;">Restante: ${formatBRL(nubankInv.totalPending)}</span>
-                  ` : ''}
-                </div>
-
-                <div class="fatura-widget-info">
-                  <span>📅 Vencimento: <strong>Dia ${nubankInv.dueDay}</strong></span>
-                  <span>🔒 Fechamento: <strong>Dia ${nubankInv.closingDay}</strong></span>
-                  <span>📦 <strong>${nubankInv.count}</strong> compra(s)</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="fatura-widget-footer">
-              ${nubankInv.count > 0 ? `
-                <button class="btn-fatura-action ${nuIsPaid ? 'btn-fatura-unpay' : 'btn-fatura-pay'}" onclick="app.togglePayCardInvoice(${this.activeMonth}, 'nubank')">
-                  ${nuIsPaid ? '↩ Desmarcar Fatura' : '✓ Quitar Fatura Nubank'}
-                </button>
-                <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, 'nubank')" title="Ajustar valor pago">
-                  ✏️ Ajustar Valor
-                </button>
-              ` : `
-                <span style="font-size:0.82rem; color:var(--text-muted);">Nenhuma compra no Nubank neste mês.</span>
-              `}
-            </div>
-          </div>
-
+            `;
+          }).join('')}
         </div>
-        `;
-        })()}
 
         <!-- TABELA CONSOLIDADA DAS FATURAS -->
         <div style="margin-top: 1.25rem;">
@@ -1815,7 +1995,7 @@ const app = {
 
     const dateInp = document.getElementById('rev_date');
     if (dateInp) {
-      dateInp.value = '';
+      dateInp.value = this.getDefaultDateForMonth(this.activeMonth);
     }
 
     this.openModal('modalNovaReceita');
@@ -1857,10 +2037,42 @@ const app = {
     // Marca o mês atual por padrão
     this.selectCurrentFixedMonthOnly();
 
+    // Pré-configura o dia do vencimento com o dia atual
+    const dueDayInp = document.getElementById('fix_due_day');
+    if (dueDayInp) {
+      dueDayInp.value = String(new Date().getDate());
+    }
+
+    const payDateInp = document.getElementById('fix_payment_date');
+    if (payDateInp) {
+      payDateInp.value = this.getTodayISO();
+    }
+    const payDateContainer = document.getElementById('fix_payment_date_container');
+    if (payDateContainer) {
+      payDateContainer.style.display = 'none';
+    }
+
     this.openModal('modalNovaDespesaFixa');
 
     setTimeout(() => {
       const inputDesc = document.getElementById('fix_desc');
+      if (inputDesc) inputDesc.focus();
+    }, 150);
+  },
+
+  openModalNovaDespesaVariavel() {
+    const form = document.getElementById('formNovaDespesaVariavel');
+    if (form) form.reset();
+
+    const dateInp = document.getElementById('var_date');
+    if (dateInp) {
+      dateInp.value = this.getDefaultDateForMonth(this.activeMonth);
+    }
+
+    this.openModal('modalNovaDespesaVariavel');
+
+    setTimeout(() => {
+      const inputDesc = document.getElementById('var_desc');
       if (inputDesc) inputDesc.focus();
     }, 150);
   },
@@ -1894,6 +2106,29 @@ const app = {
     const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
     if (!expense) return;
 
+    if (field === 'paymentDate') {
+      expense.paymentDate = value || '';
+      if (value && expense.status !== 'Pago') {
+        expense.status = 'Pago';
+        if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '') {
+          expense.valuePaid = expense.valueExpected || 0;
+        }
+      }
+      store.save();
+      this.renderMeses();
+      this.renderResumo();
+      if (value) {
+        const parts = value.split('-');
+        const payMonth = parseInt(parts[1], 10);
+        if (payMonth && payMonth !== Number(monthNum)) {
+          this.showToast(`Data salva! Despesa de ${store.getMonthName(monthNum)} será descontada no saldo de ${store.getMonthName(payMonth)}.`, 'info');
+        } else {
+          this.showToast('Data de pagamento atualizada!', 'info');
+        }
+      }
+      return;
+    }
+
     if (field === 'valuePaid') {
       const newVal = typeof value === 'number' ? value : parseMoney(value);
       expense.valuePaid = newVal;
@@ -1901,6 +2136,9 @@ const app = {
       // Se o usuário digitou um valor positivo e não estava Pago, marca como Pago
       if (newVal > 0 && expense.status !== 'Pago') {
         expense.status = 'Pago';
+        if (!expense.paymentDate) {
+          expense.paymentDate = this.getTodayISO();
+        }
       }
       // Se newVal === 0 e status for Pago, MANTÉM PAGO (autorizado pagamento de outra forma com custo R$ 0,00)
 
@@ -1990,6 +2228,9 @@ const app = {
 
     if (!isPaid) {
       item.status = 'Pago';
+      if (!item.date) {
+        item.date = this.getDefaultDateForMonth(monthNum);
+      }
       if (item.value > 0 && item.bank) {
         store.creditToBank(item.bank, item.value);
         this.showToast(`✓ "${item.source}" marcado como PAGO! Linha destacada em verde (+${formatBRL(item.value)})`, 'success');
@@ -2020,7 +2261,7 @@ const app = {
     document.getElementById('edit_rev_annual_group').value = r.annualGroupId || '';
     document.getElementById('edit_rev_source').value = r.source || '';
     document.getElementById('edit_rev_value').value = r.value || '';
-    document.getElementById('edit_rev_date').value = r.date || '';
+    document.getElementById('edit_rev_date').value = r.date || this.getDefaultDateForMonth(monthNum);
     document.getElementById('edit_rev_status').value = (r.status === 'Recebido' || r.status === 'Pago') ? 'Pago' : 'Pendente';
     document.getElementById('edit_rev_bank').value = r.bank || 'Nubank (Nu)';
 
@@ -2137,15 +2378,25 @@ const app = {
     document.getElementById('edit_fix_annual_group').value = expense.annualGroupId || '';
     document.getElementById('edit_fix_desc').value = expense.description || '';
 
-    // Vencimento opcional: em branco se não cadastrado
+    // Vencimento pré-configurado com o dia atual se não cadastrado
     const hasDue = (expense.dueDay !== undefined && expense.dueDay !== null && String(expense.dueDay).trim() !== '');
-    const dDay = hasDue ? Number(expense.dueDay) : (expense.dueDate ? parseInt(expense.dueDate.split('-')[2], 10) : '');
-    document.getElementById('edit_fix_due_day').value = dDay || '';
+    const dDay = hasDue ? Number(expense.dueDay) : (expense.dueDate ? parseInt(expense.dueDate.split('-')[2], 10) : new Date().getDate());
+    document.getElementById('edit_fix_due_day').value = dDay || new Date().getDate();
 
     document.getElementById('edit_fix_val_exp').value = formatMoneyDisplay(expense.valueExpected || 0);
     document.getElementById('edit_fix_val_paid').value = (expense.valuePaid !== undefined && expense.valuePaid !== null && expense.valuePaid !== '') ? formatMoneyDisplay(expense.valuePaid) : '';
     document.getElementById('edit_fix_status').value = expense.status || 'Pendente';
     document.getElementById('edit_fix_bank').value = expense.bank || '';
+
+    // Data de Pagamento efetivo
+    const payDateInput = document.getElementById('edit_fix_payment_date');
+    const payDateContainer = document.getElementById('edit_fix_payment_date_container');
+    if (payDateInput) {
+      payDateInput.value = expense.paymentDate || (expense.status === 'Pago' ? this.getTodayISO() : '');
+    }
+    if (payDateContainer) {
+      payDateContainer.style.display = expense.status === 'Pago' ? 'block' : 'none';
+    }
 
     // Opções de recorrência (cascata)
     const isRecurring = Boolean(expense.annualGroupId || expense.type === 'anual' || expense.type === 'multi-mes' || store.hasRecurringFixedExpense(monthNum, expense));
@@ -2173,16 +2424,31 @@ const app = {
     if (expense) {
       if (expense.status === 'Pago') {
         expense.status = 'Pendente';
+        expense.paymentDate = '';
       } else {
         expense.status = 'Pago';
         if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '') {
           expense.valuePaid = expense.valueExpected || 0;
         }
+        if (!expense.paymentDate) {
+          expense.paymentDate = this.getTodayISO();
+        }
       }
       store.save();
       this.renderMeses();
       this.renderResumo();
-      this.showToast(`Despesa marcada como ${expense.status}!`, 'success');
+
+      if (expense.status === 'Pago') {
+        const parts = (expense.paymentDate || '').split('-');
+        const payMonth = parseInt(parts[1], 10);
+        if (payMonth && payMonth !== Number(monthNum)) {
+          this.showToast(`✓ Conta de ${store.getMonthName(monthNum)} marcada como Paga! Descontada no saldo de ${store.getMonthName(payMonth)} (${formatDateBR(expense.paymentDate)}).`, 'success');
+        } else {
+          this.showToast(`✓ Despesa marcada como Paga (${formatDateBR(expense.paymentDate)})!`, 'success');
+        }
+      } else {
+        this.showToast('Despesa marcada como Pendente.', 'info');
+      }
     }
   },
 
@@ -2466,8 +2732,26 @@ const app = {
     if (!container) return;
 
     let purchases = store.data.cardPurchases || [];
+    const configuredCards = Array.isArray(store.data.creditCards) && store.data.creditCards.length > 0
+      ? store.data.creditCards
+      : [
+          { id: 'master', name: 'Mastercard' },
+          { id: 'nubank_card', name: 'Nubank (Nu)' }
+        ];
+
+    const selectedCardObj = configuredCards.find(c =>
+      c.id === this.activeTabCartao ||
+      (c.id === 'nubank_card' && this.activeTabCartao === 'nubank') ||
+      String(c.name || '').toLowerCase() === String(this.activeTabCartao || '').toLowerCase()
+    );
+
     if (this.activeTabCartao !== 'todos') {
-      purchases = purchases.filter(p => (p.card || '').toLowerCase().includes(this.activeTabCartao.toLowerCase()));
+      purchases = purchases.filter(p => {
+        if (selectedCardObj) {
+          return store.matchesCreditCard(p.card, selectedCardObj);
+        }
+        return (p.card || '').toLowerCase().includes(this.activeTabCartao.toLowerCase());
+      });
     }
 
     if (this.cardSearchQuery) {
@@ -2475,7 +2759,9 @@ const app = {
       purchases = purchases.filter(p => (p.description || '').toLowerCase().includes(q) || (p.place || '').toLowerCase().includes(q));
     }
 
-    const cardTitle = (this.activeTabCartao === 'todos') ? 'Todos os Cartões' : ((this.activeTabCartao === 'nubank') ? 'Nubank (Nu)' : 'Mastercard');
+    const cardTitle = (this.activeTabCartao === 'todos')
+      ? 'Todos os Cartões'
+      : (selectedCardObj ? selectedCardObj.name : this.activeTabCartao);
     const cols = this.getCardCalendarMonthColumns();
     const colTotals = new Array(cols.length).fill(0);
     let grandTotalYear = 0;
@@ -2485,11 +2771,14 @@ const app = {
         <!-- CABEÇALHO NOTION -->
         <div class="notion-card-calendar-header">
           <div class="notion-card-title-wrap">
-            <h2 class="notion-card-title">${cardTitle} (${store.activeYear})</h2>
+            <h2 class="notion-card-title">${escapeHtml(cardTitle)} (${store.activeYear})</h2>
             <div class="notion-card-tabs">
               <button class="notion-card-tab ${this.activeTabCartao === 'todos' ? 'active' : ''}" onclick="app.filterCard('todos')">Todos os Cartões</button>
-              <button class="notion-card-tab ${this.activeTabCartao === 'master' ? 'active' : ''}" onclick="app.filterCard('master')">Mastercard</button>
-              <button class="notion-card-tab ${this.activeTabCartao === 'nubank' ? 'active' : ''}" onclick="app.filterCard('nubank')">Nubank (Nu)</button>
+              ${configuredCards.map(c => {
+                const tabKey = c.id === 'nubank_card' ? 'nubank' : c.id;
+                const isAct = (this.activeTabCartao === tabKey || this.activeTabCartao === c.id || this.activeTabCartao === c.name);
+                return `<button class="notion-card-tab ${isAct ? 'active' : ''}" onclick="app.filterCard('${escapeHtml(tabKey)}')">${escapeHtml(c.name)}</button>`;
+              }).join('')}
             </div>
           </div>
 
@@ -3162,7 +3451,7 @@ const app = {
     document.getElementById('aporteModalSubtitle').textContent = `🎯 Objetivo: ${dream.title}`;
 
     // Preenche data com o dia de hoje
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getTodayISO();
     document.getElementById('aporte_date').value = today;
     document.getElementById('aporte_val').value = '';
     document.getElementById('aporte_notes').value = '';
@@ -3278,11 +3567,12 @@ const app = {
   currentModalShifts: [],
 
   getGuPorData(ano, mes, dia) {
+    const bCfg = store.getSystemGroups()?.bombeiroConfig || {};
     const GUS = [
-      { id: 'azul', nome: 'AZUL', responsavel: 'Moraes', cor: '#38bdf8', bg: 'rgba(56, 189, 248, 0.16)', border: 'rgba(56, 189, 248, 0.45)', icone: '🔵' },
-      { id: 'amarela', nome: 'AMARELA', responsavel: 'Lapa', cor: '#facc15', bg: 'rgba(250, 204, 21, 0.16)', border: 'rgba(250, 204, 21, 0.45)', icone: '🟡' },
-      { id: 'verde', nome: 'VERDE', responsavel: 'Uitajuci', cor: '#4ade80', bg: 'rgba(74, 222, 128, 0.16)', border: 'rgba(74, 222, 128, 0.45)', icone: '🟢' },
-      { id: 'vermelha', nome: 'VERMELHA', responsavel: 'Búrigo', cor: '#f87171', bg: 'rgba(248, 113, 113, 0.16)', border: 'rgba(248, 113, 113, 0.45)', icone: '🔴' }
+      { id: 'azul', nome: 'AZUL', responsavel: bCfg.guAzul || 'Moraes', cor: '#38bdf8', bg: 'rgba(56, 189, 248, 0.16)', border: 'rgba(56, 189, 248, 0.45)', icone: '🔵' },
+      { id: 'amarela', nome: 'AMARELA', responsavel: bCfg.guAmarela || 'Lapa', cor: '#facc15', bg: 'rgba(250, 204, 21, 0.16)', border: 'rgba(250, 204, 21, 0.45)', icone: '🟡' },
+      { id: 'verde', nome: 'VERDE', responsavel: bCfg.guVerde || 'Uitajuci', cor: '#4ade80', bg: 'rgba(74, 222, 128, 0.16)', border: 'rgba(74, 222, 128, 0.45)', icone: '🟢' },
+      { id: 'vermelha', nome: 'VERMELHA', responsavel: bCfg.guVermelha || 'Búrigo', cor: '#f87171', bg: 'rgba(248, 113, 113, 0.16)', border: 'rgba(248, 113, 113, 0.45)', icone: '🔴' }
     ];
     // Âncora: 17 de Outubro de 2026 = AZUL (índice 0)
     const dtUtc = Date.UTC(parseInt(ano), parseInt(mes), parseInt(dia));
@@ -3706,9 +3996,9 @@ const app = {
         if (yearSel) yearSel.value = yStr;
       }
 
-      if (dateReq) dateReq.value = record.dateRequested || '';
+      if (dateReq) dateReq.value = record.dateRequested || this.getTodayISO();
       if (statusSel) statusSel.value = record.status || 'Pendente';
-      if (datePay) datePay.value = record.datePayment || '';
+      if (datePay) datePay.value = record.datePayment || (record.status === 'Pago' ? this.getTodayISO() : '');
       this.currentModalShifts = JSON.parse(JSON.stringify(record.shifts || []));
     } else {
       if (titleEl) titleEl.textContent = '🚒 Disponibilidades do Bombeiro Comunitário';
@@ -3723,7 +4013,7 @@ const app = {
       if (monthSel) monthSel.value = String(nextM);
       if (yearSel) yearSel.value = String(nextY);
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = this.getTodayISO();
       if (dateReq) dateReq.value = todayStr;
       if (statusSel) statusSel.value = 'Pendente';
       if (datePay) datePay.value = '';
@@ -3769,7 +4059,7 @@ const app = {
     if (!statusSel || !datePay) return;
 
     if (statusSel.value === 'Pago' && !datePay.value) {
-      datePay.value = new Date().toISOString().split('T')[0];
+      datePay.value = this.getTodayISO();
     } else if (statusSel.value === 'Pendente') {
       datePay.value = '';
     }
@@ -5622,7 +5912,7 @@ const app = {
     const dateInp = document.getElementById('stk_date');
     const convGroup = document.getElementById('stkConvertTypeGroup');
     const convSel = document.getElementById('stk_record_dest');
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = this.getTodayISO();
 
     if (editId) {
       const item = (store.data.investments.stocks || []).find(s => s.id === editId);
@@ -5658,7 +5948,7 @@ const app = {
     const dest = document.getElementById('stk_record_dest')?.value || 'STOCK';
     const ticker = (document.getElementById('stk_ticker')?.value || '').toUpperCase().trim();
     const type = document.getElementById('stk_type')?.value || (ticker.endsWith('11') ? 'FII' : 'Ação');
-    const date = document.getElementById('stk_date')?.value || new Date().toISOString().split('T')[0];
+    const date = document.getElementById('stk_date')?.value || this.getTodayISO();
     const shares = store._parseNum(document.getElementById('stk_shares')?.value);
     const pricePerShare = parseMoney(document.getElementById('stk_price')?.value);
 
@@ -5750,7 +6040,7 @@ const app = {
     const titleEl = document.getElementById('modalNovaCaixinhaNubankTitle') || document.getElementById('modalNovaCaixinhaTitle');
     const convGroup = document.getElementById('boxConvertTypeGroup');
     const convSel = document.getElementById('box_record_dest');
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = this.getTodayISO();
 
     if (editId) {
       const item = (store.data.investments.nubankBoxes || []).find(b => b.id === editId);
@@ -5789,7 +6079,7 @@ const app = {
     const dest = document.getElementById('box_record_dest')?.value || 'BOX';
     const category = document.getElementById('box_category')?.value || 'Caixinha';
     const name = (document.getElementById('box_name')?.value || '').trim() || category;
-    const date = document.getElementById('box_date')?.value || new Date().toISOString().split('T')[0];
+    const date = document.getElementById('box_date')?.value || this.getTodayISO();
     const amount = parseMoney(document.getElementById('box_val')?.value);
     const notes = (document.getElementById('box_notes')?.value || '').trim();
 
@@ -5827,7 +6117,7 @@ const app = {
     const dateInp = document.getElementById('stk_earn_date');
     const convGroup = document.getElementById('stkEarnConvertTypeGroup');
     const convSel = document.getElementById('stk_earn_record_dest');
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = this.getTodayISO();
     if (dateInp) dateInp.value = todayStr;
 
     const datalist = document.getElementById('stockTickersDatalist');
@@ -5880,7 +6170,7 @@ const app = {
     const dest = document.getElementById('stk_earn_record_dest')?.value || 'EARNING';
     const ticker = (document.getElementById('stk_earn_ticker')?.value || '').toUpperCase().trim();
     const type = document.getElementById('stk_earn_type')?.value || 'Dividendo';
-    const date = document.getElementById('stk_earn_date')?.value || new Date().toISOString().split('T')[0];
+    const date = document.getElementById('stk_earn_date')?.value || this.getTodayISO();
     const amount = parseMoney(document.getElementById('stk_earn_val')?.value);
     const bank = document.getElementById('stk_earn_bank')?.value || '';
     const notes = (document.getElementById('stk_earn_notes')?.value || '').trim();
@@ -5925,7 +6215,7 @@ const app = {
     const dateInp = document.getElementById('box_earn_date');
     const convGroup = document.getElementById('boxEarnConvertTypeGroup');
     const convSel = document.getElementById('box_earn_record_dest');
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = this.getTodayISO();
     if (dateInp) dateInp.value = todayStr;
 
     const datalist = document.getElementById('nubankBoxesDatalist');
@@ -5971,7 +6261,7 @@ const app = {
     const dest = document.getElementById('box_earn_record_dest')?.value || 'EARNING';
     const boxName = (document.getElementById('box_earn_name')?.value || '').trim() || 'Rendimento das Caixinhas';
     const category = document.getElementById('box_earn_category')?.value || 'Caixinha';
-    const date = document.getElementById('box_earn_date')?.value || new Date().toISOString().split('T')[0];
+    const date = document.getElementById('box_earn_date')?.value || this.getTodayISO();
     const amount = parseMoney(document.getElementById('box_earn_val')?.value);
     const notes = (document.getElementById('box_earn_notes')?.value || '').trim();
 
@@ -6370,12 +6660,35 @@ const app = {
     }
 
     const allPasswords = store.data.passwords || [];
+    const pwdTabs = store.getSystemGroups()?.passwordTabs || [
+      { id: 'bancos_cartoes', name: 'Bancos & Cartões', icon: '🏦' },
+      { id: 'logins_sites', name: 'Sites & Logins', icon: '🌐' },
+      { id: 'emails', name: 'E-mails', icon: '✉️' },
+      { id: 'dona_tania', name: 'D. Tânia', icon: '👵' }
+    ];
+    if (!pwdTabs.some(t => t.id === this.senhasAbaAtiva) && pwdTabs.length > 0) {
+      this.senhasAbaAtiva = pwdTabs[0].id;
+    }
+
+    // Renderiza dinamicamente as abas do Cofre de Senhas conforme configurado no sistema
+    const navSubtabs = document.querySelector('#view-senhas .senhas-subtabs-nav');
+    if (navSubtabs) {
+      navSubtabs.innerHTML = pwdTabs.map(t => {
+        const cnt = allPasswords.filter(p => this.getTabelaItem(p) === t.id).length;
+        const isAct = this.senhasAbaAtiva === t.id ? 'active' : '';
+        return `
+          <button type="button" id="subtab-btn-${escapeHtml(t.id)}" class="senhas-subtab-btn ${isAct}" onclick="app.setSenhasAba('${escapeHtml(t.id)}')">
+            <span>${escapeHtml(t.icon || '🔐')} ${escapeHtml(t.name)}</span>
+            <span class="senhas-tab-count">${cnt}</span>
+          </button>
+        `;
+      }).join('');
+    }
 
     // Contagens
     const countBancos = allPasswords.filter(p => this.getTabelaItem(p) === 'bancos_cartoes').length;
     const countSites = allPasswords.filter(p => this.getTabelaItem(p) === 'logins_sites').length;
-    const countEmails = allPasswords.filter(p => this.getTabelaItem(p) === 'emails').length;
-    const countTania = allPasswords.filter(p => this.getTabelaItem(p) === 'dona_tania').length;
+    const countOthers = allPasswords.filter(p => this.getTabelaItem(p) !== 'bancos_cartoes' && this.getTabelaItem(p) !== 'logins_sites').length;
 
     // Atualiza contadores no DOM
     const elTot = document.getElementById('metricTotalSenhas');
@@ -6385,16 +6698,7 @@ const app = {
     if (elTot) elTot.textContent = allPasswords.length;
     if (elBancos) elBancos.textContent = countBancos;
     if (elSites) elSites.textContent = countSites;
-    if (elEmailsTania) elEmailsTania.textContent = countEmails + countTania;
-
-    const elCB = document.getElementById('countBancosCartoes');
-    const elCS = document.getElementById('countLoginsSites');
-    const elCE = document.getElementById('countEmails');
-    const elCD = document.getElementById('countDonaTania');
-    if (elCB) elCB.textContent = countBancos;
-    if (elCS) elCS.textContent = countSites;
-    if (elCE) elCE.textContent = countEmails;
-    if (elCD) elCD.textContent = countTania;
+    if (elEmailsTania) elEmailsTania.textContent = countOthers;
 
     const search = (document.getElementById('pwdSearchInput')?.value || '').toLowerCase().trim();
     let filtered = allPasswords.filter(p => this.getTabelaItem(p) === this.senhasAbaAtiva);
@@ -6412,16 +6716,12 @@ const app = {
     }
 
     if (filtered.length === 0) {
-      const labelsAba = {
-        'bancos_cartoes': 'Bancos & Cartões',
-        'logins_sites': 'Sites & Logins',
-        'emails': 'E-mails',
-        'dona_tania': 'Senhas Dona Tânia'
-      };
+      const currentTabObj = pwdTabs.find(t => t.id === this.senhasAbaAtiva);
+      const abaTitle = currentTabObj ? currentTabObj.name : 'Cofre';
       container.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem; background: var(--bg-surface); border-radius: var(--radius-lg); border: 1px dashed var(--border-strong);">
           <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔐</div>
-          <h4 style="font-weight: 700; color: var(--navy); margin-bottom: 0.35rem;">Nenhum registro encontrado em ${labelsAba[this.senhasAbaAtiva] || 'Cofre'}</h4>
+          <h4 style="font-weight: 700; color: var(--navy); margin-bottom: 0.35rem;">Nenhum registro encontrado em ${escapeHtml(abaTitle)}</h4>
           <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">
             ${search ? 'Nenhum resultado corresponde à sua pesquisa.' : 'Adicione a primeira credencial clicando no botão abaixo.'}
           </p>
@@ -6803,7 +7103,56 @@ const app = {
   // =========================================================================
   // GERENCIADOR DE MODAIS
   // =========================================================================
+  ensureDefaultDatesInModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    const todayStr = this.getTodayISO();
+    const monthDateStr = this.getDefaultDateForMonth(this.activeMonth);
+    const todayDay = String(new Date().getDate());
+
+    if (modalId === 'modalNovaReceita') {
+      const revDate = document.getElementById('rev_date');
+      if (revDate && !revDate.value) revDate.value = monthDateStr;
+    } else if (modalId === 'modalConfirmarRecebimento') {
+      const payDate = document.getElementById('pay_rev_date');
+      if (payDate && !payDate.value) payDate.value = monthDateStr;
+    } else if (modalId === 'modalEditarReceita') {
+      const editRevDate = document.getElementById('edit_rev_date');
+      const editM = Number(document.getElementById('edit_rev_month')?.value) || this.activeMonth;
+      if (editRevDate && !editRevDate.value) editRevDate.value = this.getDefaultDateForMonth(editM);
+    } else if (modalId === 'modalNovaDespesaFixa') {
+      const fixDay = document.getElementById('fix_due_day');
+      if (fixDay && !fixDay.value) fixDay.value = todayDay;
+    } else if (modalId === 'modalEditarDespesaFixa') {
+      const editFixDay = document.getElementById('edit_fix_due_day');
+      if (editFixDay && !editFixDay.value) editFixDay.value = todayDay;
+    } else if (modalId === 'modalNovaDespesaVariavel') {
+      const varDate = document.getElementById('var_date');
+      if (varDate) varDate.value = monthDateStr;
+    } else if (modalId === 'modalNovaCompraCartao') {
+      const cardDate = document.getElementById('card_date');
+      if (cardDate && !cardDate.value) {
+        cardDate.value = todayStr;
+        this.updateCardStartBillingSuggestion();
+      }
+    }
+
+    // Garante que qualquer campo <input type="date"> dentro do modal tenha data pré-configurada se estiver vazio
+    modal.querySelectorAll('input[type="date"]').forEach(inp => {
+      if (inp.id === 'ff_date_pay') {
+        const statusSel = document.getElementById('ff_status');
+        if (statusSel && statusSel.value !== 'Pago') return;
+      }
+      if (!inp.value) {
+        const isMonthScoped = (inp.id === 'rev_date' || inp.id === 'var_date' || inp.id === 'pay_rev_date' || inp.id === 'edit_rev_date');
+        inp.value = isMonthScoped ? monthDateStr : todayStr;
+      }
+    });
+  },
+
   openModal(modalId) {
+    this.populateSystemSelects();
     if (modalId === 'modalNovoAtivoBolsa') {
       this.openModalNovoAtivoBolsa();
       return;
@@ -6823,6 +7172,7 @@ const app = {
       } else if (modalId === 'modalNovoSonho') {
         this.prepararModalNovoSonho();
       }
+      this.ensureDefaultDatesInModal(modalId);
       modal.classList.add('active');
       document.body.classList.add('modal-open');
     }
@@ -6831,6 +7181,8 @@ const app = {
   prepararModalNovoSonho() {
     const form = document.getElementById('formNovoSonho');
     if (form) form.reset();
+    const dreamDate = document.getElementById('dream_date');
+    if (dreamDate) dreamDate.value = this.getTodayISO();
     const prev = document.getElementById('dreamImagePreviewContainer');
     if (prev) prev.style.display = 'none';
     const hidden = document.getElementById('dream_image_url');
@@ -7699,7 +8051,7 @@ const app = {
           </div>
           <div>
             <label class="form-label" style="font-size:0.75rem; color:#94a3b8; font-weight:700;">DATA DO PAGAMENTO</label>
-            <input type="date" id="b3_new_last_div_date" class="form-input" value="${data.lastDivDate || ''}">
+            <input type="date" id="b3_new_last_div_date" class="form-input" value="${data.lastDivDate || this.getTodayISO()}">
           </div>
         </div>
 
@@ -7866,7 +8218,7 @@ const app = {
     document.getElementById('b3_edit_price').value = asset.price || '';
     document.getElementById('b3_edit_change').value = asset.change || 0;
     document.getElementById('b3_edit_last_div').value = asset.lastDiv || '';
-    document.getElementById('b3_edit_last_div_date').value = asset.lastDivDate || '';
+    document.getElementById('b3_edit_last_div_date').value = asset.lastDivDate || this.getTodayISO();
     document.getElementById('b3_edit_div12m').value = asset.div12m || '';
 
     const btnDelete = document.getElementById('btnDeleteAtivoB3');
@@ -8370,6 +8722,8 @@ const app = {
         const valExpected = parseMoney(document.getElementById('fix_val_exp').value) || 0;
         const valPaidRaw = document.getElementById('fix_val_paid').value.trim();
         const status = document.getElementById('fix_status').value || 'Pendente';
+        const paymentDateInput = document.getElementById('fix_payment_date');
+        let paymentDate = (status === 'Pago' && paymentDateInput) ? (paymentDateInput.value || this.getTodayISO()) : '';
         let valPaid = 0;
         if (valPaidRaw !== '') {
           valPaid = parseMoney(valPaidRaw);
@@ -8397,6 +8751,7 @@ const app = {
             dueDate: dueDate,
             valueExpected: valExpected,
             valuePaid: valPaid,
+            paymentDate: paymentDate,
             status: status,
             bank: '', // Banco permanece em branco no cadastro, conforme solicitado
             type: targetMonths.length > 1 ? 'multi-mes' : 'mensal',
@@ -8429,6 +8784,9 @@ const app = {
         const valExpected = parseMoney(document.getElementById('edit_fix_val_exp').value) || 0;
         const valPaidRaw = document.getElementById('edit_fix_val_paid').value.trim();
         const status = document.getElementById('edit_fix_status').value || 'Pendente';
+        const editPayDateInput = document.getElementById('edit_fix_payment_date');
+        let paymentDate = (status === 'Pago' && editPayDateInput) ? (editPayDateInput.value || this.getTodayISO()) : '';
+        if (status === 'Pendente') paymentDate = '';
         let valPaid = 0;
         if (valPaidRaw !== '') {
           valPaid = parseMoney(valPaidRaw);
@@ -8450,6 +8808,7 @@ const app = {
           dueDate: dueDate,
           valueExpected: valExpected,
           valuePaid: valPaid,
+          paymentDate: paymentDate,
           status: status,
           bank: document.getElementById('edit_fix_bank').value || ''
         };
@@ -8695,7 +9054,7 @@ const app = {
         }
 
         store.addDreamDeposit(dreamId, {
-          date: date || new Date().toISOString().split('T')[0],
+          date: date || this.getTodayISO(),
           value: val,
           notes: notes || 'Lançamento guardado'
         });
@@ -8898,6 +9257,762 @@ const app = {
         this.showToast(`Ativo ${ticker} atualizado no radar!`, 'success');
       });
     }
+  },
+
+  // =========================================================================
+  // 10. MÓDULO CONFIGURAÇÕES DO SISTEMA (BANCOS, CARTÕES, GRUPOS & BANCO DE DADOS)
+  // =========================================================================
+  activeConfigSubtab: 'todos',
+
+  setConfigSubtab(subtab) {
+    this.activeConfigSubtab = subtab;
+    this.renderConfiguracoes();
+  },
+
+  renderConfiguracoes() {
+    const container = document.getElementById('configuracoesContainer');
+    if (!container) return;
+
+    const accounts = Array.isArray(store.data.accounts) ? store.data.accounts : [];
+    const cards = Array.isArray(store.data.creditCards) ? store.data.creditCards : [];
+    const groups = store.getSystemGroups();
+    const bCfg = groups.bombeiroConfig || { shiftValue: 125, guAzul: 'Moraes', guAmarela: 'Lapa', guVerde: 'Uitajuci', guVermelha: 'Búrigo' };
+    const joturBase = Number(store.data.jotur?.baseAmount) || 200;
+    const mastesBase = Number(store.data.trocoMastes?.baseAmount) || 400;
+    const settings = store.data.settings || {};
+    const isSbConfigured = typeof supabaseService !== 'undefined' && supabaseService.isConfigured();
+    const lastSyncStr = settings.lastSync
+      ? `${new Date(settings.lastSync).toLocaleDateString('pt-BR')} às ${new Date(settings.lastSync).toLocaleTimeString('pt-BR')}`
+      : 'Sincronização automática ativa';
+
+    const tab = this.activeConfigSubtab || 'todos';
+    const showBancos = (tab === 'todos' || tab === 'bancos');
+    const showCartoes = (tab === 'todos' || tab === 'cartoes');
+    const showGrupos = (tab === 'todos' || tab === 'grupos');
+    const showParametros = (tab === 'todos' || tab === 'parametros');
+    const showPerfil = (tab === 'todos' || tab === 'perfil_banco');
+
+    const groupDefinitions = [
+      {
+        key: 'accountTypes',
+        icon: '🏦',
+        title: 'Tipos de Conta Bancária',
+        subtitle: 'Usados no cadastro de Bancos e no Cofre de Senhas',
+        color: '#38bdf8'
+      },
+      {
+        key: 'revenueSources',
+        icon: '💰',
+        title: 'Fontes de Renda (Rendimentos)',
+        subtitle: 'Sugestões rápidas ao lançar Receitas Mensais e Anuais',
+        color: '#10b981'
+      },
+      {
+        key: 'expenseCategories',
+        icon: '📌',
+        title: 'Categorias / Contas de Despesas',
+        subtitle: 'Sugestões rápidas para Despesas Fixas e Variáveis',
+        color: '#f87171'
+      },
+      {
+        key: 'investmentTypes',
+        icon: '📈',
+        title: 'Tipos de Ativos (Bolsa / B3)',
+        subtitle: 'Opções de classificação na Carteira e no Mapeando B3',
+        color: '#60a5fa'
+      },
+      {
+        key: 'earningTypes',
+        icon: '💵',
+        title: 'Tipos de Proventos / Dividendos',
+        subtitle: 'Opções ao lançar rendimentos de FIIs e Ações',
+        color: '#34d399'
+      },
+      {
+        key: 'nubankCategories',
+        icon: '🟣',
+        title: 'Modalidades Nubank',
+        subtitle: 'Divisão entre Caixinhas e Dinheiro Separado',
+        color: '#c084fc'
+      }
+    ];
+
+    container.innerHTML = `
+      <!-- CABEÇALHO EXECUTIVO DE CONFIGURAÇÕES -->
+      <div class="cfg-hero-banner">
+        <div class="cfg-hero-left">
+          <div style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap;">
+            <h2 style="margin:0; font-size:1.5rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.5rem;">
+              <span>⚙️</span> Central de Configurações & Grupos do Sistema
+            </h2>
+            <span class="badge-pill-counter green" style="font-size:0.75rem;">
+              ● Persistência Ativa no Banco de Dados
+            </span>
+          </div>
+          <p style="margin:0.4rem 0 0 0; font-size:0.88rem; color:var(--text-secondary); max-width:780px;">
+            Altere, adicione ou remova <strong>Bancos</strong>, <strong>Cartões de Crédito</strong>, <strong>Categorias</strong>, <strong>Abas do Cofre</strong> e <strong>Parâmetros Operacionais</strong>. Todas as mudanças são salvas imediatamente no banco de dados local e sincronizadas na nuvem (Supabase) para que você nunca perca suas personalizações.
+          </p>
+          <div style="margin-top:0.5rem; font-size:0.78rem; color:#94a3b8; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+            <span>☁️ <strong>Status Nuvem:</strong> ${isSbConfigured ? 'Conectado ao Supabase' : 'Modo Local'}</span>
+            <span>🕒 <strong>Última gravação:</strong> ${lastSyncStr}</span>
+          </div>
+        </div>
+
+        <div class="cfg-hero-actions">
+          <button type="button" class="btn-primary" style="width:auto; height:40px; padding:0 1.15rem; font-size:0.84rem;" onclick="app.syncCloud()">
+            ☁️ Salvar / Sincronizar Nuvem Agora
+          </button>
+          <button type="button" class="btn-header" style="height:40px; padding:0 1rem; font-size:0.84rem;" onclick="app.downloadBackup()">
+            📥 Baixar Backup (.JSON)
+          </button>
+        </div>
+      </div>
+
+      <!-- NAVEGAÇÃO DE SUB-ABAS DAS CONFIGURAÇÕES -->
+      <div class="cfg-subtabs-bar">
+        <button type="button" class="cfg-subtab-btn ${tab === 'todos' ? 'active' : ''}" onclick="app.setConfigSubtab('todos')">
+          <span>🎛️</span> Todos os Grupos
+        </button>
+        <button type="button" class="cfg-subtab-btn ${tab === 'bancos' ? 'active' : ''}" onclick="app.setConfigSubtab('bancos')">
+          <span>🏦</span> Bancos & Contas <span class="cfg-count-pill">${accounts.length}</span>
+        </button>
+        <button type="button" class="cfg-subtab-btn ${tab === 'cartoes' ? 'active' : ''}" onclick="app.setConfigSubtab('cartoes')">
+          <span>💳</span> Cartões de Crédito <span class="cfg-count-pill">${cards.length}</span>
+        </button>
+        <button type="button" class="cfg-subtab-btn ${tab === 'grupos' ? 'active' : ''}" onclick="app.setConfigSubtab('grupos')">
+          <span>📂</span> Categorias & Opções
+        </button>
+        <button type="button" class="cfg-subtab-btn ${tab === 'parametros' ? 'active' : ''}" onclick="app.setConfigSubtab('parametros')">
+          <span>🚒</span> Troco & Bombeiro
+        </button>
+        <button type="button" class="cfg-subtab-btn ${tab === 'perfil_banco' ? 'active' : ''}" onclick="app.setConfigSubtab('perfil_banco')">
+          <span>🔐</span> Perfil & Banco de Dados
+        </button>
+      </div>
+
+      <!-- ====================================================================
+           1. SEÇÃO: BANCOS & CONTAS BANCÁRIAS
+           ==================================================================== -->
+      ${showBancos ? `
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header" style="flex-wrap:wrap; gap:0.75rem;">
+          <div class="card-title-group">
+            <div class="card-icon" style="background:rgba(37, 99, 235, 0.15); color:#60a5fa;">🏦</div>
+            <div>
+              <h3 class="card-title">Bancos & Contas Bancárias (${accounts.length})</h3>
+              <span class="card-subtitle">Gerencie os bancos exibidos no Resumo, Receitas, Despesas Fixas/Variáveis e Investimentos. Se renomear um banco, todos os lançamentos vinculados são atualizados automaticamente.</span>
+            </div>
+          </div>
+          <button type="button" class="btn-primary" style="width:auto; height:40px; padding:0 1.15rem; font-size:0.85rem;" onclick="app.openModalConfigBanco()">
+            + Adicionar Novo Banco
+          </button>
+        </div>
+
+        <div class="cfg-items-grid">
+          ${accounts.map(acc => `
+            <div class="cfg-entity-card" style="border-top: 3px solid ${acc.color || '#2563eb'};">
+              <div class="cfg-entity-top">
+                <div style="display:flex; align-items:center; gap:0.6rem;">
+                  <span class="cfg-color-dot" style="background:${acc.color || '#2563eb'};"></span>
+                  <div>
+                    <div class="cfg-entity-name">${escapeHtml(acc.name)}</div>
+                    <span class="status-badge neutral" style="font-size:0.7rem;">${escapeHtml(acc.type || 'Conta Corrente')}</span>
+                  </div>
+                </div>
+                <div class="table-actions">
+                  <button type="button" class="btn-table-icon" title="Editar Banco" onclick="app.openModalConfigBanco('${escapeHtml(acc.id)}')">
+                    ✏️
+                  </button>
+                  <button type="button" class="btn-table-icon delete" title="Excluir Banco" onclick="app.deleteConfigBanco('${escapeHtml(acc.id)}', '${escapeHtml(acc.name)}')">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <div class="cfg-entity-bottom">
+                <div>
+                  <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase;">Saldo Atual</span>
+                  <div style="font-size:1.1rem; font-weight:800; color:#34d399;">${formatBRL(acc.balance)}</div>
+                </div>
+                <button type="button" class="btn-header" style="padding:0.3rem 0.65rem; font-size:0.76rem;" onclick="app.openModalConfigBanco('${escapeHtml(acc.id)}')">
+                  ⚙️ Alterar Nome / Tipo
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- ====================================================================
+           2. SEÇÃO: CARTÕES DE CRÉDITO
+           ==================================================================== -->
+      ${showCartoes ? `
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header" style="flex-wrap:wrap; gap:0.75rem;">
+          <div class="card-title-group">
+            <div class="card-icon" style="background:rgba(245, 158, 11, 0.15); color:#fbbf24;">💳</div>
+            <div>
+              <h3 class="card-title">Cartões de Crédito (${cards.length})</h3>
+              <span class="card-subtitle">Gerencie seus cartões, dias de fechamento/vencimento e cores. Os cartões aparecem automaticamente nas Faturas do Mês e na Matriz Anual de Cartões.</span>
+            </div>
+          </div>
+          <button type="button" class="btn-primary" style="width:auto; height:40px; padding:0 1.15rem; font-size:0.85rem; background:linear-gradient(135deg, #f59e0b, #d97706);" onclick="app.openModalConfigCartao()">
+            + Adicionar Novo Cartão
+          </button>
+        </div>
+
+        <div class="cfg-items-grid">
+          ${cards.map(c => `
+            <div class="cfg-entity-card" style="border-top: 3px solid ${c.color || '#f59e0b'};">
+              <div class="cfg-entity-top">
+                <div style="display:flex; align-items:center; gap:0.6rem;">
+                  <span class="cfg-color-dot" style="background:${c.color || '#f59e0b'};"></span>
+                  <div>
+                    <div class="cfg-entity-name">${escapeHtml(c.name)}</div>
+                    <span style="font-size:0.75rem; color:var(--text-secondary);">
+                      🔒 Fecha dia <strong>${c.closingDay || 1}</strong> • 📅 Vence dia <strong>${c.dueDay || 10}</strong>
+                    </span>
+                  </div>
+                </div>
+                <div class="table-actions">
+                  <button type="button" class="btn-table-icon" title="Editar Cartão" onclick="app.openModalConfigCartao('${escapeHtml(c.id)}')">
+                    ✏️
+                  </button>
+                  <button type="button" class="btn-table-icon delete" title="Excluir Cartão" onclick="app.deleteConfigCartao('${escapeHtml(c.id)}', '${escapeHtml(c.name)}')">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              <div class="cfg-entity-bottom">
+                <div>
+                  <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase;">Limite Configurado</span>
+                  <div style="font-size:1rem; font-weight:700; color:#e2e8f0;">${Number(c.limit) > 0 ? formatBRL(c.limit) : 'Sem limite fixo'}</div>
+                </div>
+                <button type="button" class="btn-header" style="padding:0.3rem 0.65rem; font-size:0.76rem;" onclick="app.openModalConfigCartao('${escapeHtml(c.id)}')">
+                  ⚙️ Editar Cartão
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- ====================================================================
+           3. SEÇÃO: GRUPOS, CATEGORIAS E ABAS DO SISTEMA
+           ==================================================================== -->
+      ${showGrupos ? `
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon" style="background:rgba(16, 185, 129, 0.15); color:#34d399;">📂</div>
+            <div>
+              <h3 class="card-title">Grupos, Categorias & Listas de Opções do Sistema</h3>
+              <span class="card-subtitle">Personalize as opções exibidas nos seletores e sugestões automáticas em todas as telas</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-groups-grid">
+          ${groupDefinitions.map(def => {
+            const list = Array.isArray(groups[def.key]) ? groups[def.key] : [];
+            return `
+              <div class="cfg-group-box">
+                <div class="cfg-group-box-header">
+                  <div>
+                    <h4 style="margin:0; font-size:0.98rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.45rem;">
+                      <span>${def.icon}</span> ${def.title}
+                      <span class="cfg-count-pill">${list.length}</span>
+                    </h4>
+                    <p style="margin:0.2rem 0 0 0; font-size:0.76rem; color:var(--text-muted);">${def.subtitle}</p>
+                  </div>
+                </div>
+
+                <!-- Input para adicionar nova opção ao grupo -->
+                <div style="display:flex; gap:0.45rem; margin:0.85rem 0;">
+                  <input type="text" id="cfg_new_${def.key}" class="form-input" style="height:36px; padding:0 0.75rem; font-size:0.84rem;" placeholder="Nova opção em ${def.title}..." onkeydown="if(event.key==='Enter'){event.preventDefault(); app.addConfigGroupItem('${def.key}');}">
+                  <button type="button" class="btn-primary" style="width:auto; height:36px; padding:0 0.9rem; font-size:0.8rem; flex-shrink:0;" onclick="app.addConfigGroupItem('${def.key}')">
+                    + Adicionar
+                  </button>
+                </div>
+
+                <!-- Lista de opções -->
+                <div class="cfg-tags-list">
+                  ${list.length === 0 ? `<span style="font-size:0.8rem; color:var(--text-muted);">Nenhuma opção cadastrada.</span>` : list.map((item, idx) => `
+                    <div class="cfg-tag-item">
+                      <span class="cfg-tag-text">${escapeHtml(item)}</span>
+                      <div class="cfg-tag-actions">
+                        <button type="button" class="cfg-tag-btn" title="Renomear opção" onclick="app.editConfigGroupItem('${def.key}', ${idx})">✏️</button>
+                        <button type="button" class="cfg-tag-btn danger" title="Remover opção" onclick="app.deleteConfigGroupItem('${def.key}', ${idx})">✕</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+
+          <!-- SUB-GRUPO ESPECIAL: ABAS / GRUPOS DO COFRE DE SENHAS -->
+          <div class="cfg-group-box" style="grid-column: 1 / -1;">
+            <div class="cfg-group-box-header">
+              <div>
+                <h4 style="margin:0; font-size:1rem; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:0.45rem;">
+                  <span>🔐</span> Abas / Grupos do Cofre de Senhas
+                  <span class="cfg-count-pill">${(groups.passwordTabs || []).length}</span>
+                </h4>
+                <p style="margin:0.2rem 0 0 0; font-size:0.78rem; color:var(--text-muted);">
+                  Renomeie as abas existentes do Cofre de Senhas (ex: "D. Tânia", "Sites & Logins") ou crie novos grupos personalizados de senhas.
+                </p>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin:0.85rem 0;">
+              <input type="text" id="cfg_new_pwd_tab_icon" class="form-input" style="width:70px; height:38px; padding:0 0.5rem; text-align:center; font-size:1rem;" value="🔐" placeholder="Ícone">
+              <input type="text" id="cfg_new_pwd_tab_name" class="form-input" style="flex:1; min-width:200px; height:38px; padding:0 0.75rem; font-size:0.85rem;" placeholder="Nome da nova aba/grupo de senhas (ex: Trabalho, Certificados, Família)...">
+              <button type="button" class="btn-primary" style="width:auto; height:38px; padding:0 1.1rem; font-size:0.82rem;" onclick="app.addConfigPasswordTab()">
+                + Criar Aba no Cofre
+              </button>
+            </div>
+
+            <div class="cfg-tags-list">
+              ${(groups.passwordTabs || []).map(t => `
+                <div class="cfg-tag-item" style="padding:0.45rem 0.75rem;">
+                  <span style="font-size:1.05rem;">${escapeHtml(t.icon || '🔐')}</span>
+                  <span class="cfg-tag-text" style="font-weight:700;">${escapeHtml(t.name)}</span>
+                  <div class="cfg-tag-actions">
+                    <button type="button" class="cfg-tag-btn" title="Renomear aba" onclick="app.editConfigPasswordTab('${escapeHtml(t.id)}')">✏️</button>
+                    ${t.id !== 'bancos_cartoes' ? `
+                      <button type="button" class="cfg-tag-btn danger" title="Excluir aba" onclick="app.deleteConfigPasswordTab('${escapeHtml(t.id)}', '${escapeHtml(t.name)}')">✕</button>
+                    ` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- ====================================================================
+           4. SEÇÃO: PARÂMETROS OPERACIONAIS (TROCO JOTUR, MASTES E BOMBEIRO)
+           ==================================================================== -->
+      ${showParametros ? `
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon" style="background:rgba(239, 68, 68, 0.15); color:#f87171;">🚒</div>
+            <div>
+              <h3 class="card-title">Parâmetros Operacionais (Troco Jotur, Mastes & Bombeiro Comunitário)</h3>
+              <span class="card-subtitle">Configure os valores fixos de referência e nomes de coordenadores das guarnições</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-groups-grid">
+          <!-- CARD: VALORES BASE DE TROCO -->
+          <div class="cfg-group-box">
+            <h4 style="margin:0 0 0.35rem 0; font-size:0.98rem; font-weight:800; color:#ffffff;">🚌 Valores Base de Conferência de Troco</h4>
+            <p style="margin:0 0 1rem 0; font-size:0.78rem; color:var(--text-muted);">
+              Defina o fundo de troco fixo para cálculo automático de sobra (lucro) ou falta no caixa.
+            </p>
+            <div class="form-grid-2">
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label">Base Troco Jotur (R$)</label>
+                <input type="number" step="0.01" id="cfg_jotur_base" class="form-input" style="padding-left:0.85rem; height:40px; font-weight:700;" value="${joturBase}">
+              </div>
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label">Base Troco Mastes (R$)</label>
+                <input type="number" step="0.01" id="cfg_mastes_base" class="form-input" style="padding-left:0.85rem; height:40px; font-weight:700;" value="${mastesBase}">
+              </div>
+            </div>
+            <button type="button" class="btn-primary" style="height:40px; font-size:0.84rem;" onclick="app.saveConfigTrocoBases()">
+              💾 Salvar Bases de Troco
+            </button>
+          </div>
+
+          <!-- CARD: ESCALA E VALOR DO BOMBEIRO COMUNITÁRIO -->
+          <div class="cfg-group-box">
+            <h4 style="margin:0 0 0.35rem 0; font-size:0.98rem; font-weight:800; color:#ffffff;">🚒 Bombeiro Comunitário (Plantão & Guarnições)</h4>
+            <p style="margin:0 0 1rem 0; font-size:0.78rem; color:var(--text-muted);">
+              Valor pago por serviço contemplado e nomes dos coordenadores das 4 Guarnições (escala 24x72).
+            </p>
+            <div class="form-group" style="margin-bottom:0.75rem;">
+              <label class="form-label">Valor por Plantão Contemplado (R$)</label>
+              <input type="number" step="0.01" id="cfg_bm_shift_val" class="form-input" style="padding-left:0.85rem; height:40px; font-weight:800; color:#34d399;" value="${bCfg.shiftValue || 125}">
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group" style="margin-bottom:0.65rem;">
+                <label class="form-label" style="color:#38bdf8;">🔵 GU AZUL (Resp.)</label>
+                <input type="text" id="cfg_bm_gu_azul" class="form-input" style="padding-left:0.75rem; height:38px;" value="${escapeHtml(bCfg.guAzul || 'Moraes')}">
+              </div>
+              <div class="form-group" style="margin-bottom:0.65rem;">
+                <label class="form-label" style="color:#facc15;">🟡 GU AMARELA (Resp.)</label>
+                <input type="text" id="cfg_bm_gu_amarela" class="form-input" style="padding-left:0.75rem; height:38px;" value="${escapeHtml(bCfg.guAmarela || 'Lapa')}">
+              </div>
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label" style="color:#4ade80;">🟢 GU VERDE (Resp.)</label>
+                <input type="text" id="cfg_bm_gu_verde" class="form-input" style="padding-left:0.75rem; height:38px;" value="${escapeHtml(bCfg.guVerde || 'Uitajuci')}">
+              </div>
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label" style="color:#f87171;">🔴 GU VERMELHA (Resp.)</label>
+                <input type="text" id="cfg_bm_gu_vermelha" class="form-input" style="padding-left:0.75rem; height:38px;" value="${escapeHtml(bCfg.guVermelha || 'Búrigo')}">
+              </div>
+            </div>
+            <button type="button" class="btn-primary" style="height:40px; font-size:0.84rem;" onclick="app.saveConfigBombeiro()">
+              💾 Salvar Configurações do Bombeiro
+            </button>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- ====================================================================
+           5. SEÇÃO: PERFIL DO USUÁRIO, SEGURANÇA & BANCO DE DADOS (SUPABASE / BACKUP)
+           ==================================================================== -->
+      ${showPerfil ? `
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-icon" style="background:rgba(168, 85, 247, 0.15); color:#c084fc;">🔐</div>
+            <div>
+              <h3 class="card-title">Perfil de Acesso & Banco de Dados na Nuvem</h3>
+              <span class="card-subtitle">Gerencie seus dados de login e a sincronização com o banco de dados Supabase</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-groups-grid">
+          <!-- PERFIL & SENHA DE ACESSO -->
+          <div class="cfg-group-box">
+            <h4 style="margin:0 0 0.35rem 0; font-size:0.98rem; font-weight:800; color:#ffffff;">👤 Dados do Usuário & Senha do Sistema</h4>
+            <p style="margin:0 0 1rem 0; font-size:0.78rem; color:var(--text-muted);">
+              Personalize seu nome exibido no topo/menu lateral e suas credenciais de entrada.
+            </p>
+            <div class="form-group" style="margin-bottom:0.75rem;">
+              <label class="form-label">Nome de Exibição</label>
+              <input type="text" id="cfg_user_name" class="form-input" style="padding-left:0.85rem; height:40px;" value="${escapeHtml(settings.userName || 'Raphael Nilsen')}">
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label">E-mail Principal</label>
+                <input type="email" id="cfg_user_email" class="form-input" style="padding-left:0.85rem; height:40px;" value="${escapeHtml(settings.userEmail || 'raphael_nilsen@hotmail.com')}">
+              </div>
+              <div class="form-group" style="margin-bottom:0.75rem;">
+                <label class="form-label">Senha de Acesso</label>
+                <input type="text" id="cfg_user_pwd" class="form-input" style="padding-left:0.85rem; height:40px;" value="${escapeHtml(settings.userPasswordHash || '12345')}">
+              </div>
+            </div>
+            <button type="button" class="btn-primary" style="height:40px; font-size:0.84rem;" onclick="app.saveConfigProfile()">
+              💾 Salvar Perfil e Senha
+            </button>
+          </div>
+
+          <!-- BANCO DE DADOS SUPABASE & BACKUP -->
+          <div class="cfg-group-box">
+            <h4 style="margin:0 0 0.35rem 0; font-size:0.98rem; font-weight:800; color:#ffffff;">☁️ Banco de Dados Supabase & Backups</h4>
+            <p style="margin:0 0 1rem 0; font-size:0.78rem; color:var(--text-muted);">
+              Todas as opções alteradas nesta página ficam salvas em <code>localStorage</code> e na tabela <code>financial_vault</code> / <code>contas_bancarias</code> do Supabase.
+            </p>
+            <div style="background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.25); border-radius:10px; padding:0.85rem 1rem; margin-bottom:1rem; font-size:0.82rem; color:#cbd5e1;">
+              <div><strong>Status da Conexão:</strong> <span style="color:#34d399; font-weight:700;">${isSbConfigured ? '● Conectado ao Supabase' : '● Armazenamento Local'}</span></div>
+              <div style="margin-top:0.25rem; color:#94a3b8; font-size:0.76rem;">Última sincronização: ${lastSyncStr}</div>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button type="button" class="btn-primary" style="width:auto; height:38px; padding:0 1rem; font-size:0.8rem;" onclick="app.syncCloud()">
+                ☁️ Sincronizar Agora
+              </button>
+              <button type="button" class="btn-header" style="height:38px; padding:0 0.9rem; font-size:0.8rem;" onclick="app.openModal('modalConfigSupabase')">
+                ⚙️ Credenciais Supabase
+              </button>
+              <button type="button" class="btn-header" style="height:38px; padding:0 0.9rem; font-size:0.8rem;" onclick="app.downloadBackup()">
+                📥 Exportar JSON
+              </button>
+              <button type="button" class="btn-header" style="height:38px; padding:0 0.9rem; font-size:0.8rem;" onclick="app.triggerImportBackup()">
+                📂 Importar JSON
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      ` : ''}
+    `;
+  },
+
+  // --- AÇÕES DE BANCOS EM CONFIGURAÇÕES ---
+  openModalConfigBanco(bankId = null) {
+    this.populateSystemSelects();
+    const form = document.getElementById('formConfigBanco');
+    if (form) form.reset();
+
+    const idEl = document.getElementById('cfg_bank_id');
+    const nameEl = document.getElementById('cfg_bank_name');
+    const typeEl = document.getElementById('cfg_bank_type');
+    const balEl = document.getElementById('cfg_bank_balance');
+    const colorEl = document.getElementById('cfg_bank_color');
+    const titleEl = document.getElementById('modalConfigBancoTitle');
+
+    if (bankId) {
+      const acc = (store.data.accounts || []).find(a => a.id === bankId);
+      if (!acc) return;
+      if (idEl) idEl.value = acc.id;
+      if (nameEl) nameEl.value = acc.name || '';
+      if (typeEl) {
+        if (!Array.from(typeEl.options).some(o => o.value === acc.type)) {
+          typeEl.innerHTML += `<option value="${escapeHtml(acc.type)}">${escapeHtml(acc.type)}</option>`;
+        }
+        typeEl.value = acc.type || 'Conta Corrente';
+      }
+      if (balEl) balEl.value = Number(acc.balance || 0).toFixed(2);
+      if (colorEl) colorEl.value = acc.color || '#2563eb';
+      if (titleEl) titleEl.textContent = `🏦 Editar Banco: ${acc.name}`;
+    } else {
+      if (idEl) idEl.value = '';
+      if (balEl) balEl.value = '0.00';
+      if (colorEl) colorEl.value = '#2563eb';
+      if (titleEl) titleEl.textContent = '🏦 Adicionar Novo Banco / Conta';
+    }
+
+    this.openModal('modalConfigBanco');
+  },
+
+  saveConfigBanco(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const id = document.getElementById('cfg_bank_id')?.value;
+    const name = document.getElementById('cfg_bank_name')?.value.trim();
+    const type = document.getElementById('cfg_bank_type')?.value || 'Conta Corrente';
+    const balance = Number(document.getElementById('cfg_bank_balance')?.value) || 0;
+    const color = document.getElementById('cfg_bank_color')?.value || '#2563eb';
+
+    if (!name) {
+      this.showToast('Informe o nome do banco.', 'warning');
+      return;
+    }
+
+    if (id) {
+      store.updateAccount(id, { name, type, balance, color });
+      this.showToast(`✅ Banco "${name}" atualizado e salvo no banco de dados!`, 'success');
+    } else {
+      store.addAccount({ name, type, balance, color });
+      this.showToast(`✅ Novo banco "${name}" adicionado ao sistema!`, 'success');
+    }
+
+    this.closeModal('modalConfigBanco');
+    this.populateSystemSelects();
+    this.renderConfiguracoes();
+    this.renderResumo();
+  },
+
+  deleteConfigBanco(id, name) {
+    if ((store.data.accounts || []).length <= 1) {
+      this.showToast('O sistema precisa manter pelo menos 1 conta bancária ativa.', 'warning');
+      return;
+    }
+    if (confirm(`Deseja realmente excluir o banco "${name}" da lista de contas do sistema?`)) {
+      store.deleteAccount(id);
+      this.populateSystemSelects();
+      this.renderConfiguracoes();
+      this.renderResumo();
+      this.showToast(`Banco "${name}" removido do sistema.`, 'info');
+    }
+  },
+
+  // --- AÇÕES DE CARTÕES DE CRÉDITO EM CONFIGURAÇÕES ---
+  openModalConfigCartao(cardId = null) {
+    const form = document.getElementById('formConfigCartao');
+    if (form) form.reset();
+
+    const idEl = document.getElementById('cfg_card_id');
+    const nameEl = document.getElementById('cfg_card_name');
+    const closeEl = document.getElementById('cfg_card_closing');
+    const dueEl = document.getElementById('cfg_card_due');
+    const limitEl = document.getElementById('cfg_card_limit');
+    const colorEl = document.getElementById('cfg_card_color');
+    const titleEl = document.getElementById('modalConfigCartaoTitle');
+
+    if (cardId) {
+      const card = (store.data.creditCards || []).find(c => c.id === cardId);
+      if (!card) return;
+      if (idEl) idEl.value = card.id;
+      if (nameEl) nameEl.value = card.name || '';
+      if (closeEl) closeEl.value = card.closingDay || 1;
+      if (dueEl) dueEl.value = card.dueDay || 10;
+      if (limitEl) limitEl.value = Number(card.limit || 0);
+      if (colorEl) colorEl.value = card.color || '#f59e0b';
+      if (titleEl) titleEl.textContent = `💳 Editar Cartão: ${card.name}`;
+    } else {
+      if (idEl) idEl.value = '';
+      if (closeEl) closeEl.value = 1;
+      if (dueEl) dueEl.value = 10;
+      if (limitEl) limitEl.value = 0;
+      if (colorEl) colorEl.value = '#0ea5e9';
+      if (titleEl) titleEl.textContent = '💳 Adicionar Novo Cartão de Crédito';
+    }
+
+    this.openModal('modalConfigCartao');
+  },
+
+  saveConfigCartao(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const id = document.getElementById('cfg_card_id')?.value;
+    const name = document.getElementById('cfg_card_name')?.value.trim();
+    const closingDay = parseInt(document.getElementById('cfg_card_closing')?.value, 10) || 1;
+    const dueDay = parseInt(document.getElementById('cfg_card_due')?.value, 10) || 10;
+    const limit = Number(document.getElementById('cfg_card_limit')?.value) || 0;
+    const color = document.getElementById('cfg_card_color')?.value || '#f59e0b';
+
+    if (!name) {
+      this.showToast('Informe o nome do cartão.', 'warning');
+      return;
+    }
+
+    if (id) {
+      store.updateCreditCard(id, { name, closingDay, dueDay, limit, color });
+      this.showToast(`✅ Cartão "${name}" atualizado e salvo no banco de dados!`, 'success');
+    } else {
+      store.addCreditCard({ name, closingDay, dueDay, limit, color });
+      this.showToast(`✅ Novo cartão "${name}" adicionado ao sistema!`, 'success');
+    }
+
+    this.closeModal('modalConfigCartao');
+    this.populateSystemSelects();
+    this.renderConfiguracoes();
+  },
+
+  deleteConfigCartao(id, name) {
+    if ((store.data.creditCards || []).length <= 1) {
+      this.showToast('Mantenha pelo menos 1 cartão de crédito cadastrado.', 'warning');
+      return;
+    }
+    if (confirm(`Deseja realmente remover o cartão "${name}"? As compras já lançadas serão preservadas.`)) {
+      store.deleteCreditCard(id);
+      this.populateSystemSelects();
+      this.renderConfiguracoes();
+      this.showToast(`Cartão "${name}" removido.`, 'info');
+    }
+  },
+
+  // --- AÇÕES DE GRUPOS E CATEGORIAS EM CONFIGURAÇÕES ---
+  addConfigGroupItem(groupKey) {
+    const inp = document.getElementById(`cfg_new_${groupKey}`);
+    if (!inp) return;
+    const val = inp.value.trim();
+    if (!val) {
+      this.showToast('Digite um nome para adicionar ao grupo.', 'warning');
+      return;
+    }
+    const added = store.addGroupOption(groupKey, val);
+    if (!added) {
+      this.showToast('Esta opção já existe neste grupo.', 'warning');
+      return;
+    }
+    inp.value = '';
+    this.populateSystemSelects();
+    this.renderConfiguracoes();
+    this.showToast(`✅ Opção "${val}" adicionada e salva no banco de dados!`, 'success');
+  },
+
+  editConfigGroupItem(groupKey, index) {
+    const groups = store.getSystemGroups();
+    const list = groups[groupKey];
+    if (!Array.isArray(list) || index < 0 || index >= list.length) return;
+    const currentVal = list[index];
+    const newVal = prompt(`Editar opção "${currentVal}":`, currentVal);
+    if (newVal !== null && newVal.trim() && newVal.trim() !== currentVal) {
+      store.updateGroupOption(groupKey, index, newVal.trim());
+      this.populateSystemSelects();
+      this.renderConfiguracoes();
+      this.showToast(`✅ Opção alterada para "${newVal.trim()}" e salva no banco de dados!`, 'success');
+    }
+  },
+
+  deleteConfigGroupItem(groupKey, index) {
+    const groups = store.getSystemGroups();
+    const list = groups[groupKey];
+    if (!Array.isArray(list) || index < 0 || index >= list.length) return;
+    const targetVal = list[index];
+    if (confirm(`Deseja remover a opção "${targetVal}" deste grupo?`)) {
+      store.deleteGroupOption(groupKey, index);
+      this.populateSystemSelects();
+      this.renderConfiguracoes();
+      this.showToast(`Opção "${targetVal}" removida.`, 'info');
+    }
+  },
+
+  // --- AÇÕES DE ABAS DO COFRE DE SENHAS ---
+  addConfigPasswordTab() {
+    const iconInp = document.getElementById('cfg_new_pwd_tab_icon');
+    const nameInp = document.getElementById('cfg_new_pwd_tab_name');
+    const name = nameInp ? nameInp.value.trim() : '';
+    const icon = iconInp ? iconInp.value.trim() || '🔐' : '🔐';
+
+    if (!name) {
+      this.showToast('Informe o nome da nova aba/grupo para o Cofre de Senhas.', 'warning');
+      return;
+    }
+    store.addPasswordTab({ name, icon });
+    if (nameInp) nameInp.value = '';
+    this.populateSystemSelects();
+    this.renderConfiguracoes();
+    this.showToast(`✅ Nova aba "${name}" criada no Cofre de Senhas!`, 'success');
+  },
+
+  editConfigPasswordTab(tabId) {
+    const groups = store.getSystemGroups();
+    const tab = (groups.passwordTabs || []).find(t => t.id === tabId);
+    if (!tab) return;
+    const newName = prompt(`Renomear aba "${tab.name}" no Cofre de Senhas:`, tab.name);
+    if (newName === null || !newName.trim()) return;
+    const newIcon = prompt(`Ícone (emoji) para "${newName.trim()}":`, tab.icon || '🔐');
+    store.updatePasswordTab(tabId, {
+      name: newName.trim(),
+      icon: (newIcon !== null && newIcon.trim()) ? newIcon.trim() : tab.icon
+    });
+    this.populateSystemSelects();
+    this.renderConfiguracoes();
+    this.showToast(`✅ Aba "${newName.trim()}" atualizada e salva!`, 'success');
+  },
+
+  deleteConfigPasswordTab(tabId, tabName) {
+    if (confirm(`Deseja remover a aba "${tabName}" do Cofre de Senhas?`)) {
+      store.deletePasswordTab(tabId);
+      this.populateSystemSelects();
+      this.renderConfiguracoes();
+      this.showToast(`Aba "${tabName}" removida.`, 'info');
+    }
+  },
+
+  // --- AÇÕES DE PARÂMETROS OPERACIONAIS (TROCO & BOMBEIRO) ---
+  saveConfigTrocoBases() {
+    const jVal = Number(document.getElementById('cfg_jotur_base')?.value);
+    const mVal = Number(document.getElementById('cfg_mastes_base')?.value);
+    if (!isNaN(jVal) && jVal >= 0) store.updateTrocoBase('jotur', jVal);
+    if (!isNaN(mVal) && mVal >= 0) store.updateTrocoBase('mastes', mVal);
+    this.renderConfiguracoes();
+    this.showToast('✅ Valores base do Troco Jotur e Mastes salvos no banco de dados!', 'success');
+  },
+
+  saveConfigBombeiro() {
+    const shiftValue = Number(document.getElementById('cfg_bm_shift_val')?.value) || 125;
+    const guAzul = document.getElementById('cfg_bm_gu_azul')?.value || 'Moraes';
+    const guAmarela = document.getElementById('cfg_bm_gu_amarela')?.value || 'Lapa';
+    const guVerde = document.getElementById('cfg_bm_gu_verde')?.value || 'Uitajuci';
+    const guVermelha = document.getElementById('cfg_bm_gu_vermelha')?.value || 'Búrigo';
+
+    store.updateBombeiroConfig({ shiftValue, guAzul, guAmarela, guVerde, guVermelha });
+    this.renderConfiguracoes();
+    this.showToast('✅ Configurações e Guarnições do Bombeiro salvas no banco de dados!', 'success');
+  },
+
+  saveConfigProfile() {
+    const userName = document.getElementById('cfg_user_name')?.value.trim();
+    const userEmail = document.getElementById('cfg_user_email')?.value.trim();
+    const userPasswordHash = document.getElementById('cfg_user_pwd')?.value.trim();
+
+    store.updateUserProfile({ userName, userEmail, userPasswordHash });
+    const sidebarUserEl = document.querySelector('.user-profile-badge .user-name');
+    if (sidebarUserEl && userName) sidebarUserEl.textContent = userName;
+    this.renderConfiguracoes();
+    this.showToast('✅ Perfil e credenciais atualizados no banco de dados!', 'success');
   }
 };
 

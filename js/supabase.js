@@ -393,6 +393,23 @@ class SupabaseService {
         if (!store.data.settings.userPasswordHash) store.data.settings.userPasswordHash = '12345';
         store.data.settings.lastSync = data.updated_at;
 
+        // Preserva alterações locais pendentes ou configurações locais que ainda não haviam subido para a nuvem
+        if (hasPendingLocalMutation) {
+          if (Array.isArray(localBefore.accounts)) store.data.accounts = localBefore.accounts;
+          if (Array.isArray(localBefore.creditCards)) store.data.creditCards = localBefore.creditCards;
+          if (localBefore.systemGroups) store.data.systemGroups = localBefore.systemGroups;
+        } else {
+          if (!data.data_json.systemGroups && localBefore.systemGroups) {
+            store.data.systemGroups = localBefore.systemGroups;
+          }
+          if (!Array.isArray(data.data_json.creditCards) && Array.isArray(localBefore.creditCards)) {
+            store.data.creditCards = localBefore.creditCards;
+          }
+        }
+        if (typeof normalizeSystemGroupsData === 'function') {
+          normalizeSystemGroupsData(store.data);
+        }
+
         // Usa a nuvem como fonte da verdade para refletir edições e exclusões em todos os dispositivos,
         // preservando alterações locais apenas se o usuário acabou de editar antes da sincronização concluir.
         const pickInvList = (cloudArr, localArr, fallbackArr) => {

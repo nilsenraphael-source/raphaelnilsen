@@ -46,8 +46,8 @@ const INITIAL_DATABASE = {
 
   // 3. Cartões de Crédito
   creditCards: [
-    { id: 'master', name: 'Mastercard', limit: 0, closingDay: 1, dueDay: 10 },
-    { id: 'nubank_card', name: 'Nubank (Nu)', limit: 0, closingDay: 5, dueDay: 15 }
+    { id: 'master', name: 'Mastercard', limit: 0, closingDay: 1, dueDay: 10, color: '#f59e0b' },
+    { id: 'nubank_card', name: 'Nubank (Nu)', limit: 0, closingDay: 5, dueDay: 15, color: '#8b5cf6' }
   ],
   // Compras no Cartão
   cardPurchases: [],
@@ -358,6 +358,80 @@ const INITIAL_DATABASE = {
     ]
   },
 
+  // 10. Grupos e Opções Personalizáveis do Sistema
+  systemGroups: {
+    accountTypes: [
+      'Conta Corrente',
+      'Conta Digital',
+      'Poupança',
+      'Conta Pagamento',
+      'Conta / Cartão',
+      'Dinheiro',
+      'Investimentos'
+    ],
+    revenueSources: [
+      'Salário',
+      'Jotur',
+      'Bombeiro Comunitário',
+      'Rendimentos / Dividendos',
+      'Aluguel',
+      'Extra'
+    ],
+    expenseCategories: [
+      'Moradia / Aluguel',
+      'Energia / Água',
+      'Internet / Telefone',
+      'Mercado / Alimentação',
+      'Combustível / Transporte',
+      'Saúde / Farmácia',
+      'Seguros / Impostos',
+      'Lazer / Assinaturas',
+      'Educação',
+      'Outros'
+    ],
+    investmentTypes: [
+      'FII',
+      'Ação',
+      'Fiagro',
+      'ETF',
+      'BDR',
+      'Renda Fixa',
+      'Outro'
+    ],
+    earningTypes: [
+      'Rendimento FII',
+      'Dividendo',
+      'JCP',
+      'Bonificação',
+      'Amortização',
+      'Rendimento Renda Fixa',
+      'Outro'
+    ],
+    nubankCategories: [
+      'Caixinha',
+      'Dinheiro Separado'
+    ],
+    nubankBoxNames: [
+      'Nubank Investimento',
+      'Reserva de Emergência',
+      'Caixinha Nubank',
+      'Viagem / Sonhos'
+    ],
+    passwordTabs: [
+      { id: 'bancos_cartoes', name: 'Bancos & Cartões', icon: '🏦' },
+      { id: 'logins_sites', name: 'Sites & Logins', icon: '🌐' },
+      { id: 'emails', name: 'E-mails', icon: '✉️' },
+      { id: 'dona_tania', name: 'D. Tânia', icon: '👵' }
+    ],
+    bombeiroConfig: {
+      shiftValue: 125.00,
+      guAzul: 'Moraes',
+      guAmarela: 'Lapa',
+      guVerde: 'Uitajuci',
+      guVermelha: 'Búrigo'
+    }
+  },
+
   // Configurações do Sistema
   settings: {
     userName: 'Raphael Nilsen',
@@ -370,6 +444,63 @@ const INITIAL_DATABASE = {
     }
   }
 };
+
+function normalizeSystemGroupsData(merged) {
+  if (!merged) return;
+
+  // Garante contas bancárias válidas com cores
+  if (!Array.isArray(merged.accounts) || merged.accounts.length === 0) {
+    merged.accounts = JSON.parse(JSON.stringify(INITIAL_DATABASE.accounts));
+  } else {
+    merged.accounts.forEach(acc => {
+      if (!acc.color) acc.color = '#2563eb';
+      if (!acc.type) acc.type = 'Conta Corrente';
+      acc.balance = Number(acc.balance) || 0;
+    });
+  }
+
+  // Garante cartões de crédito válidos com cores e dias de fechamento/vencimento
+  if (!Array.isArray(merged.creditCards) || merged.creditCards.length === 0) {
+    merged.creditCards = JSON.parse(JSON.stringify(INITIAL_DATABASE.creditCards));
+  } else {
+    merged.creditCards.forEach(card => {
+      if (!card.color) {
+        const nm = String(card.name || '').toLowerCase();
+        card.color = nm.includes('nu') ? '#8b5cf6' : (nm.includes('master') ? '#f59e0b' : '#0ea5e9');
+      }
+      card.closingDay = Number(card.closingDay) || 1;
+      card.dueDay = Number(card.dueDay) || 10;
+      card.limit = Number(card.limit) || 0;
+    });
+  }
+
+  // Garante systemGroups completo preservando customizações do usuário
+  const defaultGroups = JSON.parse(JSON.stringify(INITIAL_DATABASE.systemGroups));
+  const savedGroups = (merged.systemGroups && typeof merged.systemGroups === 'object')
+    ? merged.systemGroups
+    : (merged.settings && merged.settings.systemGroups ? merged.settings.systemGroups : null);
+
+  if (!savedGroups) {
+    merged.systemGroups = defaultGroups;
+  } else {
+    merged.systemGroups = {
+      accountTypes: Array.isArray(savedGroups.accountTypes) && savedGroups.accountTypes.length > 0 ? savedGroups.accountTypes : defaultGroups.accountTypes,
+      revenueSources: Array.isArray(savedGroups.revenueSources) && savedGroups.revenueSources.length > 0 ? savedGroups.revenueSources : defaultGroups.revenueSources,
+      expenseCategories: Array.isArray(savedGroups.expenseCategories) && savedGroups.expenseCategories.length > 0 ? savedGroups.expenseCategories : defaultGroups.expenseCategories,
+      investmentTypes: Array.isArray(savedGroups.investmentTypes) && savedGroups.investmentTypes.length > 0 ? savedGroups.investmentTypes : defaultGroups.investmentTypes,
+      earningTypes: Array.isArray(savedGroups.earningTypes) && savedGroups.earningTypes.length > 0 ? savedGroups.earningTypes : defaultGroups.earningTypes,
+      nubankCategories: Array.isArray(savedGroups.nubankCategories) && savedGroups.nubankCategories.length > 0 ? savedGroups.nubankCategories : defaultGroups.nubankCategories,
+      nubankBoxNames: Array.isArray(savedGroups.nubankBoxNames) && savedGroups.nubankBoxNames.length > 0 ? savedGroups.nubankBoxNames : defaultGroups.nubankBoxNames,
+      passwordTabs: Array.isArray(savedGroups.passwordTabs) && savedGroups.passwordTabs.length > 0 ? savedGroups.passwordTabs : defaultGroups.passwordTabs,
+      bombeiroConfig: (savedGroups.bombeiroConfig && typeof savedGroups.bombeiroConfig === 'object')
+        ? { ...defaultGroups.bombeiroConfig, ...savedGroups.bombeiroConfig }
+        : defaultGroups.bombeiroConfig
+    };
+  }
+  if (merged.settings) {
+    merged.settings.systemGroups = merged.systemGroups;
+  }
+}
 
 class DataStore {
   constructor() {
@@ -399,6 +530,8 @@ class DataStore {
             merged.settings.supabase.anonKey.includes('sua-chave')) {
           merged.settings.supabase = { ...INITIAL_DATABASE.settings.supabase };
         }
+
+        normalizeSystemGroupsData(merged);
 
         // Garante estruturas de investimentos e rendimentos
         if (!merged.investments || typeof merged.investments !== 'object') {
@@ -750,7 +883,15 @@ class DataStore {
       if (!this.data.months[m]) return;
       if (!this.data.months[m].revenues) this.data.months[m].revenues = [];
 
-      let itemDate = date || '';
+      let baseDay = new Date().getDate();
+      if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        baseDay = parseInt(date.split('-')[2], 10) || baseDay;
+      }
+      const daysInM = new Date(year, m, 0).getDate();
+      const actualDay = Math.min(Math.max(1, baseDay), daysInM);
+      const itemDate = (!isMultiMonth && date && /^\d{4}-\d{2}-\d{2}$/.test(date) && parseInt(date.split('-')[1], 10) === m)
+        ? date
+        : `${year}-${String(m).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
 
       const revItem = {
         id: 'rev_' + Date.now() + '_' + m + '_' + Math.random().toString(36).substr(2, 4),
@@ -898,7 +1039,8 @@ class DataStore {
       ...currentItem,
       ...updatedData,
       valueExpected: newExpected,
-      valuePaid: newPaid
+      valuePaid: newPaid,
+      paymentDate: updatedData.paymentDate !== undefined ? updatedData.paymentDate : (currentItem.paymentDate || '')
     };
 
     // Cascata para meses seguintes ou todos os meses se solicitado
@@ -989,6 +1131,13 @@ class DataStore {
     if (!this.data.months[monthNum]) return;
     expense.id = 'var_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
     expense.value = Number(expense.value) || 0;
+    if (!expense.date) {
+      const year = Number(this.activeYear) || new Date().getFullYear();
+      const m = Number(monthNum) || (new Date().getMonth() + 1);
+      const daysInM = new Date(year, m, 0).getDate();
+      const actualDay = Math.min(new Date().getDate(), daysInM);
+      expense.date = `${year}-${String(m).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    }
     this.data.months[monthNum].variableExpenses.push(expense);
     this.save();
     return expense;
@@ -1162,22 +1311,53 @@ class DataStore {
     this.save();
   }
 
-  // Faturas consolidadas por cartão no mês (Mastercard e Nubank)
+  // Verifica se um lançamento pertence a um cartão configurado
+  matchesCreditCard(instCardName, cardObj) {
+    const cName = String(instCardName || '').trim().toLowerCase();
+    const targetName = String(cardObj.name || '').trim().toLowerCase();
+    const targetId = String(cardObj.id || '').trim().toLowerCase();
+    const targetKey = String(cardObj.key || cardObj.id || '').trim().toLowerCase();
+
+    if (!cName) return false;
+    if (cName === targetName || cName === targetId || cName === targetKey) return true;
+    if (targetKey === 'master' || targetId === 'master' || targetName.includes('master')) {
+      if (cName.includes('master')) return true;
+    }
+    if (targetKey === 'nubank' || targetId === 'nubank_card' || targetName.includes('nubank')) {
+      if (cName.includes('nubank') || cName === 'nu' || cName.includes('(nu)')) return true;
+    }
+    return false;
+  }
+
+  // Faturas consolidadas por cartão no mês (dinâmico conforme cartões cadastrados)
   getCardInvoicesForMonth(monthNum, year = this.activeYear) {
     const installments = this.getCardInstallmentsForMonth(monthNum, year);
     
-    // Configurações padrão dos cartões
-    const cards = [
-      { key: 'master', name: 'Mastercard', color: '#f59e0b', dueDay: 10, closingDay: 1 },
-      { key: 'nubank', name: 'Nubank (Nu)', color: '#8b5cf6', dueDay: 15, closingDay: 5 }
-    ];
+    const configuredCards = (Array.isArray(this.data.creditCards) && this.data.creditCards.length > 0)
+      ? this.data.creditCards
+      : [
+          { id: 'master', name: 'Mastercard', color: '#f59e0b', dueDay: 10, closingDay: 1 },
+          { id: 'nubank_card', name: 'Nubank (Nu)', color: '#8b5cf6', dueDay: 15, closingDay: 5 }
+        ];
+
+    const cards = configuredCards.map(c => ({
+      id: c.id,
+      key: c.id === 'nubank_card' ? 'nubank' : c.id,
+      name: c.name,
+      color: c.color || (String(c.name || '').toLowerCase().includes('nu') ? '#8b5cf6' : '#f59e0b'),
+      dueDay: Number(c.dueDay) || 10,
+      closingDay: Number(c.closingDay) || 1,
+      limit: Number(c.limit) || 0
+    }));
+
+    const matchedIds = new Set();
 
     const result = cards.map(c => {
       const matched = installments.filter(inst => {
-        const cName = (inst.card || '').toLowerCase();
-        if (c.key === 'master') return cName.includes('master');
-        if (c.key === 'nubank') return cName.includes('nubank') || cName.includes('nu');
-        return false;
+        if (matchedIds.has(inst.key)) return false;
+        const isMatch = this.matchesCreditCard(inst.card, c);
+        if (isMatch) matchedIds.add(inst.key);
+        return isMatch;
       });
 
       const totalExpected = matched.reduce((acc, inst) => acc + (Number(inst.value) || 0), 0);
@@ -1193,11 +1373,13 @@ class DataStore {
       const status = count === 0 ? 'Sem lançamentos' : (!isPaid ? 'Pendente' : (isFullPaid ? 'Pago' : 'Pago Abaixo'));
 
       return {
+        id: c.id,
         key: c.key,
         name: c.name,
         color: c.color,
         dueDay: c.dueDay,
         closingDay: c.closingDay,
+        limit: c.limit,
         totalExpected,
         totalPaid,
         totalPending: Math.max(0, totalExpected - totalPaid),
@@ -1212,10 +1394,7 @@ class DataStore {
     });
 
     // Se houver algum lançamento de outro cartão não previsto
-    const otherMatched = installments.filter(inst => {
-      const cName = (inst.card || '').toLowerCase();
-      return !cName.includes('master') && !cName.includes('nubank') && !cName.includes('nu');
-    });
+    const otherMatched = installments.filter(inst => !matchedIds.has(inst.key));
 
     if (otherMatched.length > 0) {
       const otherExpected = otherMatched.reduce((acc, inst) => acc + (Number(inst.value) || 0), 0);
@@ -1231,11 +1410,13 @@ class DataStore {
       const status = otherCount === 0 ? 'Sem lançamentos' : (!isPaid ? 'Pendente' : (isFullPaid ? 'Pago' : 'Pago Abaixo'));
 
       result.push({
+        id: 'outros',
         key: 'outros',
         name: 'Outros Cartões',
         color: '#64748b',
         dueDay: 10,
         closingDay: 1,
+        limit: 0,
         totalExpected: otherExpected,
         totalPaid: otherPaid,
         totalPending: Math.max(0, otherExpected - otherPaid),
@@ -1260,13 +1441,13 @@ class DataStore {
     if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
     if (!m.cardInstallmentPaid) m.cardInstallmentPaid = {};
 
-    const installments = this.getCardInstallmentsForMonth(monthNum, targetYear);
-    const cardInsts = installments.filter(inst => {
-      const cName = (inst.card || '').toLowerCase();
-      if (cardKey === 'master') return cName.includes('master');
-      if (cardKey === 'nubank') return cName.includes('nubank') || cName.includes('nu');
-      return cName === cardKey.toLowerCase();
-    });
+    const invoices = this.getCardInvoicesForMonth(monthNum, targetYear);
+    const targetInv = invoices.find(inv =>
+      inv.key === cardKey ||
+      inv.id === cardKey ||
+      String(inv.name || '').toLowerCase() === String(cardKey || '').toLowerCase()
+    );
+    const cardInsts = targetInv ? targetInv.installments : [];
 
     if (cardInsts.length === 0) return;
 
@@ -1342,14 +1523,69 @@ class DataStore {
       }
       return acc + (Number(e.valueExpected) || 0);
     }, 0);
-    const fixedPaid = m.fixedExpenses.filter(e => e.status === 'Pago').reduce((acc, e) => {
-      const vp = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : (Number(e.valueExpected) || 0);
-      return acc + vp;
-    }, 0);
+
+    // Indicadores do checklist do mês atual (Competência)
     const fixedPending = m.fixedExpenses.filter(e => e.status !== 'Pago').reduce((acc, e) => acc + (Number(e.valueExpected) || 0), 0);
     const fixedCount = m.fixedExpenses.length;
     const fixedPaidCount = m.fixedExpenses.filter(e => e.status === 'Pago').length;
     const fixedPct = fixedCount === 0 ? 100 : Math.round((fixedPaidCount / fixedCount) * 100);
+
+    // FLUXO DE CAIXA REALIZADO (Regime de Caixa por Data de Pagamento)
+    // Permite que uma conta de Dezembro paga em Novembro seja descontada no saldo de Novembro!
+    let fixedPaidCash = 0;
+    const prepaidFromOtherMonths = [];
+    const paidInOtherMonths = [];
+    const targetYearNum = Number(this.activeYear) || new Date().getFullYear();
+    const monthsData = (this.data.years && this.data.years[targetYearNum]) ? this.data.years[targetYearNum] : this.data.months;
+
+    for (let mIdx = 1; mIdx <= 12; mIdx++) {
+      const curM = monthsData[mIdx];
+      if (!curM || !Array.isArray(curM.fixedExpenses)) continue;
+
+      curM.fixedExpenses.forEach(e => {
+        if (e.status === 'Pago') {
+          const vp = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : (Number(e.valueExpected) || 0);
+          
+          let payMonth = mIdx;
+          let payYear = targetYearNum;
+
+          if (e.paymentDate && typeof e.paymentDate === 'string' && e.paymentDate.includes('-')) {
+            const parts = e.paymentDate.split('-');
+            const py = parseInt(parts[0], 10);
+            const pm = parseInt(parts[1], 10);
+            if (!isNaN(pm) && pm >= 1 && pm <= 12) {
+              payMonth = pm;
+              payYear = py || targetYearNum;
+            }
+          }
+
+          if (payMonth === monthNum && payYear === targetYearNum) {
+            fixedPaidCash += vp;
+            if (mIdx !== monthNum) {
+              prepaidFromOtherMonths.push({
+                ...e,
+                expense: e,
+                originalMonth: mIdx,
+                originalMonthName: this.data.months[mIdx]?.name || `Mês ${mIdx}`,
+                valuePaid: vp
+              });
+            }
+          } else if (mIdx === monthNum && (payMonth !== monthNum || payYear !== targetYearNum)) {
+            paidInOtherMonths.push({
+              ...e,
+              expense: e,
+              paidMonth: payMonth,
+              paidYear: payYear,
+              paidMonthName: this.data.months[payMonth]?.name || `Mês ${payMonth}`,
+              valuePaid: vp
+            });
+          }
+        }
+      });
+    }
+
+    // fixedPaid: total desembolsado no mês para abater do saldo em caixa
+    const fixedPaid = fixedPaidCash;
 
     const totalVariable = m.variableExpenses.reduce((acc, e) => acc + (Number(e.value) || 0), 0);
     
@@ -1391,7 +1627,11 @@ class DataStore {
       cardPct: cardPct,
       expenses: totalExpensesRealized,
       expensesExpected: totalExpensesExpected,
-      balance: balance
+      balance: balance,
+      prepaidFromOtherMonths: prepaidFromOtherMonths,
+      paidInOtherMonths: paidInOtherMonths,
+      prepaidTotal: prepaidFromOtherMonths.reduce((acc, p) => acc + p.valuePaid, 0),
+      paidInOtherMonthsTotal: paidInOtherMonths.reduce((acc, p) => acc + p.valuePaid, 0)
     };
   }
 
@@ -1654,12 +1894,17 @@ class DataStore {
   }
 
   // --- BOMBEIRO COMUNITÁRIO ---
+  getFirefighterShiftValue() {
+    return Number(this.data?.systemGroups?.bombeiroConfig?.shiftValue) || 125.00;
+  }
+
   addFirefighterRecord(rec) {
     rec.id = rec.id || ('ff_' + Date.now());
     rec.shifts = rec.shifts || [];
+    const shiftVal = this.getFirefighterShiftValue();
     if (rec.shifts.length > 0) {
       const contemplated = rec.shifts.filter(s => s.contemplated).length;
-      rec.amount = contemplated * 125.00;
+      rec.amount = contemplated * shiftVal;
     } else {
       rec.amount = Number(rec.amount) || 0;
     }
@@ -1673,9 +1918,10 @@ class DataStore {
     if (idx !== -1) {
       const rec = { ...this.data.firefighterRecords[idx], ...updatedData };
       rec.shifts = rec.shifts || [];
+      const shiftVal = this.getFirefighterShiftValue();
       if (rec.shifts.length > 0) {
         const contemplated = rec.shifts.filter(s => s.contemplated).length;
-        rec.amount = contemplated * 125.00;
+        rec.amount = contemplated * shiftVal;
       }
       this.data.firefighterRecords[idx] = rec;
       this.save();
@@ -1691,7 +1937,7 @@ class DataStore {
       if (shift) {
         shift.contemplated = !shift.contemplated;
         const contemplated = rec.shifts.filter(s => s.contemplated).length;
-        rec.amount = contemplated * 125.00;
+        rec.amount = contemplated * this.getFirefighterShiftValue();
         this.save();
         return rec;
       }
@@ -2277,6 +2523,297 @@ class DataStore {
     this.save();
   }
 
+  // --- CONFIGURAÇÕES GERAIS: BANCOS, CARTÕES, GRUPOS & PARÂMETROS ---
+  getSystemGroups() {
+    normalizeSystemGroupsData(this.data);
+    return this.data.systemGroups;
+  }
+
+  // 1. CRUD de Bancos / Contas Bancárias
+  addAccount(accData) {
+    if (!accData || !accData.name) return null;
+    const cleanName = String(accData.name).trim();
+    const idSlug = cleanName.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || ('acc_' + Date.now());
+    const uniqueId = this.data.accounts.some(a => a.id === idSlug)
+      ? `${idSlug}_${Date.now().toString(36)}`
+      : idSlug;
+
+    const newAcc = {
+      id: accData.id || uniqueId,
+      name: cleanName,
+      type: (accData.type || 'Conta Corrente').trim(),
+      balance: Number(accData.balance) || 0,
+      color: accData.color || '#2563eb'
+    };
+
+    this.data.accounts.push(newAcc);
+    this.save();
+    return newAcc;
+  }
+
+  updateAccount(id, updatedData) {
+    const acc = this.data.accounts.find(a => a.id === id);
+    if (!acc) return null;
+
+    const oldName = acc.name;
+    const newName = updatedData.name ? String(updatedData.name).trim() : oldName;
+
+    acc.name = newName;
+    if (updatedData.type !== undefined) acc.type = String(updatedData.type).trim();
+    if (updatedData.balance !== undefined) acc.balance = Number(updatedData.balance) || 0;
+    if (updatedData.color !== undefined) acc.color = updatedData.color || '#2563eb';
+
+    // Se o nome do banco mudou, atualiza referências em receitas, despesas e proventos
+    if (oldName && newName && oldName !== newName) {
+      const updateMonthBanks = (monthsObj) => {
+        if (!monthsObj) return;
+        for (let m = 1; m <= 12; m++) {
+          const mo = monthsObj[m];
+          if (!mo) continue;
+          if (Array.isArray(mo.revenues)) {
+            mo.revenues.forEach(r => { if (r.bank === oldName) r.bank = newName; });
+          }
+          if (Array.isArray(mo.fixedExpenses)) {
+            mo.fixedExpenses.forEach(e => { if (e.bank === oldName) e.bank = newName; });
+          }
+          if (Array.isArray(mo.variableExpenses)) {
+            mo.variableExpenses.forEach(v => { if (v.bank === oldName) v.bank = newName; });
+          }
+        }
+      };
+
+      if (this.data.years) {
+        Object.values(this.data.years).forEach(yrMonths => updateMonthBanks(yrMonths));
+      }
+      updateMonthBanks(this.data.months);
+
+      if (this.data.investments && Array.isArray(this.data.investments.stockEarnings)) {
+        this.data.investments.stockEarnings.forEach(se => {
+          if (se.bank === oldName) se.bank = newName;
+        });
+      }
+    }
+
+    this.save();
+    return acc;
+  }
+
+  deleteAccount(id) {
+    this.data.accounts = this.data.accounts.filter(a => a.id !== id);
+    if (typeof window !== 'undefined' && window.supabaseService) {
+      window.supabaseService.deleteRowFromTable('contas_bancarias', id);
+    }
+    this.save();
+  }
+
+  // 2. CRUD de Cartões de Crédito
+  addCreditCard(cardData) {
+    if (!cardData || !cardData.name) return null;
+    if (!Array.isArray(this.data.creditCards)) this.data.creditCards = [];
+    const cleanName = String(cardData.name).trim();
+    const idSlug = cleanName.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || ('card_' + Date.now());
+    const uniqueId = this.data.creditCards.some(c => c.id === idSlug)
+      ? `${idSlug}_${Date.now().toString(36)}`
+      : idSlug;
+
+    const newCard = {
+      id: cardData.id || uniqueId,
+      name: cleanName,
+      limit: Number(cardData.limit) || 0,
+      closingDay: Math.min(Math.max(parseInt(cardData.closingDay, 10) || 1, 1), 31),
+      dueDay: Math.min(Math.max(parseInt(cardData.dueDay, 10) || 10, 1), 31),
+      color: cardData.color || '#0ea5e9'
+    };
+
+    this.data.creditCards.push(newCard);
+    this.save();
+    return newCard;
+  }
+
+  updateCreditCard(id, updatedData) {
+    if (!Array.isArray(this.data.creditCards)) return null;
+    const card = this.data.creditCards.find(c => c.id === id);
+    if (!card) return null;
+
+    const oldName = card.name;
+    const newName = updatedData.name ? String(updatedData.name).trim() : oldName;
+
+    card.name = newName;
+    if (updatedData.limit !== undefined) card.limit = Number(updatedData.limit) || 0;
+    if (updatedData.closingDay !== undefined) card.closingDay = Math.min(Math.max(parseInt(updatedData.closingDay, 10) || 1, 1), 31);
+    if (updatedData.dueDay !== undefined) card.dueDay = Math.min(Math.max(parseInt(updatedData.dueDay, 10) || 10, 1), 31);
+    if (updatedData.color !== undefined) card.color = updatedData.color || '#0ea5e9';
+
+    // Atualiza compras vinculadas ao nome antigo do cartão
+    if (oldName && newName && oldName !== newName && Array.isArray(this.data.cardPurchases)) {
+      this.data.cardPurchases.forEach(p => {
+        if (p.card === oldName) {
+          p.card = newName;
+        }
+      });
+    }
+
+    this.save();
+    return card;
+  }
+
+  deleteCreditCard(id) {
+    if (!Array.isArray(this.data.creditCards)) return;
+    this.data.creditCards = this.data.creditCards.filter(c => c.id !== id);
+    this.save();
+  }
+
+  // 3. CRUD de Opções de Grupos (Listas de Strings)
+  addGroupOption(groupKey, optionValue) {
+    const groups = this.getSystemGroups();
+    if (!Array.isArray(groups[groupKey])) return false;
+    const cleanVal = String(optionValue || '').trim();
+    if (!cleanVal) return false;
+    const exists = groups[groupKey].some(item => String(item).toLowerCase() === cleanVal.toLowerCase());
+    if (exists) return false;
+    groups[groupKey].push(cleanVal);
+    if (this.data.settings) this.data.settings.systemGroups = groups;
+    this.save();
+    return true;
+  }
+
+  updateGroupOption(groupKey, index, newValue) {
+    const groups = this.getSystemGroups();
+    if (!Array.isArray(groups[groupKey]) || index < 0 || index >= groups[groupKey].length) return false;
+    const cleanVal = String(newValue || '').trim();
+    if (!cleanVal) return false;
+    const oldVal = groups[groupKey][index];
+    groups[groupKey][index] = cleanVal;
+
+    // Propaga renomeação caso seja Tipo de Conta, Tipo de Ativo, Tipo de Provento ou Modalidade Nubank
+    if (oldVal !== cleanVal) {
+      if (groupKey === 'accountTypes' && Array.isArray(this.data.accounts)) {
+        this.data.accounts.forEach(a => { if (a.type === oldVal) a.type = cleanVal; });
+      } else if (groupKey === 'investmentTypes' && this.data.investments && Array.isArray(this.data.investments.stocks)) {
+        this.data.investments.stocks.forEach(s => { if (s.type === oldVal) s.type = cleanVal; });
+      } else if (groupKey === 'earningTypes' && this.data.investments && Array.isArray(this.data.investments.stockEarnings)) {
+        this.data.investments.stockEarnings.forEach(e => { if (e.type === oldVal) e.type = cleanVal; });
+      } else if (groupKey === 'nubankCategories' && this.data.investments) {
+        if (Array.isArray(this.data.investments.nubankBoxes)) {
+          this.data.investments.nubankBoxes.forEach(b => { if (b.category === oldVal) b.category = cleanVal; });
+        }
+        if (Array.isArray(this.data.investments.nubankEarnings)) {
+          this.data.investments.nubankEarnings.forEach(e => { if (e.category === oldVal) e.category = cleanVal; });
+        }
+      }
+    }
+
+    if (this.data.settings) this.data.settings.systemGroups = groups;
+    this.save();
+    return true;
+  }
+
+  deleteGroupOption(groupKey, index) {
+    const groups = this.getSystemGroups();
+    if (!Array.isArray(groups[groupKey]) || index < 0 || index >= groups[groupKey].length) return false;
+    groups[groupKey].splice(index, 1);
+    if (this.data.settings) this.data.settings.systemGroups = groups;
+    this.save();
+    return true;
+  }
+
+  // 4. CRUD de Grupos/Abas do Cofre de Senhas
+  addPasswordTab(tabData) {
+    const groups = this.getSystemGroups();
+    if (!Array.isArray(groups.passwordTabs)) groups.passwordTabs = [];
+    const cleanName = String(tabData.name || '').trim();
+    if (!cleanName) return null;
+    const idSlug = cleanName.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || ('tab_' + Date.now());
+    const uniqueId = groups.passwordTabs.some(t => t.id === idSlug)
+      ? `${idSlug}_${Date.now().toString(36)}`
+      : idSlug;
+
+    const newTab = {
+      id: tabData.id || uniqueId,
+      name: cleanName,
+      icon: (tabData.icon || '🔐').trim()
+    };
+    groups.passwordTabs.push(newTab);
+    if (this.data.settings) this.data.settings.systemGroups = groups;
+    this.save();
+    return newTab;
+  }
+
+  updatePasswordTab(id, updatedData) {
+    const groups = this.getSystemGroups();
+    if (!Array.isArray(groups.passwordTabs)) return null;
+    const tab = groups.passwordTabs.find(t => t.id === id);
+    if (!tab) return null;
+    if (updatedData.name) tab.name = String(updatedData.name).trim();
+    if (updatedData.icon) tab.icon = String(updatedData.icon).trim();
+    if (this.data.settings) this.data.settings.systemGroups = groups;
+    this.save();
+    return tab;
+  }
+
+  deletePasswordTab(id) {
+    const groups = this.getSystemGroups();
+    if (!Array.isArray(groups.passwordTabs) || groups.passwordTabs.length <= 1) return false;
+    groups.passwordTabs = groups.passwordTabs.filter(t => t.id !== id);
+    if (this.data.settings) this.data.settings.systemGroups = groups;
+    this.save();
+    return true;
+  }
+
+  // 5. Parâmetros Operacionais (Troco Jotur, Troco Mastes e Bombeiro Comunitário)
+  updateBombeiroConfig(newConfig) {
+    const groups = this.getSystemGroups();
+    groups.bombeiroConfig = {
+      ...groups.bombeiroConfig,
+      shiftValue: Number(newConfig.shiftValue) > 0 ? Number(newConfig.shiftValue) : 125.00,
+      guAzul: String(newConfig.guAzul || 'Moraes').trim(),
+      guAmarela: String(newConfig.guAmarela || 'Lapa').trim(),
+      guVerde: String(newConfig.guVerde || 'Uitajuci').trim(),
+      guVermelha: String(newConfig.guVermelha || 'Búrigo').trim()
+    };
+    if (this.data.settings) this.data.settings.systemGroups = groups;
+    this.save();
+    return groups.bombeiroConfig;
+  }
+
+  updateTrocoBase(moduleKey, newBaseAmount) {
+    const val = Number(newBaseAmount);
+    if (isNaN(val) || val < 0) return false;
+    if (moduleKey === 'jotur') {
+      if (!this.data.jotur) this.data.jotur = { baseAmount: 200.00, history: [], annualAccumulated: [] };
+      this.data.jotur.baseAmount = val;
+    } else if (moduleKey === 'mastes') {
+      if (!this.data.trocoMastes) this.data.trocoMastes = { baseAmount: 400.00, history: [], annualAccumulated: [] };
+      this.data.trocoMastes.baseAmount = val;
+    }
+    this.save();
+    return true;
+  }
+
+  updateUserProfile(profile) {
+    if (!this.data.settings) this.data.settings = {};
+    if (profile.userName !== undefined && String(profile.userName).trim()) {
+      this.data.settings.userName = String(profile.userName).trim();
+    }
+    if (profile.userEmail !== undefined && String(profile.userEmail).trim()) {
+      this.data.settings.userEmail = String(profile.userEmail).trim();
+    }
+    if (profile.userPasswordHash !== undefined && String(profile.userPasswordHash).trim()) {
+      this.data.settings.userPasswordHash = String(profile.userPasswordHash).trim();
+    }
+    this.save();
+    return this.data.settings;
+  }
+
   // --- BACKUP & RESTAURAÇÃO ---
   exportJSON() {
     return JSON.stringify(this.data, null, 2);
@@ -2286,6 +2823,7 @@ class DataStore {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed && parsed.accounts) {
+        normalizeSystemGroupsData(parsed);
         this.data = parsed;
         this.save();
         return true;

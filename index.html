@@ -162,6 +162,15 @@
           </span>
           <span>MAPEANDO B3</span>
         </div>
+
+        <div class="sidebar-label">Sistema</div>
+
+        <div class="nav-item" data-tab="configuracoes">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </span>
+          <span>Configurações</span>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
@@ -1749,6 +1758,13 @@
 
         </section>
 
+        <!-- ======================================================================
+             VIEW 10: CONFIGURAÇÕES DO SISTEMA (BANCOS, CARTÕES, GRUPOS & BANCO DE DADOS)
+             ====================================================================== -->
+        <section id="view-configuracoes" class="page-view">
+          <div id="configuracoesContainer"></div>
+        </section>
+
       </div>
     </main>
   </div>
@@ -1769,7 +1785,7 @@
           
           <div class="form-group">
             <label class="form-label">Renda (De onde recebi o valor) *</label>
-            <input type="text" id="rev_source" class="form-input" required placeholder="Ex: Jotur, Bombeiro, Salário, Carteira, Cartão ELO...">
+            <input type="text" id="rev_source" list="fontes_renda_sugestoes" class="form-input" required placeholder="Ex: Jotur, Bombeiro, Salário, Carteira, Cartão ELO...">
           </div>
 
           <div class="form-grid-2" style="margin-top: 1rem;">
@@ -1918,7 +1934,7 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Renda (De onde recebi o valor)</label>
-            <input type="text" id="edit_rev_source" class="form-input" required placeholder="Ex: Salário, Honorários, Extra">
+            <input type="text" id="edit_rev_source" list="fontes_renda_sugestoes" class="form-input" required placeholder="Ex: Salário, Honorários, Extra">
           </div>
           <div class="form-grid-2">
             <div class="form-group">
@@ -1978,7 +1994,7 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Conta / Descrição</label>
-            <input type="text" id="fix_desc" class="form-input" placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
+            <input type="text" id="fix_desc" list="categorias_despesa_sugestoes" class="form-input" placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
           </div>
           <div class="form-grid-2">
             <div class="form-group">
@@ -1997,11 +2013,19 @@
             </div>
             <div class="form-group">
               <label class="form-label">Status</label>
-              <select id="fix_status" class="form-input">
+              <select id="fix_status" class="form-input" onchange="app.onFixStatusChange(this.value, 'fix_payment_date_container')">
                 <option value="Pendente">Pendente</option>
                 <option value="Pago">Pago</option>
               </select>
             </div>
+          </div>
+
+          <div class="form-group" id="fix_payment_date_container" style="display:none; margin-top:0.75rem;">
+            <label class="form-label">📅 Data Efetiva do Pagamento <span style="font-weight:normal; font-size:0.78rem; color:var(--text-muted);">(Saída do Dinheiro)</span></label>
+            <input type="date" id="fix_payment_date" class="form-input">
+            <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:3px;">
+              💡 Exemplo: Se pagar uma conta de Dezembro em Novembro, informe a data em Novembro e o saldo será debitado em Novembro!
+            </small>
           </div>
 
           <!-- Seleção de Meses em que a Despesa Fixa Ocorre (Igual às Receitas) -->
@@ -2060,7 +2084,7 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Conta / Descrição</label>
-            <input type="text" id="edit_fix_desc" class="form-input" placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
+            <input type="text" id="edit_fix_desc" list="categorias_despesa_sugestoes" class="form-input" placeholder="Ex: Aluguel, Energia, Internet, Condomínio">
           </div>
           <div class="form-grid-2">
             <div class="form-group">
@@ -2079,11 +2103,18 @@
             </div>
             <div class="form-group">
               <label class="form-label">Status</label>
-              <select id="edit_fix_status" class="form-input">
+              <select id="edit_fix_status" class="form-input" onchange="app.onFixStatusChange(this.value, 'edit_fix_payment_date_container')">
                 <option value="Pendente">Pendente</option>
                 <option value="Pago">Pago</option>
               </select>
             </div>
+          </div>
+          <div class="form-group" id="edit_fix_payment_date_container" style="display:none; margin-top:0.75rem;">
+            <label class="form-label">📅 Data Efetiva do Pagamento <span style="font-weight:normal; font-size:0.78rem; color:var(--text-muted);">(Saída do Dinheiro)</span></label>
+            <input type="date" id="edit_fix_payment_date" class="form-input">
+            <small style="color:var(--text-muted); font-size:0.75rem; display:block; margin-top:3px;">
+              💡 Se esta conta for de Dezembro e você pagou em Novembro, o valor sairá do caixa de Novembro!
+            </small>
           </div>
           <div class="form-group">
             <label class="form-label">Banco / Conta para Pagamento</label>
@@ -2283,7 +2314,7 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">Despesa / Descrição</label>
-            <input type="text" id="var_desc" class="form-input" required placeholder="Ex: Mercado, Combustível, Farmácia">
+            <input type="text" id="var_desc" list="categorias_despesa_sugestoes" class="form-input" required placeholder="Ex: Mercado, Combustível, Farmácia">
           </div>
           <div class="form-grid-2">
             <div class="form-group">
@@ -3407,13 +3438,115 @@
     </div>
   </div>
 
+  <!-- Datalists Globais populados dinamicamente pelo Banco de Dados -->
+  <datalist id="fontes_renda_sugestoes"></datalist>
+  <datalist id="categorias_despesa_sugestoes"></datalist>
+
+  <!-- Modal: Criar / Editar Banco ou Conta (Configurações) -->
+  <div id="modalConfigBanco" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalConfigBancoTitle">🏦 Configurar Conta Bancária</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalConfigBanco')">✕</button>
+      </div>
+      <form id="formConfigBanco" onsubmit="app.saveConfigBanco(event)">
+        <input type="hidden" id="cfg_bank_id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nome do Banco / Instituição *</label>
+            <input type="text" id="cfg_bank_name" class="form-input" required placeholder="Ex: Bradesco, Nubank (Nu), Inter, Sicredi...">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Tipo de Conta *</label>
+              <select id="cfg_bank_type" class="form-input"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Saldo Atual (R$)</label>
+              <input type="number" step="0.01" id="cfg_bank_balance" class="form-input" value="0.00" placeholder="0,00">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cor de Identificação no Sistema</label>
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <input type="color" id="cfg_bank_color" value="#2563eb" style="width:52px; height:42px; border:1px solid var(--border-light); border-radius:8px; background:transparent; cursor:pointer; padding:2px;">
+              <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                <button type="button" class="cfg-color-Preset" style="background:#dc2626;" onclick="document.getElementById('cfg_bank_color').value='#dc2626'" title="Vermelho (Bradesco/Santander)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#8b5cf6;" onclick="document.getElementById('cfg_bank_color').value='#8b5cf6'" title="Roxo (Nubank)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#eab308;" onclick="document.getElementById('cfg_bank_color').value='#eab308'" title="Amarelo (Banco do Brasil)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#0284c7;" onclick="document.getElementById('cfg_bank_color').value='#0284c7'" title="Azul (Caixa)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#f97316;" onclick="document.getElementById('cfg_bank_color').value='#f97316'" title="Laranja (Inter/Itaú)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#10b981;" onclick="document.getElementById('cfg_bank_color').value='#10b981'" title="Verde (Carteira/Sicredi)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#475569;" onclick="document.getElementById('cfg_bank_color').value='#475569'" title="Grafite (Seven/C6)"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalConfigBanco')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">💾 Salvar no Banco de Dados</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Criar / Editar Cartão de Crédito (Configurações) -->
+  <div id="modalConfigCartao" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalConfigCartaoTitle">💳 Configurar Cartão de Crédito</h3>
+        <button class="btn-close-modal" onclick="app.closeModal('modalConfigCartao')">✕</button>
+      </div>
+      <form id="formConfigCartao" onsubmit="app.saveConfigCartao(event)">
+        <input type="hidden" id="cfg_card_id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nome do Cartão *</label>
+            <input type="text" id="cfg_card_name" class="form-input" required placeholder="Ex: Mastercard, Nubank (Nu), Visa Infinite, Elo...">
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Dia de Fechamento *</label>
+              <input type="number" min="1" max="31" id="cfg_card_closing" class="form-input" required value="1" placeholder="Ex: 1">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dia de Vencimento *</label>
+              <input type="number" min="1" max="31" id="cfg_card_due" class="form-input" required value="10" placeholder="Ex: 10">
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Limite do Cartão (R$)</label>
+              <input type="number" step="0.01" id="cfg_card_limit" class="form-input" value="0" placeholder="0,00 (Opcional)">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cor do Cartão</label>
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <input type="color" id="cfg_card_color" value="#f59e0b" style="width:46px; height:42px; border:1px solid var(--border-light); border-radius:8px; background:transparent; cursor:pointer; padding:2px;">
+                <button type="button" class="cfg-color-Preset" style="background:#f59e0b;" onclick="document.getElementById('cfg_card_color').value='#f59e0b'" title="Laranja / Ouro (Master)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#8b5cf6;" onclick="document.getElementById('cfg_card_color').value='#8b5cf6'" title="Roxo (Nubank)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#0ea5e9;" onclick="document.getElementById('cfg_card_color').value='#0ea5e9'" title="Azul (Visa/Caixa)"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#10b981;" onclick="document.getElementById('cfg_card_color').value='#10b981'" title="Esmeralda"></button>
+                <button type="button" class="cfg-color-Preset" style="background:#ef4444;" onclick="document.getElementById('cfg_card_color').value='#ef4444'" title="Vermelho"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-header" onclick="app.closeModal('modalConfigCartao')">Cancelar</button>
+          <button type="submit" class="btn-primary" style="width:auto; padding:0 1.5rem;">💾 Salvar no Banco de Dados</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Container de Notificações Toast -->
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261030_v16"></script>
-  <script src="js/supabase.js?v=20261030_v16"></script>
-  <script src="js/app.js?v=20261030_v16"></script>
+  <script src="js/data.js?v=20261102_v18"></script>
+  <script src="js/supabase.js?v=20261102_v18"></script>
+  <script src="js/app.js?v=20261102_v18"></script>
 </body>
 </html>
