@@ -500,6 +500,32 @@ function normalizeSystemGroupsData(merged) {
   if (merged.settings) {
     merged.settings.systemGroups = merged.systemGroups;
   }
+
+  // Garante que todas as despesas fixas em todos os meses/anos tenham IDs únicos como string e status válido
+  const sanitizeMonthsFixed = (monthsObj) => {
+    if (!monthsObj || typeof monthsObj !== 'object') return;
+    for (let m = 1; m <= 12; m++) {
+      if (monthsObj[m] && Array.isArray(monthsObj[m].fixedExpenses)) {
+        monthsObj[m].fixedExpenses.forEach((fe, idx) => {
+          if (!fe.id) {
+            fe.id = 'fix_' + Date.now() + '_' + m + '_' + idx + '_' + Math.random().toString(36).substr(2, 4);
+          } else {
+            fe.id = String(fe.id);
+          }
+          if (!fe.description && fe.name) fe.description = fe.name;
+          if (!fe.status) fe.status = 'Pendente';
+          if (fe.valueExpected !== undefined) fe.valueExpected = Number(fe.valueExpected) || 0;
+          if (fe.valuePaid !== undefined && fe.valuePaid !== null && fe.valuePaid !== '') {
+            fe.valuePaid = Number(fe.valuePaid) || 0;
+          }
+        });
+      }
+    }
+  };
+  sanitizeMonthsFixed(merged.months);
+  if (merged.years && typeof merged.years === 'object') {
+    Object.values(merged.years).forEach(yMonths => sanitizeMonthsFixed(yMonths));
+  }
 }
 
 class DataStore {
@@ -1025,7 +1051,7 @@ class DataStore {
 
   updateFixedExpense(monthNum, id, updatedData, cascadeMode = 'single') {
     if (!this.data.months[monthNum] || !this.data.months[monthNum].fixedExpenses) return null;
-    const index = this.data.months[monthNum].fixedExpenses.findIndex(e => e.id === id);
+    const index = this.data.months[monthNum].fixedExpenses.findIndex(e => e && (String(e.id) === String(id) || e.id === id));
     if (index === -1) return null;
 
     const currentItem = this.data.months[monthNum].fixedExpenses[index];
@@ -1092,7 +1118,7 @@ class DataStore {
 
   deleteFixedExpense(monthNum, id, cascadeMode = 'single') {
     if (!this.data.months[monthNum] || !this.data.months[monthNum].fixedExpenses) return;
-    const item = this.data.months[monthNum].fixedExpenses.find(e => e.id === id);
+    const item = this.data.months[monthNum].fixedExpenses.find(e => e && (String(e.id) === String(id) || e.id === id));
     if (!item) return;
 
     const gid = item.annualGroupId;

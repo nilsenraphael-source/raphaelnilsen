@@ -1453,7 +1453,9 @@ const app = {
             <tbody>
               ${m.fixedExpenses.length === 0 ? `
                 <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma despesa fixa cadastrada para este mês.</td></tr>
-              ` : m.fixedExpenses.map(e => {
+              ` : m.fixedExpenses.map((e, eIndex) => {
+                if (!e.id) e.id = 'fix_' + this.activeMonth + '_' + eIndex + '_' + Date.now();
+                const safeId = String(e.id).replace(/'/g, "\\'");
                 const isPaid = (e.status === 'Pago');
                 const valExp = Number(e.valueExpected) || 0;
                 let valPaid = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : 0;
@@ -1547,12 +1549,12 @@ const app = {
                              placeholder="0,00" 
                              title="Altere o valor realizado diretamente na tabela (ex: 0,00 ou 150,00)"
                              onfocus="this.select()"
-                             onblur="app.handleInlineFixedExpenseValueBlur(this, ${this.activeMonth}, '${e.id}')"
+                             onblur="app.handleInlineFixedExpenseValueBlur(this, ${this.activeMonth}, '${safeId}', ${eIndex})"
                              onkeydown="if(event.key==='Enter') this.blur()">
                     </div>
                   </td>
                   <td>
-                    <button class="status-badge ${statusBadgeClass}" style="cursor:pointer; border:none;" onclick="app.toggleFixedExpenseStatus(${this.activeMonth}, '${e.id}')" title="${statusBadgeTitle}">
+                    <button class="status-badge ${statusBadgeClass}" style="cursor:pointer; border:none;" onclick="app.toggleFixedExpenseStatus(${this.activeMonth}, '${safeId}', ${eIndex})" title="${statusBadgeTitle}">
                       ${statusBadgeText}
                     </button>
                   </td>
@@ -1561,7 +1563,7 @@ const app = {
                            class="sheet-inline-input sheet-date-input" 
                            value="${e.paymentDate || ''}" 
                            title="Data do efetivo pagamento (saída de caixa)" 
-                           onchange="app.updateFixedExpenseField(${this.activeMonth}, '${e.id}', 'paymentDate', this.value)"
+                           onchange="app.updateFixedExpenseField(${this.activeMonth}, '${safeId}', 'paymentDate', this.value, ${eIndex})"
                            style="width: 125px; font-size: 0.8rem; padding: 0.25rem 0.35rem;">
                     ${isPaidInDifferentMonth ? `
                       <div style="font-size:0.7rem; color:#38bdf8; font-weight:600; margin-top:2px;" title="Esta despesa foi descontada no caixa de ${store.getMonthName(payMonth)}/${payYear}">
@@ -1572,16 +1574,22 @@ const app = {
                   <td>
                     <select class="sheet-inline-select" 
                             title="Selecione o banco diretamente na tabela"
-                            onchange="app.updateFixedExpenseField(${this.activeMonth}, '${e.id}', 'bank', this.value)">
+                            onchange="app.updateFixedExpenseField(${this.activeMonth}, '${safeId}', 'bank', this.value, ${eIndex})">
                       ${this.getBankSelectOptionsHtml(e.bank, '— Selecionar Banco —', true)}
                     </select>
                   </td>
                   <td style="text-align: center;">
                     <div class="table-actions" style="justify-content: center; gap: 0.35rem;">
-                      <button class="btn-table-icon" title="Editar Despesa Fixa" onclick="app.openEditFixedExpenseModal(${this.activeMonth}, '${e.id}')">
+                      <button class="btn-table-icon" title="Editar Despesa Fixa" onclick="app.openEditFixedExpenseModal(${this.activeMonth}, '${safeId}')">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                       </button>
-                      <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteFixedExpense(${this.activeMonth}, '${e.id}')">
+                      <button class="btn-table-icon delete" title="Excluir" onclick="app.deleteFixedExpense(${this.activeMonth}, '${safeId}')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;}).join('')}
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                       </button>
                     </div>
@@ -2077,21 +2085,32 @@ const app = {
     }, 150);
   },
 
-  handleInlineFixedExpenseValueBlur(inputEl, monthNum, id) {
+  handleInlineFixedExpenseValueBlur(inputEl, monthNum, id, expenseIndex) {
     if (!inputEl) return;
-    const raw = (inputEl.value || '').trim();
-    const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
+    const mNum = Number(monthNum) || this.activeMonth;
+    const m = store.data.months[mNum] || store.data.months[String(mNum)];
+    if (!m || !Array.isArray(m.fixedExpenses)) return;
+
+    let expense = null;
+    if (id !== undefined && id !== null && id !== '' && id !== 'undefined') {
+      expense = m.fixedExpenses.find(e => e && (String(e.id) === String(id) || e.id === id));
+    }
+    if (!expense && expenseIndex !== undefined && expenseIndex !== null && m.fixedExpenses[expenseIndex]) {
+      expense = m.fixedExpenses[expenseIndex];
+    }
     if (!expense) return;
+
+    const raw = (inputEl.value || '').trim();
 
     if (raw === '') {
       if (expense.status === 'Pago') {
         inputEl.value = '0,00';
         inputEl.classList.add('has-value');
-        this.updateFixedExpenseField(monthNum, id, 'valuePaid', 0);
+        this.updateFixedExpenseField(mNum, id, 'valuePaid', 0, expenseIndex);
       } else {
         inputEl.value = '';
         inputEl.classList.remove('has-value');
-        this.updateFixedExpenseField(monthNum, id, 'valuePaid', 0);
+        this.updateFixedExpenseField(mNum, id, 'valuePaid', 0, expenseIndex);
       }
       return;
     }
@@ -2099,19 +2118,29 @@ const app = {
     const num = parseMoney(raw);
     inputEl.value = formatMoneyDisplay(num);
     inputEl.classList.add('has-value');
-    this.updateFixedExpenseField(monthNum, id, 'valuePaid', num);
+    this.updateFixedExpenseField(mNum, id, 'valuePaid', num, expenseIndex);
   },
 
-  updateFixedExpenseField(monthNum, id, field, value) {
-    const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
+  updateFixedExpenseField(monthNum, id, field, value, expenseIndex) {
+    const mNum = Number(monthNum) || this.activeMonth;
+    const m = store.data.months[mNum] || store.data.months[String(mNum)];
+    if (!m || !Array.isArray(m.fixedExpenses)) return;
+
+    let expense = null;
+    if (id !== undefined && id !== null && id !== '' && id !== 'undefined') {
+      expense = m.fixedExpenses.find(e => e && (String(e.id) === String(id) || e.id === id));
+    }
+    if (!expense && expenseIndex !== undefined && expenseIndex !== null && m.fixedExpenses[expenseIndex]) {
+      expense = m.fixedExpenses[expenseIndex];
+    }
     if (!expense) return;
 
     if (field === 'paymentDate') {
       expense.paymentDate = value || '';
       if (value && expense.status !== 'Pago') {
         expense.status = 'Pago';
-        if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '') {
-          expense.valuePaid = expense.valueExpected || 0;
+        if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '' || Number(expense.valuePaid) === 0) {
+          expense.valuePaid = Number(expense.valueExpected) || 0;
         }
       }
       store.save();
@@ -2120,8 +2149,8 @@ const app = {
       if (value) {
         const parts = value.split('-');
         const payMonth = parseInt(parts[1], 10);
-        if (payMonth && payMonth !== Number(monthNum)) {
-          this.showToast(`Data salva! Despesa de ${store.getMonthName(monthNum)} será descontada no saldo de ${store.getMonthName(payMonth)}.`, 'info');
+        if (payMonth && payMonth !== Number(mNum)) {
+          this.showToast(`Data salva! Despesa de ${store.getMonthName(mNum)} será descontada no saldo de ${store.getMonthName(payMonth)}.`, 'info');
         } else {
           this.showToast('Data de pagamento atualizada!', 'info');
         }
@@ -2324,9 +2353,10 @@ const app = {
   },
 
   deleteFixedExpense(monthNum, id) {
-    const m = store.data.months[monthNum];
+    const mNum = Number(monthNum) || this.activeMonth;
+    const m = store.data.months[mNum] || store.data.months[String(mNum)];
     if (!m) return;
-    const expense = m.fixedExpenses?.find(e => e.id === id);
+    const expense = m.fixedExpenses?.find(e => e && (String(e.id) === String(id) || e.id === id));
     if (!expense) return;
 
     const isRecurring = Boolean(expense.annualGroupId || expense.type === 'anual' || expense.type === 'multi-mes' || store.hasRecurringFixedExpense(monthNum, expense));
@@ -2369,8 +2399,9 @@ const app = {
   },
 
   openEditFixedExpenseModal(monthNum, id) {
-    const m = store.data.months[monthNum];
-    const expense = m?.fixedExpenses?.find(e => e.id === id);
+    const mNum = Number(monthNum) || this.activeMonth;
+    const m = store.data.months[mNum] || store.data.months[String(mNum)];
+    const expense = m?.fixedExpenses?.find(e => e && (String(e.id) === String(id) || e.id === id));
     if (!expense) return;
 
     document.getElementById('edit_fix_id').value = expense.id;
@@ -2419,36 +2450,47 @@ const app = {
     this.openModal('modalEditarDespesaFixa');
   },
 
-  toggleFixedExpenseStatus(monthNum, id) {
-    const expense = store.data.months[monthNum]?.fixedExpenses?.find(e => e.id === id);
-    if (expense) {
-      if (expense.status === 'Pago') {
-        expense.status = 'Pendente';
-        expense.paymentDate = '';
-      } else {
-        expense.status = 'Pago';
-        if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '') {
-          expense.valuePaid = expense.valueExpected || 0;
-        }
-        if (!expense.paymentDate) {
-          expense.paymentDate = this.getTodayISO();
-        }
-      }
-      store.save();
-      this.renderMeses();
-      this.renderResumo();
+  toggleFixedExpenseStatus(monthNum, id, expenseIndex) {
+    const mNum = Number(monthNum) || this.activeMonth;
+    const m = store.data.months[mNum] || store.data.months[String(mNum)];
+    if (!m || !Array.isArray(m.fixedExpenses)) return;
 
-      if (expense.status === 'Pago') {
-        const parts = (expense.paymentDate || '').split('-');
-        const payMonth = parseInt(parts[1], 10);
-        if (payMonth && payMonth !== Number(monthNum)) {
-          this.showToast(`✓ Conta de ${store.getMonthName(monthNum)} marcada como Paga! Descontada no saldo de ${store.getMonthName(payMonth)} (${formatDateBR(expense.paymentDate)}).`, 'success');
-        } else {
-          this.showToast(`✓ Despesa marcada como Paga (${formatDateBR(expense.paymentDate)})!`, 'success');
-        }
-      } else {
-        this.showToast('Despesa marcada como Pendente.', 'info');
+    let expense = null;
+    if (id !== undefined && id !== null && id !== '' && id !== 'undefined') {
+      expense = m.fixedExpenses.find(e => e && (String(e.id) === String(id) || e.id === id));
+    }
+    if (!expense && expenseIndex !== undefined && expenseIndex !== null && m.fixedExpenses[expenseIndex]) {
+      expense = m.fixedExpenses[expenseIndex];
+    }
+    if (!expense) return;
+
+    if (expense.status === 'Pago') {
+      expense.status = 'Pendente';
+      expense.paymentDate = '';
+    } else {
+      expense.status = 'Pago';
+      // Preenche automaticamente com a data em que o pagamento foi realizado
+      expense.paymentDate = this.getTodayISO();
+      // Se o valor realizado estiver vazio ou zerado, preenche com o valor previsto
+      if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '' || Number(expense.valuePaid) === 0) {
+        expense.valuePaid = Number(expense.valueExpected) || 0;
       }
+    }
+
+    store.save();
+    this.renderMeses();
+    this.renderResumo();
+
+    if (expense.status === 'Pago') {
+      const parts = (expense.paymentDate || '').split('-');
+      const payMonth = parseInt(parts[1], 10);
+      if (payMonth && payMonth !== Number(mNum)) {
+        this.showToast(`✓ Conta de ${store.getMonthName(mNum)} marcada como Paga! Descontada no saldo de ${store.getMonthName(payMonth)} (${formatDateBR(expense.paymentDate)}).`, 'success');
+      } else {
+        this.showToast(`✓ Despesa marcada como Paga (${formatDateBR(expense.paymentDate)})!`, 'success');
+      }
+    } else {
+      this.showToast('Despesa marcada como Pendente.', 'info');
     }
   },
 
@@ -8728,7 +8770,7 @@ const app = {
         if (valPaidRaw !== '') {
           valPaid = parseMoney(valPaidRaw);
         } else if (status === 'Pago') {
-          valPaid = 0;
+          valPaid = valExpected;
         }
 
         // Seleção de Meses (idêntico ao Rendimento / Receita)
@@ -8791,7 +8833,7 @@ const app = {
         if (valPaidRaw !== '') {
           valPaid = parseMoney(valPaidRaw);
         } else if (status === 'Pago') {
-          valPaid = 0;
+          valPaid = valExpected;
         }
 
         const year = parseInt(store.activeYear, 10) || new Date().getFullYear();
