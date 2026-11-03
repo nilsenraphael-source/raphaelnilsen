@@ -906,6 +906,31 @@ const app = {
     const elCard = document.getElementById('monthSumCard');
     if (elCard) elCard.textContent = formatBRL(summary.cardPaid || 0);
 
+    // Pílulas dinâmicas de Regime de Caixa (Adiantamento de contas entre meses)
+    const elPrepaidPill = document.getElementById('monthPrepaidPill');
+    const elSumPrepaid = document.getElementById('monthSumPrepaid');
+    const prepaidTotal = (summary.prepaidTotal || 0);
+    if (elPrepaidPill && elSumPrepaid) {
+      if (prepaidTotal > 0) {
+        elPrepaidPill.style.display = 'block';
+        elSumPrepaid.textContent = formatBRL(prepaidTotal);
+      } else {
+        elPrepaidPill.style.display = 'none';
+      }
+    }
+
+    const elPaidInOtherPill = document.getElementById('monthPaidInOtherPill');
+    const elSumPaidInOther = document.getElementById('monthSumPaidInOther');
+    const paidInOtherTotal = (summary.paidInOtherMonthsTotal || 0);
+    if (elPaidInOtherPill && elSumPaidInOther) {
+      if (paidInOtherTotal > 0) {
+        elPaidInOtherPill.style.display = 'block';
+        elSumPaidInOther.textContent = formatBRL(paidInOtherTotal);
+      } else {
+        elPaidInOtherPill.style.display = 'none';
+      }
+    }
+
     const elBal = document.getElementById('monthSumBal');
     if (elBal) {
       elBal.textContent = formatBRL(summary.balance);
@@ -1050,6 +1075,31 @@ const app = {
 
     const elCard = document.getElementById('monthSumCard');
     if (elCard) elCard.textContent = formatBRL(summary.cardPaid || 0);
+
+    // Pílulas dinâmicas de Regime de Caixa (Adiantamento de contas entre meses)
+    const elPrepaidPill = document.getElementById('monthPrepaidPill');
+    const elSumPrepaid = document.getElementById('monthSumPrepaid');
+    const prepaidTotal = (summary.prepaidTotal || 0);
+    if (elPrepaidPill && elSumPrepaid) {
+      if (prepaidTotal > 0) {
+        elPrepaidPill.style.display = 'block';
+        elSumPrepaid.textContent = formatBRL(prepaidTotal);
+      } else {
+        elPrepaidPill.style.display = 'none';
+      }
+    }
+
+    const elPaidInOtherPill = document.getElementById('monthPaidInOtherPill');
+    const elSumPaidInOther = document.getElementById('monthSumPaidInOther');
+    const paidInOtherTotal = (summary.paidInOtherMonthsTotal || 0);
+    if (elPaidInOtherPill && elSumPaidInOther) {
+      if (paidInOtherTotal > 0) {
+        elPaidInOtherPill.style.display = 'block';
+        elSumPaidInOther.textContent = formatBRL(paidInOtherTotal);
+      } else {
+        elPaidInOtherPill.style.display = 'none';
+      }
+    }
 
     const elBal = document.getElementById('monthSumBal');
     if (elBal) {
