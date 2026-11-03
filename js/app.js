@@ -2256,7 +2256,10 @@ const app = {
       if (newVal > 0 && expense.status !== 'Pago') {
         expense.status = 'Pago';
         if (!expense.paymentDate) {
-          expense.paymentDate = this.getExpenseDefaultPaymentDate(mNum, expense);
+          const targetYear = store?.activeYear || new Date().getFullYear();
+          if (expense.dueDate && expense.dueDate.startsWith(`${targetYear}-${String(mNum).padStart(2, '0')}`)) {
+            expense.paymentDate = expense.dueDate;
+          }
         }
       }
       // Se newVal === 0 e status for Pago, MANTÉM PAGO (autorizado pagamento de outra forma com custo R$ 0,00)
@@ -2513,7 +2516,7 @@ const app = {
     const payDateInput = document.getElementById('edit_fix_payment_date');
     const payDateContainer = document.getElementById('edit_fix_payment_date_container');
     if (payDateInput) {
-      payDateInput.value = expense.paymentDate || (expense.status === 'Pago' ? this.getExpenseDefaultPaymentDate(monthNum, expense) : '');
+      payDateInput.value = expense.paymentDate || '';
     }
     if (payDateContainer) {
       payDateContainer.style.display = expense.status === 'Pago' ? 'block' : 'none';
@@ -2559,8 +2562,15 @@ const app = {
       expense.paymentDate = '';
     } else {
       expense.status = 'Pago';
-      // Preenche automaticamente com a data correspondente ao próprio mês da despesa
-      expense.paymentDate = this.getExpenseDefaultPaymentDate(mNum, expense);
+      // Mantém a data de pagamento informada pelo usuário (deixa o usuário colocar a data desejada)
+      if (!expense.paymentDate) {
+        const targetYear = store?.activeYear || new Date().getFullYear();
+        if (expense.dueDate && expense.dueDate.startsWith(`${targetYear}-${String(mNum).padStart(2, '0')}`)) {
+          expense.paymentDate = expense.dueDate;
+        } else {
+          expense.paymentDate = '';
+        }
+      }
       // Se o valor realizado estiver vazio ou zerado, preenche com o valor previsto
       if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '' || Number(expense.valuePaid) === 0) {
         expense.valuePaid = Number(expense.valueExpected) || 0;
@@ -2572,12 +2582,16 @@ const app = {
     this.renderResumo();
 
     if (expense.status === 'Pago') {
-      const parts = (expense.paymentDate || '').split('-');
-      const payMonth = parseInt(parts[1], 10);
-      if (payMonth && payMonth !== Number(mNum)) {
-        this.showToast(`✓ Conta de ${store.getMonthName(mNum)} marcada como Paga! Descontada no saldo de ${store.getMonthName(payMonth)} (${formatDateBR(expense.paymentDate)}).`, 'success');
+      if (expense.paymentDate) {
+        const parts = expense.paymentDate.split('-');
+        const payMonth = parseInt(parts[1], 10);
+        if (payMonth && payMonth !== Number(mNum)) {
+          this.showToast(`✓ Conta de ${store.getMonthName(mNum)} marcada como Paga! Descontada no saldo de ${store.getMonthName(payMonth)} (${formatDateBR(expense.paymentDate)}).`, 'success');
+        } else {
+          this.showToast(`✓ Despesa marcada como Paga (${formatDateBR(expense.paymentDate)})!`, 'success');
+        }
       } else {
-        this.showToast(`✓ Despesa marcada como Paga (${formatDateBR(expense.paymentDate)})!`, 'success');
+        this.showToast(`✓ Despesa marcada como Paga! Você pode informar a data de pagamento na tabela.`, 'success');
       }
     } else {
       this.showToast('Despesa marcada como Pendente.', 'info');
@@ -8924,9 +8938,7 @@ const app = {
         const valPaidRaw = document.getElementById('edit_fix_val_paid').value.trim();
         const status = document.getElementById('edit_fix_status').value || 'Pendente';
         const editPayDateInput = document.getElementById('edit_fix_payment_date');
-        let paymentDate = (status === 'Pago' && editPayDateInput && editPayDateInput.value) 
-          ? editPayDateInput.value 
-          : (status === 'Pago' ? this.getExpenseDefaultPaymentDate(monthNum, { dueDay, dueDate }) : '');
+        let paymentDate = (status === 'Pago' && editPayDateInput) ? editPayDateInput.value : '';
         if (status === 'Pendente') paymentDate = '';
         let valPaid = 0;
         if (valPaidRaw !== '') {

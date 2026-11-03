@@ -518,23 +518,8 @@ function normalizeSystemGroupsData(merged) {
           if (fe.valuePaid !== undefined && fe.valuePaid !== null && fe.valuePaid !== '') {
             fe.valuePaid = Number(fe.valuePaid) || 0;
           }
-          // Garante que o pagamento de uma despesa pertença ao próprio mês caso tenha sido preenchida com a data do dia por engano
-          if (fe.status === 'Pago' && fe.paymentDate && typeof fe.paymentDate === 'string' && fe.paymentDate.includes('-')) {
-            const pParts = fe.paymentDate.split('-');
-            const pm = parseInt(pParts[1], 10);
-            if (pm !== m) {
-              if (fe.dueDate && fe.dueDate.startsWith(pParts[0] + '-' + String(m).padStart(2, '0'))) {
-                fe.paymentDate = fe.dueDate;
-              } else if (fe.dueDay) {
-                const day = Math.min(31, Math.max(1, parseInt(fe.dueDay, 10)));
-                fe.paymentDate = `${pParts[0]}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              } else {
-                fe.paymentDate = `${pParts[0]}-${String(m).padStart(2, '0')}-${String(pParts[2] || '05').padStart(2, '0')}`;
-              }
-              if (!fe.valuePaid || Number(fe.valuePaid) === 0) {
-                fe.valuePaid = Number(fe.valueExpected) || 0;
-              }
-            }
+          if (fe.paymentDate === undefined || fe.paymentDate === null) {
+            fe.paymentDate = '';
           }
         });
       }
