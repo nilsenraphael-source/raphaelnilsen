@@ -138,6 +138,11 @@ const app = {
     return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   },
 
+  // Retorna o nome por extenso do mês
+  getMonthName(monthNum) {
+    return store?.getMonthName ? store.getMonthName(monthNum) : `Mês ${monthNum}`;
+  },
+
   // Retorna a data de pagamento estritamente correspondente ao mês da despesa
   getExpenseDefaultPaymentDate(monthNum, expense) {
     const m = Number(monthNum) || this.activeMonth;
@@ -1133,10 +1138,18 @@ const app = {
   },
 
   renderActiveMonthSubtab() {
-    const container = document.getElementById('monthSubtabContent');
-    if (!container) return;
+    try {
+      const container = document.getElementById('monthSubtabContent');
+      if (!container) return;
 
-    const m = store.data.months[this.activeMonth];
+      // Sincroniza a classe visual ativa em todos os botões de sub-aba
+      document.querySelectorAll('.subtabs-nav .subtab-btn').forEach(btn => {
+        if (btn.dataset.subtab === this.activeSubtabMes) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      const m = store.data.months[this.activeMonth];
+      if (!m) return;
 
     if (this.activeSubtabMes === 'receitas') {
       const summary = store.getMonthSummary(this.activeMonth);
@@ -2040,6 +2053,9 @@ const app = {
           </div>
         </div>
       `;
+    }
+    } catch (err) {
+      console.error('[renderActiveMonthSubtab] Erro ao renderizar sub-aba:', err);
     }
   },
 

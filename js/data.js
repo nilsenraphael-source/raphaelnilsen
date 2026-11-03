@@ -723,6 +723,18 @@ class DataStore {
     return Array.from(new Set([...existing, ...defaults])).sort((a, b) => a - b);
   }
 
+  getMonthName(monthNum) {
+    const names = [
+      '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    ];
+    const n = parseInt(monthNum, 10);
+    if (!isNaN(n) && n >= 1 && n <= 12) {
+      return names[n];
+    }
+    return this.data?.months?.[monthNum]?.name || `Mês ${monthNum}`;
+  }
+
   copyFixedExpensesFromYear(fromYear, toYear) {
     const fY = Number(fromYear);
     const tY = Number(toYear);
@@ -1614,7 +1626,7 @@ class DataStore {
                 ...e,
                 expense: e,
                 originalMonth: mIdx,
-                originalMonthName: this.data.months[mIdx]?.name || `Mês ${mIdx}`,
+                originalMonthName: this.getMonthName(mIdx),
                 valuePaid: vp
               });
             }
@@ -1624,7 +1636,7 @@ class DataStore {
               expense: e,
               paidMonth: payMonth,
               paidYear: payYear,
-              paidMonthName: this.data.months[payMonth]?.name || `Mês ${payMonth}`,
+              paidMonthName: this.getMonthName(payMonth),
               valuePaid: vp
             });
           }
