@@ -138,6 +138,36 @@ const app = {
     return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   },
 
+  // Retorna a data de pagamento estritamente correspondente ao mês da despesa
+  getExpenseDefaultPaymentDate(monthNum, expense) {
+    const m = Number(monthNum) || this.activeMonth;
+    const now = new Date();
+    const currYear = now.getFullYear();
+    const currMonth = now.getMonth() + 1;
+    const activeYear = Number(store?.activeYear) || currYear;
+
+    // Se o mês da despesa for exatamente o mês e ano atuais do calendário real, usa a data de hoje
+    if (m === currMonth && activeYear === currYear) {
+      return this.getTodayISO();
+    }
+
+    // Se a despesa já possui um dueDate cadastrado e compatível com o mês dela
+    if (expense && expense.dueDate && typeof expense.dueDate === 'string' && expense.dueDate.startsWith(`${activeYear}-${String(m).padStart(2, '0')}`)) {
+      return expense.dueDate;
+    }
+
+    // Se possui dia de vencimento (dueDay), compõe a data naquele dia do respectivo mês
+    if (expense && expense.dueDay) {
+      const day = Math.min(31, Math.max(1, parseInt(expense.dueDay, 10)));
+      const daysInM = new Date(activeYear, m, 0).getDate();
+      const actualDay = Math.min(day, daysInM);
+      return `${activeYear}-${String(m).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
+    }
+
+    // Padrão seguro para o próprio mês da despesa
+    return this.getDefaultDateForMonth(m, activeYear);
+  },
+
   // Pré-configura todos os campos de data e vencimento do sistema na inicialização
   preconfigureAllDateFields() {
     const todayStr = this.getTodayISO();
@@ -166,14 +196,14 @@ const app = {
   },
 
   // Alterna visibilidade e pré-configura a data de pagamento da despesa fixa quando marcada como Paga
-  onFixStatusChange(status, containerId) {
+  onFixStatusChange(status, containerId, monthNum) {
     const container = document.getElementById(containerId);
     if (!container) return;
     if (status === 'Pago') {
       container.style.display = 'block';
       const input = container.querySelector('input[type="date"]');
       if (input && !input.value) {
-        input.value = this.getTodayISO();
+        input.value = this.getExpenseDefaultPaymentDate(monthNum || this.activeMonth);
       }
     } else {
       container.style.display = 'none';
@@ -2047,7 +2077,7 @@ const app = {
 
     const payDateInp = document.getElementById('fix_payment_date');
     if (payDateInp) {
-      payDateInp.value = this.getTodayISO();
+      payDateInp.value = this.getExpenseDefaultPaymentDate(this.activeMonth);
     }
     const payDateContainer = document.getElementById('fix_payment_date_container');
     if (payDateContainer) {
@@ -2160,7 +2190,7 @@ const app = {
       if (newVal > 0 && expense.status !== 'Pago') {
         expense.status = 'Pago';
         if (!expense.paymentDate) {
-          expense.paymentDate = this.getTodayISO();
+          expense.paymentDate = this.getExpenseDefaultPaymentDate(mNum, expense);
         }
       }
       // Se newVal === 0 e status for Pago, MANTÉM PAGO (autorizado pagamento de outra forma com custo R$ 0,00)
@@ -2417,7 +2447,7 @@ const app = {
     const payDateInput = document.getElementById('edit_fix_payment_date');
     const payDateContainer = document.getElementById('edit_fix_payment_date_container');
     if (payDateInput) {
-      payDateInput.value = expense.paymentDate || (expense.status === 'Pago' ? this.getTodayISO() : '');
+      payDateInput.value = expense.paymentDate || (expense.status === 'Pago' ? this.getExpenseDefaultPaymentDate(monthNum, expense) : '');
     }
     if (payDateContainer) {
       payDateContainer.style.display = expense.status === 'Pago' ? 'block' : 'none';
@@ -2463,8 +2493,8 @@ const app = {
       expense.paymentDate = '';
     } else {
       expense.status = 'Pago';
-      // Preenche automaticamente com a data em que o pagamento foi realizado
-      expense.paymentDate = this.getTodayISO();
+      // Preenche automaticamente com a data correspondente ao próprio mês da despesa
+      expense.paymentDate = this.getExpenseDefaultPaymentDate(mNum, expense);
       // Se o valor realizado estiver vazio ou zerado, preenche com o valor previsto
       if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '' || Number(expense.valuePaid) === 0) {
         expense.valuePaid = Number(expense.valueExpected) || 0;
@@ -8781,13 +8811,20 @@ const app = {
             dueDate = `${year}-${String(mNum).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
           }
 
+          let mPaymentDate = '';
+          if (status === 'Pago') {
+            mPaymentDate = (paymentDateInput && paymentDateInput.value && targetMonths.length === 1)
+              ? paymentDateInput.value
+              : (dueDate || this.getDefaultDateForMonth(mNum, year));
+          }
+
           const exp = {
             description: desc,
             dueDay: dueDay,
             dueDate: dueDate,
             valueExpected: valExpected,
             valuePaid: valPaid,
-            paymentDate: paymentDate,
+            paymentDate: mPaymentDate,
             status: status,
             bank: '', // Banco permanece em branco no cadastro, conforme solicitado
             type: targetMonths.length > 1 ? 'multi-mes' : 'mensal',
@@ -8821,7 +8858,9 @@ const app = {
         const valPaidRaw = document.getElementById('edit_fix_val_paid').value.trim();
         const status = document.getElementById('edit_fix_status').value || 'Pendente';
         const editPayDateInput = document.getElementById('edit_fix_payment_date');
-        let paymentDate = (status === 'Pago' && editPayDateInput) ? (editPayDateInput.value || this.getTodayISO()) : '';
+        let paymentDate = (status === 'Pago' && editPayDateInput && editPayDateInput.value) 
+          ? editPayDateInput.value 
+          : (status === 'Pago' ? this.getExpenseDefaultPaymentDate(monthNum, { dueDay, dueDate }) : '');
         if (status === 'Pendente') paymentDate = '';
         let valPaid = 0;
         if (valPaidRaw !== '') {
