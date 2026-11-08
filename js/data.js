@@ -804,6 +804,78 @@ class DataStore {
     }
   }
 
+  // Recalcula saldos bancários consolidados com base em todos os lançamentos pagos/realizados
+  recalculateBankBalancesFromEntries() {
+    const totalsByBank = {};
+    (this.data.accounts || []).forEach(acc => {
+      totalsByBank[acc.id] = 0;
+    });
+
+    const matchBank = (bankStr) => {
+      if (!bankStr) return null;
+      const clean = String(bankStr).toLowerCase().trim();
+      return (this.data.accounts || []).find(a => 
+        a.id.toLowerCase() === clean || 
+        a.name.toLowerCase().includes(clean) || 
+        clean.includes(a.name.toLowerCase())
+      );
+    };
+
+    const scanMonthsObj = (monthsObj) => {
+      if (!monthsObj) return;
+      for (let m = 1; m <= 12; m++) {
+        const month = monthsObj[m];
+        if (!month) continue;
+
+        (month.revenues || []).forEach(r => {
+          if ((r.status === 'Pago' || r.status === 'Recebido') && r.bank && Number(r.value) > 0) {
+            const acc = matchBank(r.bank);
+            if (acc) totalsByBank[acc.id] = Number(((totalsByBank[acc.id] || 0) + Number(r.value)).toFixed(2));
+          }
+        });
+
+        (month.fixedExpenses || []).forEach(e => {
+          if (e.status === 'Pago' && e.bank) {
+            const val = Number(e.valuePaid) || Number(e.valueExpected) || 0;
+            if (val > 0) {
+              const acc = matchBank(e.bank);
+              if (acc) totalsByBank[acc.id] = Number(((totalsByBank[acc.id] || 0) - val).toFixed(2));
+            }
+          }
+        });
+
+        (month.variableExpenses || []).forEach(v => {
+          if (v.bank && Number(v.value) > 0) {
+            const acc = matchBank(v.bank);
+            if (acc) totalsByBank[acc.id] = Number(((totalsByBank[acc.id] || 0) - Number(v.value)).toFixed(2));
+          }
+        });
+      }
+    };
+
+    if (this.data.years && Object.keys(this.data.years).length > 0) {
+      Object.values(this.data.years).forEach(yrMonths => scanMonthsObj(yrMonths));
+    } else {
+      scanMonthsObj(this.data.months);
+    }
+
+    if (this.data.investments && Array.isArray(this.data.investments.stockEarnings)) {
+      this.data.investments.stockEarnings.forEach(se => {
+        if (se.bank && Number(se.amount) > 0) {
+          const acc = matchBank(se.bank);
+          if (acc) totalsByBank[acc.id] = Number(((totalsByBank[acc.id] || 0) + Number(se.amount)).toFixed(2));
+        }
+      });
+    }
+
+    (this.data.accounts || []).forEach(acc => {
+      acc.balance = Number((totalsByBank[acc.id] || 0).toFixed(2));
+    });
+
+    this.save();
+    return totalsByBank;
+  }
+
   // --- MÓDULO MESES & RECEITAS / DESPESAS ---
   addRevenue(monthNum, revenue) {
     if (!this.data.months[monthNum]) return;
@@ -865,11 +937,39 @@ class DataStore {
     const currentItem = this.data.months[monthNum].revenues[index];
     const annualGroupId = currentItem.annualGroupId;
 
+    const reconcileItemBank = (oldItem, updated) => {
+      const oldStatus = oldItem.status;
+      const oldBank = oldItem.bank;
+      const oldVal = Number(oldItem.value) || 0;
+      const isOldPaid = (oldStatus === 'Pago' || oldStatus === 'Recebido');
+
+      const newStatus = updated.status !== undefined ? updated.status : oldStatus;
+      const newBank = updated.bank !== undefined ? updated.bank : oldBank;
+      const newVal = updated.value !== undefined ? (Number(updated.value) || 0) : oldVal;
+      const isNewPaid = (newStatus === 'Pago' || newStatus === 'Recebido');
+
+      if (isOldPaid && !isNewPaid) {
+        if (oldBank && oldVal > 0) this.debitFromBank(oldBank, oldVal);
+      } else if (!isOldPaid && isNewPaid) {
+        if (newBank && newVal > 0) this.creditToBank(newBank, newVal);
+      } else if (isOldPaid && isNewPaid) {
+        if (oldBank !== newBank) {
+          if (oldBank && oldVal > 0) this.debitFromBank(oldBank, oldVal);
+          if (newBank && newVal > 0) this.creditToBank(newBank, newVal);
+        } else if (newBank && newVal !== oldVal) {
+          const diff = newVal - oldVal;
+          if (diff > 0) this.creditToBank(newBank, diff);
+          else if (diff < 0) this.debitFromBank(newBank, Math.abs(diff));
+        }
+      }
+    };
+
     if (updateAllInAnnualGroup && annualGroupId) {
       for (let m = 1; m <= 12; m++) {
         if (!this.data.months[m] || !this.data.months[m].revenues) continue;
         this.data.months[m].revenues.forEach(r => {
           if (r.annualGroupId === annualGroupId) {
+            reconcileItemBank(r, updatedData);
             if (updatedData.source !== undefined) r.source = updatedData.source;
             if (updatedData.value !== undefined) r.value = Number(updatedData.value) || 0;
             if (updatedData.bank !== undefined) r.bank = updatedData.bank;
@@ -885,6 +985,7 @@ class DataStore {
         });
       }
     } else {
+      reconcileItemBank(currentItem, updatedData);
       this.data.months[monthNum].revenues[index] = {
         ...currentItem,
         ...updatedData,
@@ -962,6 +1063,7 @@ class DataStore {
     const val = Number(amount);
     if (!val || val <= 0) return null;
     const clean = (bankNameOrId || '').toLowerCase().trim();
+    if (!clean) return null;
     const account = this.data.accounts.find(a => 
       a.id.toLowerCase() === clean || 
       a.name.toLowerCase().includes(clean) || 
@@ -979,13 +1081,14 @@ class DataStore {
     const val = Number(amount);
     if (!val || val <= 0) return null;
     const clean = (bankNameOrId || '').toLowerCase().trim();
+    if (!clean) return null;
     const account = this.data.accounts.find(a => 
       a.id.toLowerCase() === clean || 
       a.name.toLowerCase().includes(clean) || 
       clean.includes(a.name.toLowerCase())
     );
     if (account) {
-      account.balance = Number(Math.max(0, account.balance - val).toFixed(2));
+      account.balance = Number((account.balance - val).toFixed(2));
       this.save();
       return account;
     }
@@ -1001,6 +1104,9 @@ class DataStore {
       for (let m = 1; m <= 12; m++) {
         if (this.data.months[m] && this.data.months[m].revenues) {
           this.data.months[m].revenues.filter(r => r.annualGroupId === gid).forEach(r => {
+            if ((r.status === 'Pago' || r.status === 'Recebido') && r.bank && Number(r.value) > 0) {
+              this.debitFromBank(r.bank, Number(r.value));
+            }
             if (typeof window !== 'undefined' && window.supabaseService) {
               window.supabaseService.deleteRowFromTable('receitas', r.id);
             }
@@ -1009,6 +1115,9 @@ class DataStore {
         }
       }
     } else {
+      if (item && (item.status === 'Pago' || item.status === 'Recebido') && item.bank && Number(item.value) > 0) {
+        this.debitFromBank(item.bank, Number(item.value));
+      }
       this.data.months[monthNum].revenues = this.data.months[monthNum].revenues.filter(r => r.id !== id);
       if (typeof window !== 'undefined' && window.supabaseService) {
         window.supabaseService.deleteRowFromTable('receitas', id);
@@ -1042,6 +1151,9 @@ class DataStore {
     expense.valueExpected = Number(expense.valueExpected) || 0;
     expense.valuePaid = Number(expense.valuePaid) || 0;
     this.data.months[monthNum].fixedExpenses.push(expense);
+    if (expense.status === 'Pago' && expense.bank && expense.valuePaid > 0) {
+      this.debitFromBank(expense.bank, expense.valuePaid);
+    }
     this.save();
     return expense;
   }
@@ -1073,8 +1185,30 @@ class DataStore {
     const gid = currentItem.annualGroupId;
     const descLower = (currentItem.description || currentItem.name || '').toLowerCase().trim();
 
+    const oldStatus = currentItem.status;
+    const oldBank = currentItem.bank;
+    const oldPaid = Number(currentItem.valuePaid) || 0;
+
     const newExpected = updatedData.valueExpected !== undefined ? (Number(updatedData.valueExpected) || 0) : currentItem.valueExpected;
     const newPaid = updatedData.valuePaid !== undefined ? (Number(updatedData.valuePaid) || 0) : currentItem.valuePaid;
+    const newStatus = updatedData.status !== undefined ? updatedData.status : currentItem.status;
+    const newBank = updatedData.bank !== undefined ? updatedData.bank : currentItem.bank;
+
+    // Reconcilia saldo bancário para a despesa atual
+    if (oldStatus === 'Pago' && newStatus !== 'Pago') {
+      if (oldBank && oldPaid > 0) this.creditToBank(oldBank, oldPaid);
+    } else if (oldStatus !== 'Pago' && newStatus === 'Pago') {
+      if (newBank && newPaid > 0) this.debitFromBank(newBank, newPaid);
+    } else if (oldStatus === 'Pago' && newStatus === 'Pago') {
+      if (oldBank !== newBank) {
+        if (oldBank && oldPaid > 0) this.creditToBank(oldBank, oldPaid);
+        if (newBank && newPaid > 0) this.debitFromBank(newBank, newPaid);
+      } else if (newBank && newPaid !== oldPaid) {
+        const diff = newPaid - oldPaid;
+        if (diff > 0) this.debitFromBank(newBank, diff);
+        else if (diff < 0) this.creditToBank(newBank, Math.abs(diff));
+      }
+    }
 
     this.data.months[monthNum].fixedExpenses[index] = {
       ...currentItem,
@@ -1103,11 +1237,21 @@ class DataStore {
         this.data.months[m].fixedExpenses.forEach(f => {
           const isMatch = (gid && f.annualGroupId === gid) || (!gid && descLower && (f.description || f.name || '').toLowerCase().trim() === descLower);
           if (isMatch) {
+            const fOldBank = f.bank;
+            const fOldPaid = Number(f.valuePaid) || 0;
+            const fStatus = f.status;
+
             f.annualGroupId = targetGid;
             f.type = 'multi-mes';
             if (updatedData.description !== undefined) f.description = updatedData.description;
             if (updatedData.valueExpected !== undefined) f.valueExpected = Number(updatedData.valueExpected) || 0;
-            if (updatedData.bank !== undefined) f.bank = updatedData.bank;
+            if (updatedData.bank !== undefined) {
+              f.bank = updatedData.bank;
+              if (fStatus === 'Pago' && fOldPaid > 0 && fOldBank !== f.bank) {
+                if (fOldBank) this.creditToBank(fOldBank, fOldPaid);
+                if (f.bank) this.debitFromBank(f.bank, fOldPaid);
+              }
+            }
 
             // Ajuste do vencimento (ou limpa se deixado em branco)
             if (updatedData.dueDay !== undefined) {
@@ -1147,6 +1291,9 @@ class DataStore {
           this.data.months[m].fixedExpenses.filter(e => {
             return (gid && e.annualGroupId === gid) || (!gid && descLower && (e.description || e.name || '').toLowerCase().trim() === descLower);
           }).forEach(e => {
+            if (e.status === 'Pago' && e.bank && (Number(e.valuePaid) || 0) > 0) {
+              this.creditToBank(e.bank, Number(e.valuePaid));
+            }
             if (typeof window !== 'undefined' && window.supabaseService) {
               window.supabaseService.deleteRowFromTable('despesas_fixas', e.id);
             }
@@ -1159,6 +1306,9 @@ class DataStore {
         }
       }
     } else {
+      if (item.status === 'Pago' && item.bank && (Number(item.valuePaid) || 0) > 0) {
+        this.creditToBank(item.bank, Number(item.valuePaid));
+      }
       this.data.months[monthNum].fixedExpenses = this.data.months[monthNum].fixedExpenses.filter(e => e.id !== id);
       if (typeof window !== 'undefined' && window.supabaseService) {
         window.supabaseService.deleteRowFromTable('despesas_fixas', id);
@@ -1180,12 +1330,19 @@ class DataStore {
       expense.date = `${year}-${String(m).padStart(2, '0')}-${String(actualDay).padStart(2, '0')}`;
     }
     this.data.months[monthNum].variableExpenses.push(expense);
+    if (expense.bank && expense.value > 0) {
+      this.debitFromBank(expense.bank, expense.value);
+    }
     this.save();
     return expense;
   }
 
   deleteVariableExpense(monthNum, id) {
     if (!this.data.months[monthNum]) return;
+    const item = this.data.months[monthNum].variableExpenses.find(e => e.id === id);
+    if (item && item.bank && Number(item.value) > 0) {
+      this.creditToBank(item.bank, Number(item.value));
+    }
     this.data.months[monthNum].variableExpenses = this.data.months[monthNum].variableExpenses.filter(e => e.id !== id);
     if (typeof window !== 'undefined' && window.supabaseService) {
       window.supabaseService.deleteRowFromTable('despesas_variaveis', id);
@@ -1529,12 +1686,21 @@ class DataStore {
     const m = this.data.months[monthNum];
     if (!m || !m.fixedExpenses) return;
     m.fixedExpenses.forEach(e => {
+      const oldStatus = e.status;
+      const oldPaid = Number(e.valuePaid) || Number(e.valueExpected) || 0;
       e.status = status;
       if (status === 'Pago') {
         if (!e.valuePaid || Number(e.valuePaid) === 0) {
           e.valuePaid = e.valueExpected;
         }
+        const valToDebit = Number(e.valuePaid) || 0;
+        if (oldStatus !== 'Pago' && e.bank && valToDebit > 0) {
+          this.debitFromBank(e.bank, valToDebit);
+        }
       } else {
+        if (oldStatus === 'Pago' && e.bank && oldPaid > 0) {
+          this.creditToBank(e.bank, oldPaid);
+        }
         e.valuePaid = 0;
       }
     });
@@ -2270,6 +2436,9 @@ class DataStore {
     earning.amount = this._parseNum(earning.amount);
     earning.date = earning.date || new Date().toISOString().split('T')[0];
     this.data.investments.stockEarnings.push(earning);
+    if (earning.bank && earning.amount > 0) {
+      this.creditToBank(earning.bank, earning.amount);
+    }
     this.save();
     return earning;
   }
@@ -2279,11 +2448,25 @@ class DataStore {
     const idx = this.data.investments.stockEarnings.findIndex(e => e.id === id);
     if (idx === -1) return null;
     const curr = this.data.investments.stockEarnings[idx];
+    const oldBank = curr.bank;
+    const oldAmt = Number(curr.amount) || 0;
+    const newAmt = updated.amount !== undefined ? this._parseNum(updated.amount) : oldAmt;
+    const newBank = updated.bank !== undefined ? updated.bank : oldBank;
+
+    if (oldBank !== newBank) {
+      if (oldBank && oldAmt > 0) this.debitFromBank(oldBank, oldAmt);
+      if (newBank && newAmt > 0) this.creditToBank(newBank, newAmt);
+    } else if (newBank && newAmt !== oldAmt) {
+      const diff = newAmt - oldAmt;
+      if (diff > 0) this.creditToBank(newBank, diff);
+      else if (diff < 0) this.debitFromBank(newBank, Math.abs(diff));
+    }
+
     this.data.investments.stockEarnings[idx] = {
       ...curr,
       ...updated,
       ticker: updated.ticker !== undefined ? String(updated.ticker).toUpperCase().trim() : curr.ticker,
-      amount: updated.amount !== undefined ? this._parseNum(updated.amount) : curr.amount,
+      amount: newAmt,
       date: updated.date !== undefined ? updated.date : curr.date
     };
     this.save();
@@ -2292,6 +2475,10 @@ class DataStore {
 
   deleteStockEarning(id) {
     if (!this.data.investments.stockEarnings) return;
+    const item = this.data.investments.stockEarnings.find(e => e.id === id);
+    if (item && item.bank && item.amount > 0) {
+      this.debitFromBank(item.bank, item.amount);
+    }
     this.data.investments.stockEarnings = this.data.investments.stockEarnings.filter(e => e.id !== id);
     if (typeof window !== 'undefined' && window.supabaseService) {
       window.supabaseService.deleteRowFromTable('investimentos_rendimentos_bolsa', id);

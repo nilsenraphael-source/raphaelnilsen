@@ -862,6 +862,14 @@ const app = {
     }
   },
 
+  recalculateBalances() {
+    if (confirm('Deseja sincronizar e recalcular os saldos das contas bancárias com base em todos os lançamentos pagos/realizados no sistema?')) {
+      store.recalculateBankBalancesFromEntries();
+      this.renderResumo();
+      this.showToast('✓ Saldos bancários sincronizados com sucesso a partir dos lançamentos!', 'success');
+    }
+  },
+
   // =========================================================================
   // 2. MÓDULO MESES (JANEIRO A DEZEMBRO)
   // =========================================================================
@@ -2226,11 +2234,15 @@ const app = {
     if (!expense) return;
 
     if (field === 'paymentDate') {
+      const oldStatus = expense.status;
       expense.paymentDate = value || '';
       if (value && expense.status !== 'Pago') {
         expense.status = 'Pago';
         if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '' || Number(expense.valuePaid) === 0) {
           expense.valuePaid = Number(expense.valueExpected) || 0;
+        }
+        if (expense.bank && Number(expense.valuePaid) > 0) {
+          store.debitFromBank(expense.bank, Number(expense.valuePaid));
         }
       }
       store.save();
@@ -2249,6 +2261,8 @@ const app = {
     }
 
     if (field === 'valuePaid') {
+      const oldVal = Number(expense.valuePaid) || 0;
+      const oldStatus = expense.status;
       const newVal = typeof value === 'number' ? value : parseMoney(value);
       expense.valuePaid = newVal;
 
@@ -2262,7 +2276,17 @@ const app = {
           }
         }
       }
-      // Se newVal === 0 e status for Pago, MANTÉM PAGO (autorizado pagamento de outra forma com custo R$ 0,00)
+
+      // Reconcilia saldo bancário
+      if (expense.bank) {
+        if (oldStatus !== 'Pago' && expense.status === 'Pago' && newVal > 0) {
+          store.debitFromBank(expense.bank, newVal);
+        } else if (oldStatus === 'Pago' && expense.status === 'Pago' && newVal !== oldVal) {
+          const diff = newVal - oldVal;
+          if (diff > 0) store.debitFromBank(expense.bank, diff);
+          else if (diff < 0) store.creditToBank(expense.bank, Math.abs(diff));
+        }
+      }
 
       store.save();
       this.renderMeses();
@@ -2280,8 +2304,19 @@ const app = {
     }
 
     if (field === 'bank') {
-      expense.bank = value;
+      const oldBank = expense.bank;
+      expense.bank = value || '';
+      const valPaid = Number(expense.valuePaid) || 0;
+
+      // Se já estava Pago com valor e mudou de banco, transfere o débito entre os bancos
+      if (expense.status === 'Pago' && valPaid > 0 && oldBank !== expense.bank) {
+        if (oldBank) store.creditToBank(oldBank, valPaid);
+        if (expense.bank) store.debitFromBank(expense.bank, valPaid);
+      }
+
       store.save();
+      this.renderMeses();
+      this.renderResumo();
       this.showToast('Banco atualizado!', 'info');
       return;
     }
@@ -2560,6 +2595,10 @@ const app = {
     if (expense.status === 'Pago') {
       expense.status = 'Pendente';
       expense.paymentDate = '';
+      const valToRefund = Number(expense.valuePaid) || Number(expense.valueExpected) || 0;
+      if (expense.bank && valToRefund > 0) {
+        store.creditToBank(expense.bank, valToRefund);
+      }
     } else {
       expense.status = 'Pago';
       // Mantém a data de pagamento informada pelo usuário (deixa o usuário colocar a data desejada)
@@ -2574,6 +2613,10 @@ const app = {
       // Se o valor realizado estiver vazio ou zerado, preenche com o valor previsto
       if (expense.valuePaid === undefined || expense.valuePaid === null || expense.valuePaid === '' || Number(expense.valuePaid) === 0) {
         expense.valuePaid = Number(expense.valueExpected) || 0;
+      }
+      const valToDebit = Number(expense.valuePaid) || 0;
+      if (expense.bank && valToDebit > 0) {
+        store.debitFromBank(expense.bank, valToDebit);
       }
     }
 

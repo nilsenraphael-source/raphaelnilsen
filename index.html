@@ -288,7 +288,13 @@
                   <span class="card-subtitle">Visão de liquidez distribuída entre as contas</span>
                 </div>
               </div>
-              <span class="badge-pill-counter green">7 contas ativas</span>
+              <div style="display:flex; align-items:center; gap:0.6rem;">
+                <button type="button" class="btn-header" onclick="app.recalculateBalances()" title="Sincronizar e recalcular saldos das contas a partir de todas as despesas e receitas registradas" style="font-size:0.75rem; padding:0.25rem 0.65rem; display:inline-flex; align-items:center; gap:0.35rem; cursor:pointer;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                  Sincronizar Saldos
+                </button>
+                <span class="badge-pill-counter green">7 contas ativas</span>
+              </div>
             </div>
             <!-- Grid com Bradesco, Nubank, BB, Caixa P, Caixa CP, Seven, Carteira -->
             <div id="bankCardsGrid" class="bank-cards-grid"></div>
@@ -3553,8 +3559,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261102_v24"></script>
-  <script src="js/supabase.js?v=20261102_v24"></script>
-  <script src="js/app.js?v=20261102_v24"></script>
+  <script src="js/data.js?v=20261108_v25"></script>
+  <script src="js/supabase.js?v=20261108_v25"></script>
+  <script src="js/app.js?v=20261108_v25"></script>
 </body>
 </html>
