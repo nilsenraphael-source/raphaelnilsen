@@ -647,12 +647,12 @@ const app = {
       const cards = Array.isArray(store.data?.creditCards) ? store.data.creditCards : [];
 
       // 1. Selects de Bancos em Modais
-      const bankSelectEmptyIds = ['rev_bank', 'pay_rev_bank', 'edit_fix_bank'];
+      const bankSelectEmptyIds = ['rev_bank', 'pay_rev_bank', 'edit_fix_bank', 'edit_fatura_bank'];
       bankSelectEmptyIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           const prevVal = el.value;
-          const emptyLbl = id === 'edit_fix_bank'
+          const emptyLbl = (id === 'edit_fix_bank' || id === 'edit_fatura_bank')
             ? '— Em branco (selecionar no pagamento) —'
             : (id === 'pay_rev_bank' ? '— Selecione o Banco —' : '— Em branco (selecionar quando receber) —');
           el.innerHTML = this.getBankSelectOptionsHtml(prevVal, emptyLbl, true);
@@ -1836,6 +1836,21 @@ const app = {
               </div>
             `);
 
+            // Verifica pagamento em outro mês (Regime de Caixa)
+            const actYear = Number(store.activeYear) || new Date().getFullYear();
+            const actMonth = Number(this.activeMonth);
+            let payMonth = null;
+            let payYear = null;
+            let isPaidInDifferentMonth = false;
+            if (inv.paymentDate && inv.paymentDate.includes('-')) {
+              const pParts = inv.paymentDate.split('-');
+              payYear = parseInt(pParts[0], 10);
+              payMonth = parseInt(pParts[1], 10);
+              if (payMonth && (payMonth !== actMonth || payYear !== actYear)) {
+                isPaidInDifferentMonth = true;
+              }
+            }
+
             return `
               <div class="fatura-card-widget ${themeClass}" style="${invBorder}">
                 <div>
@@ -1877,6 +1892,34 @@ const app = {
                       <span>🔒 Fechamento: <strong>Dia ${inv.closingDay}</strong></span>
                       <span>📦 <strong>${inv.count}</strong> compra(s)</span>
                     </div>
+
+                    ${inv.count > 0 ? `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-top:0.75rem; padding-top:0.65rem; border-top:1px solid rgba(255,255,255,0.08);">
+                      <div>
+                        <label style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:600; margin-bottom:3px;">📅 Data do Pagamento</label>
+                        <input type="date"
+                               class="sheet-inline-input sheet-date-input"
+                               value="${inv.paymentDate || ''}"
+                               title="Data em que a fatura foi paga (saída de caixa)"
+                               onchange="app.updateCardInvoiceField(${this.activeMonth}, '${inv.key}', 'paymentDate', this.value)"
+                               style="width:100%; font-size:0.78rem; padding:0.28rem 0.4rem;">
+                        ${isPaidInDifferentMonth ? `
+                          <div style="font-size:0.68rem; color:#38bdf8; font-weight:700; margin-top:2px;">
+                            ↳ Descontado em ${store.getMonthName(payMonth).slice(0, 3)}/${payYear}
+                          </div>
+                        ` : ''}
+                      </div>
+                      <div>
+                        <label style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:600; margin-bottom:3px;">🏦 Banco / Conta</label>
+                        <select class="sheet-inline-select"
+                                title="Selecione o banco de onde saiu o pagamento da fatura"
+                                onchange="app.updateCardInvoiceField(${this.activeMonth}, '${inv.key}', 'bank', this.value)"
+                                style="width:100%; font-size:0.78rem; padding:0.28rem 0.4rem;">
+                          ${this.getBankSelectOptionsHtml(inv.bank, '— Selecionar Banco —', true)}
+                        </select>
+                      </div>
+                    </div>
+                    ` : ''}
                   </div>
                 </div>
 
@@ -1885,7 +1928,7 @@ const app = {
                     <button class="btn-fatura-action ${invIsPaid ? 'btn-fatura-unpay' : 'btn-fatura-pay'}" onclick="app.togglePayCardInvoice(${this.activeMonth}, '${inv.key}')">
                       ${invIsPaid ? '↩ Desmarcar Fatura' : `✓ Quitar Fatura ${escapeHtml(inv.name)}`}
                     </button>
-                    <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, '${inv.key}')" title="Ajustar valor pago">
+                    <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, '${inv.key}')" title="Ajustar valor pago, data e banco">
                       ✏️ Ajustar Valor
                     </button>
                   ` : `
@@ -1901,7 +1944,7 @@ const app = {
         <div style="margin-top: 1.25rem;">
           <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
             <span>Resumo Consolidado das Faturas do Mês</span>
-            <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">💡 Digite o valor pago na hora do pagamento: se pagar igual/acima fica verde, se pagar abaixo fica vermelho</span>
+            <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">💡 Escolha o banco, a data do pagamento (inclusive se adiantou em outro mês) e o valor realizado</span>
           </div>
 
           <div class="table-responsive">
@@ -1910,12 +1953,13 @@ const app = {
                 <tr>
                   <th>Cartão</th>
                   <th>Vencimento</th>
-                  <th>Fechamento</th>
-                  <th>Compras Inclusas</th>
+                  <th>Compras</th>
                   <th>Total Fatura (Previsto)</th>
-                  <th style="min-width: 175px;">Valor Realizado (R$)</th>
+                  <th style="min-width: 155px;">Valor Realizado (R$)</th>
                   <th>Status</th>
-                  <th style="width: 140px; text-align: center;">Ações</th>
+                  <th>Data Pagto</th>
+                  <th>Banco / Conta</th>
+                  <th style="width: 130px; text-align: center;">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -1927,6 +1971,20 @@ const app = {
                   const isPaid = (inv.isPaid || inv.totalPaid > 0);
                   const isFull = isPaid && (inv.totalExpected === 0 || inv.totalPaid >= inv.totalExpected);
                   const isUnder = isPaid && (inv.totalPaid < inv.totalExpected);
+
+                  const actYear = Number(store.activeYear) || new Date().getFullYear();
+                  const actMonth = Number(this.activeMonth);
+                  let payMonth = null;
+                  let payYear = null;
+                  let isPaidInDifferentMonth = false;
+                  if (inv.paymentDate && inv.paymentDate.includes('-')) {
+                    const pParts = inv.paymentDate.split('-');
+                    payYear = parseInt(pParts[0], 10);
+                    payMonth = parseInt(pParts[1], 10);
+                    if (payMonth && (payMonth !== actMonth || payYear !== actYear)) {
+                      isPaidInDifferentMonth = true;
+                    }
+                  }
 
                   if (inv.count === 0) {
                     statusBadgeClass = 'neutral';
@@ -1949,8 +2007,7 @@ const app = {
                         <strong>${escapeHtml(inv.name)}</strong>
                       </div>
                     </td>
-                    <td>Dia ${inv.dueDay}</td>
-                    <td>Dia ${inv.closingDay}</td>
+                    <td>Dia ${inv.dueDay} <span style="font-size:0.75rem; color:var(--text-muted);">(Fecha ${inv.closingDay})</span></td>
                     <td>${inv.count > 0 ? `${inv.count} compra(s)` : '<span style="color:var(--text-muted);">-</span>'}</td>
                     <td style="color: #fbbf24; font-weight: 800; font-size: 1rem;">${formatBRL(inv.totalExpected)}</td>
                     <td>
@@ -1979,6 +2036,34 @@ const app = {
                         </button>
                       `}
                     </td>
+                    <td>
+                      ${inv.count > 0 ? `
+                        <input type="date" 
+                               class="sheet-inline-input sheet-date-input" 
+                               value="${inv.paymentDate || ''}" 
+                               title="Data do efetivo pagamento da fatura (saída de caixa)" 
+                               onchange="app.updateCardInvoiceField(${this.activeMonth}, '${inv.key}', 'paymentDate', this.value)"
+                               style="width: 125px; font-size: 0.8rem; padding: 0.25rem 0.35rem;">
+                        ${isPaidInDifferentMonth ? `
+                          <div style="font-size:0.7rem; color:#38bdf8; font-weight:600; margin-top:2px;" title="Esta fatura foi descontada no caixa de ${store.getMonthName(payMonth)}/${payYear}">
+                            ↳ Descontado em ${store.getMonthName(payMonth).slice(0, 3)}/${payYear}
+                          </div>
+                        ` : ''}
+                      ` : `
+                        <span style="color:var(--text-muted);">-</span>
+                      `}
+                    </td>
+                    <td>
+                      ${inv.count > 0 ? `
+                        <select class="sheet-inline-select" 
+                                title="Selecione o banco de onde saiu o pagamento da fatura"
+                                onchange="app.updateCardInvoiceField(${this.activeMonth}, '${inv.key}', 'bank', this.value)">
+                          ${this.getBankSelectOptionsHtml(inv.bank, '— Selecionar Banco —', true)}
+                        </select>
+                      ` : `
+                        <span style="color:var(--text-muted);">-</span>
+                      `}
+                    </td>
                     <td style="text-align:center;">
                       ${inv.count > 0 ? `
                         <div style="display:inline-flex; gap:0.4rem; justify-content:center;">
@@ -1998,12 +2083,15 @@ const app = {
               </tbody>
               <tfoot>
                 <tr style="background: rgba(255,255,255,0.02); font-weight: 800; border-top: 2px solid var(--border-light);">
-                  <td colspan="3"><strong>TOTAL CONSOLIDADO DAS FATURAS</strong></td>
+                  <td colspan="2"><strong>TOTAL CONSOLIDADO DAS FATURAS</strong></td>
                   <td><strong>${summary.cardCount} compra(s)</strong></td>
                   <td style="color: #fbbf24; font-size: 1.05rem;">${formatBRL(summary.cardExpected || summary.card)}</td>
                   <td style="color: #34d399; font-size: 1.05rem;">${formatBRL(summary.cardPaid || 0)}</td>
                   <td>
                     ${cardHasItems ? (cardIsComplete ? '<span class="status-badge paid">✓ Tudo Pago</span>' : '<span class="status-badge pending">⏳ Pendente</span>') : '<span class="status-badge neutral">Sem faturas</span>'}
+                  </td>
+                  <td colspan="2" style="color: var(--text-muted); font-size: 0.82rem;">
+                    Restante: <strong style="color: #f87171;">${formatBRL(summary.cardPending)}</strong>
                   </td>
                   <td style="text-align:center;">
                     ${cardHasItems ? `
@@ -2728,6 +2816,33 @@ const app = {
     }
   },
 
+  updateCardInvoiceField(monthNum, cardKey, field, value) {
+    const mNum = Number(monthNum) || this.activeMonth;
+    store.updateCardInvoiceMeta(mNum, cardKey, { [field]: value });
+    this.renderMeses();
+    this.renderResumo();
+
+    if (field === 'bank') {
+      if (value) {
+        this.showToast(`✓ Banco "${value}" vinculado à fatura!`, 'success');
+      } else {
+        this.showToast('Banco desvinculado da fatura.', 'info');
+      }
+    } else if (field === 'paymentDate') {
+      if (value && value.includes('-')) {
+        const parts = value.split('-');
+        const payMonth = parseInt(parts[1], 10);
+        if (payMonth && payMonth !== mNum) {
+          this.showToast(`✓ Fatura de ${store.getMonthName(mNum)} descontada no caixa de ${store.getMonthName(payMonth)} (${formatDateBR(value)})!`, 'success');
+        } else {
+          this.showToast(`✓ Data de pagamento da fatura salva (${formatDateBR(value)})!`, 'success');
+        }
+      } else {
+        this.showToast('Data de pagamento da fatura removida.', 'info');
+      }
+    }
+  },
+
   openEditCardInvoiceModal(monthNum, cardKey) {
     const invoices = store.getCardInvoicesForMonth(monthNum);
     const inv = invoices.find(i => i.key === cardKey);
@@ -2742,6 +2857,16 @@ const app = {
     const currentPaid = (inv.isPaid || inv.totalPaid > 0) ? inv.totalPaid : inv.totalExpected;
     document.getElementById('edit_fatura_val_paid').value = formatMoneyDisplay(currentPaid);
     document.getElementById('edit_fatura_status').value = inv.isPaid ? 'Pago' : (inv.totalPaid > 0 ? 'Pago' : 'Pendente');
+
+    const payDateEl = document.getElementById('edit_fatura_payment_date');
+    if (payDateEl) {
+      payDateEl.value = inv.paymentDate || '';
+    }
+    const bankEl = document.getElementById('edit_fatura_bank');
+    if (bankEl) {
+      bankEl.innerHTML = this.getBankSelectOptionsHtml(inv.bank || '', '— Selecionar Banco —', true);
+      bankEl.value = inv.bank || '';
+    }
 
     this.openModal('modalEditarFaturaCartao');
   },
@@ -9058,8 +9183,11 @@ const app = {
         const valPaidRaw = document.getElementById('edit_fatura_val_paid').value.trim();
         const status = document.getElementById('edit_fatura_status').value;
         const valPaid = parseMoney(valPaidRaw);
+        const bank = document.getElementById('edit_fatura_bank')?.value || '';
+        let paymentDate = document.getElementById('edit_fatura_payment_date')?.value || '';
+        if (status === 'Pendente') paymentDate = '';
 
-        store.setCardInvoiceStatus(monthNum, cardKey, status, valPaid);
+        store.setCardInvoiceStatus(monthNum, cardKey, status, valPaid, store.activeYear, { bank, paymentDate });
         this.closeModal('modalEditarFaturaCartao');
         formEditFatura.reset();
         this.renderMeses();
