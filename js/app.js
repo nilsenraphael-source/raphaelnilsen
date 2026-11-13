@@ -6521,10 +6521,28 @@ const app = {
       { id: 'pwd_em_06', tabela: 'emails', servico: 'Gmail', login: 'KamilahinkelKamila@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' }
     ];
 
+    const defaultDonaTania = [
+      { id: 'pwd_dt_01', tabela: 'dona_tania', servico: 'Gov.br', login: '41776291972', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_02', tabela: 'dona_tania', servico: 'Celular', login: '', senha: '3162', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_03', tabela: 'dona_tania', servico: 'Gmail', login: 'taniamariasilvano@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_04', tabela: 'dona_tania', servico: 'Caixa Economica', login: 'taniamaria3162', senha: 'tania96', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_05', tabela: 'dona_tania', servico: 'Santander', login: '41776291972', senha: '842531', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_06', tabela: 'dona_tania', servico: 'Santander Cartao', login: '6875', senha: 'DGC', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_07', tabela: 'dona_tania', servico: 'Tim', login: '48996286777', senha: '3917', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_08', tabela: 'dona_tania', servico: 'Itau', login: '842531', senha: '1996', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_09', tabela: 'dona_tania', servico: 'Personal Card', login: 'J602202a!', senha: '4177', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_10', tabela: 'dona_tania', servico: 'Vero', login: '41776291972', senha: '253188', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_11', tabela: 'dona_tania', servico: 'Mercado Brasil Atacadista', login: '41776291972', senha: 'CJ274790a', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_12', tabela: 'dona_tania', servico: 'Mercado KOCH', login: '41776291972', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_13', tabela: 'dona_tania', servico: 'Nubank', login: '3162', senha: '88131760', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+      { id: 'pwd_dt_14', tabela: 'dona_tania', servico: 'Celesc', login: '41776291972', senha: 'J602202a!', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' }
+    ];
+
     if (!store.data.passwords || store.data.passwords.length === 0) {
       store.data.passwords = [
         ...defaultBancosCartoes,
         ...defaultEmails,
+        ...defaultDonaTania,
         // 2. LOGINS e SENHAS DE SITES (Padrão ACBCSJ)
         {
           id: 'pwd_site_1',
@@ -6547,18 +6565,6 @@ const app = {
           senha: 'Shopee@Pass2026',
           status: 'ativo',
           observacoes: 'Compras de insumos e ferramentas'
-        },
-        // 4. SENHAS DONA TANIA (Padrão ACBCSJ)
-        {
-          id: 'pwd_tania_1',
-          tabela: 'dona_tania',
-          servico: 'MEU INSS / GOV.BR',
-          url: 'https://meu.inss.gov.br',
-          categoria: 'Previdência / Governo',
-          login: 'CPF Dona Tânia',
-          senha: 'Tania@Gov2026',
-          status: 'ativo',
-          observacoes: 'Extrato de pagamento, benefício e comprovantes'
         }
       ];
       store.save();
@@ -6567,12 +6573,15 @@ const app = {
       const hasRealBancos = store.data.passwords.some(p => p.id === 'pwd_bc_01');
       const hasOldDemoEmails = store.data.passwords.some(p => p.id === 'pwd_email_1' || p.id === 'pwd_email_2');
       const hasRealEmails = store.data.passwords.some(p => p.id === 'pwd_em_01');
-      if (hasOldDemoBancos || !hasRealBancos || hasOldDemoEmails || !hasRealEmails) {
-        const nonDemo = store.data.passwords.filter(p => !['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4', 'pwd_email_1', 'pwd_email_2'].includes(p.id));
+      const hasOldDemoTania = store.data.passwords.some(p => p.id === 'pwd_tania_1');
+      const hasRealTania = store.data.passwords.some(p => p.id === 'pwd_dt_01');
+      if (hasOldDemoBancos || !hasRealBancos || hasOldDemoEmails || !hasRealEmails || hasOldDemoTania || !hasRealTania) {
+        const nonDemo = store.data.passwords.filter(p => !['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4', 'pwd_email_1', 'pwd_email_2', 'pwd_tania_1'].includes(p.id));
         const existingIds = new Set(nonDemo.map(p => p.id));
         const newBcItems = defaultBancosCartoes.filter(p => !existingIds.has(p.id));
         const newEmItems = defaultEmails.filter(p => !existingIds.has(p.id));
-        store.data.passwords = [...newBcItems, ...newEmItems, ...nonDemo];
+        const newDtItems = defaultDonaTania.filter(p => !existingIds.has(p.id));
+        store.data.passwords = [...newBcItems, ...newEmItems, ...newDtItems, ...nonDemo];
         store.save();
       }
     }

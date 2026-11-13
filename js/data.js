@@ -363,7 +363,21 @@ const INITIAL_DATABASE = {
     { id: 'pwd_em_03', tabela: 'emails', servico: 'Outlook', login: 'raphael_nilsen@outlook.com', senha: 'CJ904727a.', senha_auxiliar: 'A253188a!', categoria: 'E-mail', status: 'ativo', observacoes: '' },
     { id: 'pwd_em_04', tabela: 'emails', servico: 'Gmail', login: 'cbcsaojose2025@gmail.com', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' },
     { id: 'pwd_em_05', tabela: 'emails', servico: 'Gmail', login: 'rosangelarib1511@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' },
-    { id: 'pwd_em_06', tabela: 'emails', servico: 'Gmail', login: 'KamilahinkelKamila@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' }
+    { id: 'pwd_em_06', tabela: 'emails', servico: 'Gmail', login: 'KamilahinkelKamila@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_01', tabela: 'dona_tania', servico: 'Gov.br', login: '41776291972', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_02', tabela: 'dona_tania', servico: 'Celular', login: '', senha: '3162', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_03', tabela: 'dona_tania', servico: 'Gmail', login: 'taniamariasilvano@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_04', tabela: 'dona_tania', servico: 'Caixa Economica', login: 'taniamaria3162', senha: 'tania96', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_05', tabela: 'dona_tania', servico: 'Santander', login: '41776291972', senha: '842531', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_06', tabela: 'dona_tania', servico: 'Santander Cartao', login: '6875', senha: 'DGC', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_07', tabela: 'dona_tania', servico: 'Tim', login: '48996286777', senha: '3917', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_08', tabela: 'dona_tania', servico: 'Itau', login: '842531', senha: '1996', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_09', tabela: 'dona_tania', servico: 'Personal Card', login: 'J602202a!', senha: '4177', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_10', tabela: 'dona_tania', servico: 'Vero', login: '41776291972', senha: '253188', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_11', tabela: 'dona_tania', servico: 'Mercado Brasil Atacadista', login: '41776291972', senha: 'CJ274790a', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_12', tabela: 'dona_tania', servico: 'Mercado KOCH', login: '41776291972', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_13', tabela: 'dona_tania', servico: 'Nubank', login: '3162', senha: '88131760', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' },
+    { id: 'pwd_dt_14', tabela: 'dona_tania', servico: 'Celesc', login: '41776291972', senha: 'J602202a!', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' }
   ],
 
   // 9. Mapeando B3 (Radar Online de Dividendos & Oportunidades de Compra)
@@ -551,7 +565,7 @@ function normalizeSystemGroupsData(merged) {
     Object.values(merged.years).forEach(yMonths => sanitizeMonthsFixed(yMonths));
   }
 
-  // Garante que as 14 senhas reais de Bancos e Cartões e os 6 E-mails reais estejam presentes e substitui registros fictícios antigos
+  // Garante que as senhas reais de Bancos e Cartões (14), E-mails (6) e D. Tânia (14) estejam presentes e substitui registros fictícios antigos
   if (!Array.isArray(merged.passwords) || merged.passwords.length === 0) {
     merged.passwords = JSON.parse(JSON.stringify(INITIAL_DATABASE.passwords));
   } else {
@@ -564,11 +578,16 @@ function normalizeSystemGroupsData(merged) {
       p.id === 'pwd_email_1' || p.id === 'pwd_email_2'
     );
     const hasRealEmails = merged.passwords.some(p => p.id === 'pwd_em_01' || p.login === 'nilsenraphael@gmail.com');
+    const hasOldDemoTania = merged.passwords.some(p => p.id === 'pwd_tania_1');
+    const hasRealTania = merged.passwords.some(p => p.id === 'pwd_dt_01' || (p.tabela === 'dona_tania' && p.servico === 'Gov.br'));
 
-    if (hasOldDemoBancos || !hasRealBancos || hasOldDemoEmails || !hasRealEmails) {
+    if (hasOldDemoBancos || !hasRealBancos || hasOldDemoEmails || !hasRealEmails || hasOldDemoTania || !hasRealTania) {
       const customPasswords = merged.passwords.filter(p => {
-        const isOldDemo = ['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4', 'pwd_email_1', 'pwd_email_2'].includes(p.id);
-        return !isOldDemo && !String(p.id || '').startsWith('pwd_bc_') && !String(p.id || '').startsWith('pwd_em_');
+        const isOldDemo = ['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4', 'pwd_email_1', 'pwd_email_2', 'pwd_tania_1'].includes(p.id);
+        return !isOldDemo &&
+          !String(p.id || '').startsWith('pwd_bc_') &&
+          !String(p.id || '').startsWith('pwd_em_') &&
+          !String(p.id || '').startsWith('pwd_dt_');
       });
       merged.passwords = [
         ...JSON.parse(JSON.stringify(INITIAL_DATABASE.passwords)),
