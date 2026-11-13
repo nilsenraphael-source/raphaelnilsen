@@ -647,12 +647,12 @@ const app = {
       const cards = Array.isArray(store.data?.creditCards) ? store.data.creditCards : [];
 
       // 1. Selects de Bancos em Modais
-      const bankSelectEmptyIds = ['rev_bank', 'pay_rev_bank', 'edit_fix_bank', 'edit_fatura_bank'];
+      const bankSelectEmptyIds = ['rev_bank', 'pay_rev_bank', 'edit_fix_bank'];
       bankSelectEmptyIds.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           const prevVal = el.value;
-          const emptyLbl = (id === 'edit_fix_bank' || id === 'edit_fatura_bank')
+          const emptyLbl = id === 'edit_fix_bank'
             ? '— Em branco (selecionar no pagamento) —'
             : (id === 'pay_rev_bank' ? '— Selecione o Banco —' : '— Em branco (selecionar quando receber) —');
           el.innerHTML = this.getBankSelectOptionsHtml(prevVal, emptyLbl, true);
@@ -1836,21 +1836,6 @@ const app = {
               </div>
             `);
 
-            // Verifica pagamento em outro mês (Regime de Caixa)
-            const actYear = Number(store.activeYear) || new Date().getFullYear();
-            const actMonth = Number(this.activeMonth);
-            let payMonth = null;
-            let payYear = null;
-            let isPaidInDifferentMonth = false;
-            if (inv.paymentDate && inv.paymentDate.includes('-')) {
-              const pParts = inv.paymentDate.split('-');
-              payYear = parseInt(pParts[0], 10);
-              payMonth = parseInt(pParts[1], 10);
-              if (payMonth && (payMonth !== actMonth || payYear !== actYear)) {
-                isPaidInDifferentMonth = true;
-              }
-            }
-
             return `
               <div class="fatura-card-widget ${themeClass}" style="${invBorder}">
                 <div>
@@ -1892,34 +1877,6 @@ const app = {
                       <span>🔒 Fechamento: <strong>Dia ${inv.closingDay}</strong></span>
                       <span>📦 <strong>${inv.count}</strong> compra(s)</span>
                     </div>
-
-                    ${inv.count > 0 ? `
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem; margin-top:0.75rem; padding-top:0.65rem; border-top:1px solid rgba(255,255,255,0.08);">
-                      <div>
-                        <label style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:600; margin-bottom:3px;">📅 Data do Pagamento</label>
-                        <input type="date"
-                               class="sheet-inline-input sheet-date-input"
-                               value="${inv.paymentDate || ''}"
-                               title="Data em que a fatura foi paga (saída de caixa)"
-                               onchange="app.updateCardInvoiceField(${this.activeMonth}, '${inv.key}', 'paymentDate', this.value)"
-                               style="width:100%; font-size:0.78rem; padding:0.28rem 0.4rem;">
-                        ${isPaidInDifferentMonth ? `
-                          <div style="font-size:0.68rem; color:#38bdf8; font-weight:700; margin-top:2px;">
-                            ↳ Descontado em ${store.getMonthName(payMonth).slice(0, 3)}/${payYear}
-                          </div>
-                        ` : ''}
-                      </div>
-                      <div>
-                        <label style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:600; margin-bottom:3px;">🏦 Banco / Conta</label>
-                        <select class="sheet-inline-select"
-                                title="Selecione o banco de onde saiu o pagamento da fatura"
-                                onchange="app.updateCardInvoiceField(${this.activeMonth}, '${inv.key}', 'bank', this.value)"
-                                style="width:100%; font-size:0.78rem; padding:0.28rem 0.4rem;">
-                          ${this.getBankSelectOptionsHtml(inv.bank, '— Selecionar Banco —', true)}
-                        </select>
-                      </div>
-                    </div>
-                    ` : ''}
                   </div>
                 </div>
 
@@ -1928,7 +1885,7 @@ const app = {
                     <button class="btn-fatura-action ${invIsPaid ? 'btn-fatura-unpay' : 'btn-fatura-pay'}" onclick="app.togglePayCardInvoice(${this.activeMonth}, '${inv.key}')">
                       ${invIsPaid ? '↩ Desmarcar Fatura' : `✓ Quitar Fatura ${escapeHtml(inv.name)}`}
                     </button>
-                    <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, '${inv.key}')" title="Ajustar valor pago, data e banco">
+                    <button class="btn-fatura-action btn-fatura-edit" onclick="app.openEditCardInvoiceModal(${this.activeMonth}, '${inv.key}')" title="Ajustar valor pago">
                       ✏️ Ajustar Valor
                     </button>
                   ` : `
@@ -1944,7 +1901,7 @@ const app = {
         <div style="margin-top: 1.25rem;">
           <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
             <span>Resumo Consolidado das Faturas do Mês</span>
-            <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">💡 Escolha o banco, a data do pagamento (inclusive se adiantou em outro mês) e o valor realizado</span>
+            <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">💡 Digite o valor pago na hora do pagamento: se pagar igual/acima fica verde, se pagar abaixo fica vermelho</span>
           </div>
 
           <div class="table-responsive">
@@ -1953,13 +1910,12 @@ const app = {
                 <tr>
                   <th>Cartão</th>
                   <th>Vencimento</th>
-                  <th>Compras</th>
+                  <th>Fechamento</th>
+                  <th>Compras Inclusas</th>
                   <th>Total Fatura (Previsto)</th>
-                  <th style="min-width: 155px;">Valor Realizado (R$)</th>
+                  <th style="min-width: 175px;">Valor Realizado (R$)</th>
                   <th>Status</th>
-                  <th>Data Pagto</th>
-                  <th>Banco / Conta</th>
-                  <th style="width: 130px; text-align: center;">Ações</th>
+                  <th style="width: 140px; text-align: center;">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -1971,20 +1927,6 @@ const app = {
                   const isPaid = (inv.isPaid || inv.totalPaid > 0);
                   const isFull = isPaid && (inv.totalExpected === 0 || inv.totalPaid >= inv.totalExpected);
                   const isUnder = isPaid && (inv.totalPaid < inv.totalExpected);
-
-                  const actYear = Number(store.activeYear) || new Date().getFullYear();
-                  const actMonth = Number(this.activeMonth);
-                  let payMonth = null;
-                  let payYear = null;
-                  let isPaidInDifferentMonth = false;
-                  if (inv.paymentDate && inv.paymentDate.includes('-')) {
-                    const pParts = inv.paymentDate.split('-');
-                    payYear = parseInt(pParts[0], 10);
-                    payMonth = parseInt(pParts[1], 10);
-                    if (payMonth && (payMonth !== actMonth || payYear !== actYear)) {
-                      isPaidInDifferentMonth = true;
-                    }
-                  }
 
                   if (inv.count === 0) {
                     statusBadgeClass = 'neutral';
@@ -2007,7 +1949,8 @@ const app = {
                         <strong>${escapeHtml(inv.name)}</strong>
                       </div>
                     </td>
-                    <td>Dia ${inv.dueDay} <span style="font-size:0.75rem; color:var(--text-muted);">(Fecha ${inv.closingDay})</span></td>
+                    <td>Dia ${inv.dueDay}</td>
+                    <td>Dia ${inv.closingDay}</td>
                     <td>${inv.count > 0 ? `${inv.count} compra(s)` : '<span style="color:var(--text-muted);">-</span>'}</td>
                     <td style="color: #fbbf24; font-weight: 800; font-size: 1rem;">${formatBRL(inv.totalExpected)}</td>
                     <td>
@@ -2036,34 +1979,6 @@ const app = {
                         </button>
                       `}
                     </td>
-                    <td>
-                      ${inv.count > 0 ? `
-                        <input type="date" 
-                               class="sheet-inline-input sheet-date-input" 
-                               value="${inv.paymentDate || ''}" 
-                               title="Data do efetivo pagamento da fatura (saída de caixa)" 
-                               onchange="app.updateCardInvoiceField(${this.activeMonth}, '${inv.key}', 'paymentDate', this.value)"
-                               style="width: 125px; font-size: 0.8rem; padding: 0.25rem 0.35rem;">
-                        ${isPaidInDifferentMonth ? `
-                          <div style="font-size:0.7rem; color:#38bdf8; font-weight:600; margin-top:2px;" title="Esta fatura foi descontada no caixa de ${store.getMonthName(payMonth)}/${payYear}">
-                            ↳ Descontado em ${store.getMonthName(payMonth).slice(0, 3)}/${payYear}
-                          </div>
-                        ` : ''}
-                      ` : `
-                        <span style="color:var(--text-muted);">-</span>
-                      `}
-                    </td>
-                    <td>
-                      ${inv.count > 0 ? `
-                        <select class="sheet-inline-select" 
-                                title="Selecione o banco de onde saiu o pagamento da fatura"
-                                onchange="app.updateCardInvoiceField(${this.activeMonth}, '${inv.key}', 'bank', this.value)">
-                          ${this.getBankSelectOptionsHtml(inv.bank, '— Selecionar Banco —', true)}
-                        </select>
-                      ` : `
-                        <span style="color:var(--text-muted);">-</span>
-                      `}
-                    </td>
                     <td style="text-align:center;">
                       ${inv.count > 0 ? `
                         <div style="display:inline-flex; gap:0.4rem; justify-content:center;">
@@ -2083,15 +1998,12 @@ const app = {
               </tbody>
               <tfoot>
                 <tr style="background: rgba(255,255,255,0.02); font-weight: 800; border-top: 2px solid var(--border-light);">
-                  <td colspan="2"><strong>TOTAL CONSOLIDADO DAS FATURAS</strong></td>
+                  <td colspan="3"><strong>TOTAL CONSOLIDADO DAS FATURAS</strong></td>
                   <td><strong>${summary.cardCount} compra(s)</strong></td>
                   <td style="color: #fbbf24; font-size: 1.05rem;">${formatBRL(summary.cardExpected || summary.card)}</td>
                   <td style="color: #34d399; font-size: 1.05rem;">${formatBRL(summary.cardPaid || 0)}</td>
                   <td>
                     ${cardHasItems ? (cardIsComplete ? '<span class="status-badge paid">✓ Tudo Pago</span>' : '<span class="status-badge pending">⏳ Pendente</span>') : '<span class="status-badge neutral">Sem faturas</span>'}
-                  </td>
-                  <td colspan="2" style="color: var(--text-muted); font-size: 0.82rem;">
-                    Restante: <strong style="color: #f87171;">${formatBRL(summary.cardPending)}</strong>
                   </td>
                   <td style="text-align:center;">
                     ${cardHasItems ? `
@@ -2816,33 +2728,6 @@ const app = {
     }
   },
 
-  updateCardInvoiceField(monthNum, cardKey, field, value) {
-    const mNum = Number(monthNum) || this.activeMonth;
-    store.updateCardInvoiceMeta(mNum, cardKey, { [field]: value });
-    this.renderMeses();
-    this.renderResumo();
-
-    if (field === 'bank') {
-      if (value) {
-        this.showToast(`✓ Banco "${value}" vinculado à fatura!`, 'success');
-      } else {
-        this.showToast('Banco desvinculado da fatura.', 'info');
-      }
-    } else if (field === 'paymentDate') {
-      if (value && value.includes('-')) {
-        const parts = value.split('-');
-        const payMonth = parseInt(parts[1], 10);
-        if (payMonth && payMonth !== mNum) {
-          this.showToast(`✓ Fatura de ${store.getMonthName(mNum)} descontada no caixa de ${store.getMonthName(payMonth)} (${formatDateBR(value)})!`, 'success');
-        } else {
-          this.showToast(`✓ Data de pagamento da fatura salva (${formatDateBR(value)})!`, 'success');
-        }
-      } else {
-        this.showToast('Data de pagamento da fatura removida.', 'info');
-      }
-    }
-  },
-
   openEditCardInvoiceModal(monthNum, cardKey) {
     const invoices = store.getCardInvoicesForMonth(monthNum);
     const inv = invoices.find(i => i.key === cardKey);
@@ -2857,16 +2742,6 @@ const app = {
     const currentPaid = (inv.isPaid || inv.totalPaid > 0) ? inv.totalPaid : inv.totalExpected;
     document.getElementById('edit_fatura_val_paid').value = formatMoneyDisplay(currentPaid);
     document.getElementById('edit_fatura_status').value = inv.isPaid ? 'Pago' : (inv.totalPaid > 0 ? 'Pago' : 'Pendente');
-
-    const payDateEl = document.getElementById('edit_fatura_payment_date');
-    if (payDateEl) {
-      payDateEl.value = inv.paymentDate || '';
-    }
-    const bankEl = document.getElementById('edit_fatura_bank');
-    if (bankEl) {
-      bankEl.innerHTML = this.getBankSelectOptionsHtml(inv.bank || '', '— Selecionar Banco —', true);
-      bankEl.value = inv.bank || '';
-    }
 
     this.openModal('modalEditarFaturaCartao');
   },
@@ -6620,61 +6495,26 @@ const app = {
   // =========================================================================
 
   ensureInitialPasswords() {
+    const defaultBancosCartoes = [
+      { id: 'pwd_bc_01', tabela: 'bancos_cartoes', banco: 'Banco do Brasil', tipo_conta: 'Corrente', senha_principal: '498679', letra_auxiliar: '3X-9C-P', login: '', senha: '84253164 / 498679', senha_auxiliar: '', pix: '05202665954', observacoes: '' },
+      { id: 'pwd_bc_02', tabela: 'bancos_cartoes', banco: 'Caixa Econômica', tipo_conta: 'Poupança', senha_principal: '4184', letra_auxiliar: 'WA-KU-RA', login: 'raphael3257', senha: 'visual32 / 409601', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_03', tabela: 'bancos_cartoes', banco: 'Caixa Econômica', tipo_conta: 'Corrente', senha_principal: '4986', letra_auxiliar: 'JÁ-FO-XE', login: 'raphael3257', senha: 'A253188a / 409601', senha_auxiliar: '', pix: 'Aleatorio', observacoes: '' },
+      { id: 'pwd_bc_04', tabela: 'bancos_cartoes', banco: 'Bradesco', tipo_conta: 'Corrente', senha_principal: '498679', letra_auxiliar: '', login: '', senha: '1027 / 4986', senha_auxiliar: '', pix: '48984041027', observacoes: '' },
+      { id: 'pwd_bc_05', tabela: 'bancos_cartoes', banco: 'Nu Bank', tipo_conta: 'Corrente', senha_principal: '4986', letra_auxiliar: 'J602202a!', login: '', senha: '', senha_auxiliar: '', pix: 'raphael_nilsen@hotmail.com', observacoes: '' },
+      { id: 'pwd_bc_06', tabela: 'bancos_cartoes', banco: 'Clear Corretora', tipo_conta: 'Investimentos', senha_principal: '498679', letra_auxiliar: 'XMJ7454', login: '', senha: '30571142', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_07', tabela: 'bancos_cartoes', banco: 'Master Card', tipo_conta: 'Cartao Credito', senha_principal: '5031', letra_auxiliar: 'natayan96', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_08', tabela: 'bancos_cartoes', banco: 'Cassol', tipo_conta: 'Cartao Credito', senha_principal: '4986', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_09', tabela: 'bancos_cartoes', banco: 'Havan', tipo_conta: 'Cartao Credito', senha_principal: '4184', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_10', tabela: 'bancos_cartoes', banco: 'Trio Card', tipo_conta: 'Cartao Credito', senha_principal: '0520', letra_auxiliar: '', login: '05202665954', senha: '602202', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_11', tabela: 'bancos_cartoes', banco: 'trio card ELO', tipo_conta: 'Cartao Credito', senha_principal: '0520', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_12', tabela: 'bancos_cartoes', banco: 'Iphone', tipo_conta: 'Celular', senha_principal: '409601', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_13', tabela: 'bancos_cartoes', banco: 'B3 Investimentos', tipo_conta: 'Investimentos', senha_principal: 'A253188a!', letra_auxiliar: '', login: '05202665954', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+      { id: 'pwd_bc_14', tabela: 'bancos_cartoes', banco: 'Cartão Cidadão', tipo_conta: 'Outros', senha_principal: '424184', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' }
+    ];
+
     if (!store.data.passwords || store.data.passwords.length === 0) {
       store.data.passwords = [
-        // 1. BANCOS e CARTÕES (As 8 colunas solicitadas)
-        {
-          id: 'pwd_banco_1',
-          tabela: 'bancos_cartoes',
-          banco: 'Bradesco',
-          tipo_conta: 'Conta Corrente / Cartão Elo',
-          senha_principal: '1234',
-          letra_auxiliar: 'A B C D',
-          login: 'Ag 1234 / Cc 56789-0',
-          senha: '••••••••',
-          senha_auxiliar: 'Token 654321',
-          pix: 'raphael_nilsen@hotmail.com',
-          observacoes: 'Conta principal de movimentação bancária'
-        },
-        {
-          id: 'pwd_banco_2',
-          tabela: 'bancos_cartoes',
-          banco: 'Nubank',
-          tipo_conta: 'Conta Digital / Mastercard',
-          senha_principal: 'Nu@2026',
-          letra_auxiliar: 'Biometria Facial',
-          login: 'raphael_nilsen@hotmail.com',
-          senha: '••••••••',
-          senha_auxiliar: 'Senha 4 dígitos: 9876',
-          pix: 'Chave Aleatória',
-          observacoes: 'Cartão de crédito roxinho e caixinhas'
-        },
-        {
-          id: 'pwd_banco_3',
-          tabela: 'bancos_cartoes',
-          banco: 'Banco do Brasil',
-          tipo_conta: 'Conta Corrente',
-          senha_principal: 'BB2026@',
-          letra_auxiliar: 'Senha 8 dígitos',
-          login: 'Ag 4321 / Conta 12345-6',
-          senha: '••••••••',
-          senha_auxiliar: 'Senha Cartão (6 dígitos)',
-          pix: 'CPF',
-          observacoes: 'Acesso via App BB e Autoatendimento'
-        },
-        {
-          id: 'pwd_banco_4',
-          tabela: 'bancos_cartoes',
-          banco: 'Caixa Econômica Federal',
-          tipo_conta: 'Conta Poupança',
-          senha_principal: 'Caixa@123',
-          letra_auxiliar: 'Assinatura Eletrônica',
-          login: 'Usuário Internet Banking',
-          senha: '••••••••',
-          senha_auxiliar: 'Senha 4 dígitos',
-          pix: 'Celular',
-          observacoes: 'Poupança Caixa'
-        },
+        ...defaultBancosCartoes,
         // 2. LOGINS e SENHAS DE SITES (Padrão ACBCSJ)
         {
           id: 'pwd_site_1',
@@ -6735,6 +6575,16 @@ const app = {
         }
       ];
       store.save();
+    } else {
+      const hasOldDemoBancos = store.data.passwords.some(p => p.id === 'pwd_banco_1' && p.senha_principal === '1234');
+      const hasRealBancos = store.data.passwords.some(p => p.id === 'pwd_bc_01');
+      if (hasOldDemoBancos || !hasRealBancos) {
+        const nonDemo = store.data.passwords.filter(p => !['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4'].includes(p.id));
+        const existingBcIds = new Set(nonDemo.map(p => p.id));
+        const newBcItems = defaultBancosCartoes.filter(p => !existingBcIds.has(p.id));
+        store.data.passwords = [...newBcItems, ...nonDemo];
+        store.save();
+      }
     }
   },
 
@@ -7188,17 +7038,16 @@ const app = {
     let tableHtml = '<div class="senhas-table-wrapper"><table class="senhas-table senhas-table-bancos">';
 
     if (this.senhasAbaAtiva === 'bancos_cartoes') {
-      // CABEÇALHO DAS 8 COLUNAS EXIGIDAS
+      // CABEÇALHO EXATO CONFORME TABELA BANCOS E CARTÕES DO USUÁRIO
       tableHtml += `
         <thead>
           <tr>
-            <th>BANCO</th>
-            <th>TIPO DE CONTA</th>
+            <th>BANCO / APP</th>
+            <th>TIPO CONTA</th>
             <th>SENHA PRINCIPAL</th>
-            <th>LETRA / AUXILIAR</th>
+            <th>LETRAS OU SENHA AUXILIAR</th>
             <th>LOGIN</th>
-            <th>SENHA</th>
-            <th>SENHA AUXILIAR</th>
+            <th>OUTRAS SENHAS</th>
             <th>PIX</th>
             <th style="text-align:center;">AÇÕES</th>
           </tr>
@@ -7206,25 +7055,45 @@ const app = {
         <tbody>
       `;
 
+      const getTipoContaStyle = (tipo) => {
+        const t = (tipo || '').toLowerCase();
+        if (t.includes('corrente')) return 'background: rgba(16, 185, 129, 0.22); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35);';
+        if (t.includes('poupan')) return 'background: rgba(59, 130, 246, 0.25); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);';
+        if (t.includes('investimento')) return 'background: rgba(148, 163, 184, 0.22); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.35);';
+        if (t.includes('cartao') || t.includes('cartão') || t.includes('credito') || t.includes('crédito')) return 'background: rgba(217, 119, 6, 0.25); color: #fcd34d; border: 1px solid rgba(217, 119, 6, 0.4);';
+        if (t.includes('celular')) return 'background: rgba(139, 92, 246, 0.25); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4);';
+        if (t.includes('outro')) return 'background: rgba(194, 65, 12, 0.25); color: #fdba74; border: 1px solid rgba(194, 65, 12, 0.4);';
+        return 'background: rgba(148, 163, 184, 0.18); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3);';
+      };
+
+      const getPixStyle = (pix) => {
+        const px = (pix || '').toLowerCase();
+        if (px.includes('aleatorio') || px.includes('aleatório')) return 'background: rgba(194, 65, 12, 0.28); color: #fdba74; border: 1px solid rgba(194, 65, 12, 0.4);';
+        if (px.includes('@')) return 'background: rgba(148, 163, 184, 0.22); color: #e2e8f0; border: 1px solid rgba(148, 163, 184, 0.35);';
+        if (px.startsWith('48') || px.length === 10) return 'background: rgba(220, 38, 38, 0.25); color: #fca5a5; border: 1px solid rgba(220, 38, 38, 0.4);';
+        return 'background: rgba(139, 92, 246, 0.25); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.4);';
+      };
+
       filtered.forEach(p => {
         const isRevealed = this.senhasRevelarTodas || this.senhasRevealedIds.has(p.id);
         const badgeClass = this.getBadgeBancoClass(p.banco || p.service || p.servico);
-        const icone = '🏦';
+        const outrasSenhasVal = [p.senha || p.password, p.senha_auxiliar].filter(Boolean).join(' / ');
+        const tipoContaLabel = p.tipo_conta || p.categoria || 'Corrente';
 
         tableHtml += `
           <tr>
-            <!-- 1. BANCO -->
+            <!-- 1. BANCO / APP -->
             <td>
               <div style="display:flex; align-items:center; gap:0.4rem;">
-                <span class="badge-bank ${badgeClass}">${icone} ${escapeHtml(p.banco || p.service || p.servico || 'Banco')}</span>
+                <span class="badge-bank ${badgeClass}" style="font-weight:700;">${escapeHtml(p.banco || p.service || p.servico || 'Banco')}</span>
               </div>
               ${p.observacoes ? `<div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.2rem; line-height:1.2;">${escapeHtml(p.observacoes)}</div>` : ''}
             </td>
 
-            <!-- 2. TIPO DA CONTA -->
+            <!-- 2. TIPO CONTA -->
             <td>
-              <span class="status-badge neutral" style="font-size:0.72rem; line-height:1.2; display:inline-block;">
-                ${escapeHtml(p.tipo_conta || p.categoria || 'Conta Corrente')}
+              <span style="font-size:0.75rem; font-weight:600; padding:0.2rem 0.55rem; border-radius:4px; line-height:1.2; display:inline-block; ${getTipoContaStyle(tipoContaLabel)}">
+                ${escapeHtml(tipoContaLabel)}
               </span>
             </td>
 
@@ -7239,7 +7108,7 @@ const app = {
               </div>
             </td>
 
-            <!-- 4. LETRA OU SENHA AUXILIAR -->
+            <!-- 4. LETRAS OU SENHA AUXILIAR -->
             <td>
               <div class="credential-box password-box">
                 <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.letra_auxiliar || '-') : (p.letra_auxiliar ? '••••••••' : '-')}</span>
@@ -7260,36 +7129,25 @@ const app = {
               </div>
             </td>
 
-            <!-- 6. SENHA -->
+            <!-- 6. OUTRAS SENHAS -->
             <td>
               <div class="credential-box password-box">
-                <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha || p.password || '-') : (p.senha || p.password ? '••••••••' : '-')}</span>
-                ${p.senha || p.password ? `
+                <span class="credential-text font-mono">${isRevealed ? escapeHtml(outrasSenhasVal || '-') : (outrasSenhasVal ? '••••••••' : '-')}</span>
+                ${outrasSenhasVal ? `
                   <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
-                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha || p.password)}', 'Senha copiada!')" title="Copiar Senha">📋</button>
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(outrasSenhasVal)}', 'Outras senhas copiadas!')" title="Copiar Outras Senhas">📋</button>
                 ` : ''}
               </div>
             </td>
 
-            <!-- 7. SENHA AUXILIAR -->
+            <!-- 7. PIX -->
             <td>
-              <div class="credential-box password-box">
-                <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_auxiliar || '-') : (p.senha_auxiliar ? '••••••••' : '-')}</span>
-                ${p.senha_auxiliar ? `
-                  <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
-                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_auxiliar)}', 'Senha auxiliar copiada!')" title="Copiar Senha Auxiliar">📋</button>
-                ` : ''}
-              </div>
-            </td>
-
-            <!-- 8. PIX -->
-            <td>
-              <div class="credential-box">
-                <span class="credential-text" style="color:#60a5fa;">${escapeHtml(p.pix || '-')}</span>
-                ${p.pix ? `
+              ${p.pix ? `
+                <div class="credential-box" style="gap:0.35rem;">
+                  <span style="font-size:0.75rem; font-weight:600; padding:0.18rem 0.5rem; border-radius:4px; display:inline-block; ${getPixStyle(p.pix)}">${escapeHtml(p.pix)}</span>
                   <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.pix)}', 'Chave PIX copiada!')" title="Copiar Chave PIX">📋</button>
-                ` : ''}
-              </div>
+                </div>
+              ` : `<span style="color:var(--text-muted);">-</span>`}
             </td>
 
             <!-- AÇÕES -->
@@ -9183,11 +9041,8 @@ const app = {
         const valPaidRaw = document.getElementById('edit_fatura_val_paid').value.trim();
         const status = document.getElementById('edit_fatura_status').value;
         const valPaid = parseMoney(valPaidRaw);
-        const bank = document.getElementById('edit_fatura_bank')?.value || '';
-        let paymentDate = document.getElementById('edit_fatura_payment_date')?.value || '';
-        if (status === 'Pendente') paymentDate = '';
 
-        store.setCardInvoiceStatus(monthNum, cardKey, status, valPaid, store.activeYear, { bank, paymentDate });
+        store.setCardInvoiceStatus(monthNum, cardKey, status, valPaid);
         this.closeModal('modalEditarFaturaCartao');
         formEditFatura.reset();
         this.renderMeses();

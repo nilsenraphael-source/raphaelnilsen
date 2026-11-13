@@ -2308,25 +2308,6 @@
               </select>
             </div>
           </div>
-          <div class="form-grid-2">
-            <div class="form-group">
-              <label class="form-label">Data do Pagamento (Saída de Caixa)</label>
-              <input type="date" id="edit_fatura_payment_date" class="form-input" title="Informe a data em que a fatura foi paga (ex: se adiantou em outro mês, informe a data real)">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Banco / Conta (Onde saiu o dinheiro)</label>
-              <select id="edit_fatura_bank" class="form-input">
-                <option value="">— Selecionar Banco —</option>
-                <option value="Bradesco">Bradesco</option>
-                <option value="Banco do Brasil">Banco do Brasil (BB)</option>
-                <option value="Nubank (Nu)">Nubank (Nu)</option>
-                <option value="Caixa Poupança">Caixa Poupança</option>
-                <option value="Caixa CP">Caixa CP (Conta Corrente)</option>
-                <option value="Carteira">Carteira (Dinheiro Físico)</option>
-                <option value="Outro">Outro</option>
-              </select>
-            </div>
-          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn-header" onclick="app.closeModal('modalEditarFaturaCartao')">Cancelar</button>
@@ -3083,15 +3064,15 @@
               </datalist>
             </div>
             <div class="form-group">
-              <label class="form-label">Tipo da Conta / Cartão *</label>
-              <input type="text" id="banco_tipo_conta" class="form-input" list="tipos_conta_sugestoes" required placeholder="Ex: Conta Corrente, Poupança, Cartão...">
+              <label class="form-label">Tipo Conta *</label>
+              <input type="text" id="banco_tipo_conta" class="form-input" list="tipos_conta_sugestoes" required placeholder="Ex: Corrente, Poupança, Cartao Credito...">
               <datalist id="tipos_conta_sugestoes">
-                <option value="Conta Corrente">
-                <option value="Conta Poupança">
-                <option value="Cartão de Crédito">
-                <option value="Conta Digital">
-                <option value="Conta Salário">
-                <option value="Investimentos / Corretora">
+                <option value="Corrente">
+                <option value="Poupança">
+                <option value="Investimentos">
+                <option value="Cartao Credito">
+                <option value="Celular">
+                <option value="Outros">
               </datalist>
             </div>
           </div>
@@ -3105,9 +3086,9 @@
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Letra ou Senha Auxiliar</label>
+              <label class="form-label">Letras ou Senha Auxiliar</label>
               <div style="position: relative;">
-                <input type="password" id="banco_letra_auxiliar" class="form-input" placeholder="Ex: Letras de Acesso / Tabela" style="padding-right: 38px;">
+                <input type="password" id="banco_letra_auxiliar" class="form-input" placeholder="Ex: 3X-9C-P, WA-KU-RA..." style="padding-right: 38px;">
                 <button type="button" class="btn-eye-mini" onclick="app.toggleFieldVisibility('banco_letra_auxiliar')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="Ver / Ocultar">👁️</button>
               </div>
             </div>
@@ -3115,13 +3096,13 @@
 
           <div class="form-grid-2">
             <div class="form-group">
-              <label class="form-label">Login / Agência / Conta</label>
-              <input type="text" id="banco_login" class="form-input" placeholder="Ex: Ag 1234 / Cc 56789-0 ou CPF">
+              <label class="form-label">Login</label>
+              <input type="text" id="banco_login" class="form-input" placeholder="Ex: raphael3257 ou CPF">
             </div>
             <div class="form-group">
-              <label class="form-label">Senha de Acesso (App / Web)</label>
+              <label class="form-label">Outras Senhas</label>
               <div style="position: relative;">
-                <input type="password" id="banco_senha" class="form-input" placeholder="Senha do app / internet banking" style="padding-right: 38px;">
+                <input type="password" id="banco_senha" class="form-input" placeholder="Ex: 84253164 / 498679" style="padding-right: 38px;">
                 <button type="button" class="btn-eye-mini" onclick="app.toggleFieldVisibility('banco_senha')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="Ver / Ocultar">👁️</button>
               </div>
             </div>
@@ -3578,8 +3559,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261110_v26"></script>
-  <script src="js/supabase.js?v=20261110_v26"></script>
-  <script src="js/app.js?v=20261110_v26"></script>
+  <script src="js/data.js?v=20261113_v27"></script>
+  <script src="js/supabase.js?v=20261113_v27"></script>
+  <script src="js/app.js?v=20261113_v27"></script>
 </body>
 </html>

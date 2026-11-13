@@ -343,7 +343,22 @@ const INITIAL_DATABASE = {
   },
 
   // 8. Cofre de Senhas
-  passwords: [],
+  passwords: [
+    { id: 'pwd_bc_01', tabela: 'bancos_cartoes', banco: 'Banco do Brasil', tipo_conta: 'Corrente', senha_principal: '498679', letra_auxiliar: '3X-9C-P', login: '', senha: '84253164 / 498679', senha_auxiliar: '', pix: '05202665954', observacoes: '' },
+    { id: 'pwd_bc_02', tabela: 'bancos_cartoes', banco: 'Caixa Econômica', tipo_conta: 'Poupança', senha_principal: '4184', letra_auxiliar: 'WA-KU-RA', login: 'raphael3257', senha: 'visual32 / 409601', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_03', tabela: 'bancos_cartoes', banco: 'Caixa Econômica', tipo_conta: 'Corrente', senha_principal: '4986', letra_auxiliar: 'JÁ-FO-XE', login: 'raphael3257', senha: 'A253188a / 409601', senha_auxiliar: '', pix: 'Aleatorio', observacoes: '' },
+    { id: 'pwd_bc_04', tabela: 'bancos_cartoes', banco: 'Bradesco', tipo_conta: 'Corrente', senha_principal: '498679', letra_auxiliar: '', login: '', senha: '1027 / 4986', senha_auxiliar: '', pix: '48984041027', observacoes: '' },
+    { id: 'pwd_bc_05', tabela: 'bancos_cartoes', banco: 'Nu Bank', tipo_conta: 'Corrente', senha_principal: '4986', letra_auxiliar: 'J602202a!', login: '', senha: '', senha_auxiliar: '', pix: 'raphael_nilsen@hotmail.com', observacoes: '' },
+    { id: 'pwd_bc_06', tabela: 'bancos_cartoes', banco: 'Clear Corretora', tipo_conta: 'Investimentos', senha_principal: '498679', letra_auxiliar: 'XMJ7454', login: '', senha: '30571142', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_07', tabela: 'bancos_cartoes', banco: 'Master Card', tipo_conta: 'Cartao Credito', senha_principal: '5031', letra_auxiliar: 'natayan96', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_08', tabela: 'bancos_cartoes', banco: 'Cassol', tipo_conta: 'Cartao Credito', senha_principal: '4986', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_09', tabela: 'bancos_cartoes', banco: 'Havan', tipo_conta: 'Cartao Credito', senha_principal: '4184', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_10', tabela: 'bancos_cartoes', banco: 'Trio Card', tipo_conta: 'Cartao Credito', senha_principal: '0520', letra_auxiliar: '', login: '05202665954', senha: '602202', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_11', tabela: 'bancos_cartoes', banco: 'trio card ELO', tipo_conta: 'Cartao Credito', senha_principal: '0520', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_12', tabela: 'bancos_cartoes', banco: 'Iphone', tipo_conta: 'Celular', senha_principal: '409601', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_13', tabela: 'bancos_cartoes', banco: 'B3 Investimentos', tipo_conta: 'Investimentos', senha_principal: 'A253188a!', letra_auxiliar: '', login: '05202665954', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_bc_14', tabela: 'bancos_cartoes', banco: 'Cartão Cidadão', tipo_conta: 'Outros', senha_principal: '424184', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' }
+  ],
 
   // 9. Mapeando B3 (Radar Online de Dividendos & Oportunidades de Compra)
   mapeandoB3: {
@@ -528,6 +543,27 @@ function normalizeSystemGroupsData(merged) {
   sanitizeMonthsFixed(merged.months);
   if (merged.years && typeof merged.years === 'object') {
     Object.values(merged.years).forEach(yMonths => sanitizeMonthsFixed(yMonths));
+  }
+
+  // Garante que as 14 senhas reais de Bancos e Cartões estejam presentes e substitui os 4 registros fictícios antigos
+  if (!Array.isArray(merged.passwords) || merged.passwords.length === 0) {
+    merged.passwords = JSON.parse(JSON.stringify(INITIAL_DATABASE.passwords));
+  } else {
+    const hasOldDemoBancos = merged.passwords.some(p =>
+      (p.id === 'pwd_banco_1' && p.senha_principal === '1234') ||
+      (p.id === 'pwd_banco_2' && p.senha_principal === 'Nu@2026')
+    );
+    const hasRealBancos = merged.passwords.some(p => p.id === 'pwd_bc_01' || (p.banco === 'Banco do Brasil' && p.senha_principal === '498679'));
+    if (hasOldDemoBancos || !hasRealBancos) {
+      const otherTabsPasswords = merged.passwords.filter(p => {
+        const isOldDemo = ['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4'].includes(p.id);
+        return !isOldDemo && !String(p.id || '').startsWith('pwd_bc_');
+      });
+      merged.passwords = [
+        ...JSON.parse(JSON.stringify(INITIAL_DATABASE.passwords)),
+        ...otherTabsPasswords
+      ];
+    }
   }
 }
 
@@ -821,9 +857,8 @@ class DataStore {
       );
     };
 
-    const scanMonthsObj = (monthsObj, yrKey) => {
+    const scanMonthsObj = (monthsObj) => {
       if (!monthsObj) return;
-      const targetYr = Number(yrKey) || this.activeYear;
       for (let m = 1; m <= 12; m++) {
         const month = monthsObj[m];
         if (!month) continue;
@@ -837,7 +872,7 @@ class DataStore {
 
         (month.fixedExpenses || []).forEach(e => {
           if (e.status === 'Pago' && e.bank) {
-            const val = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : (Number(e.valueExpected) || 0);
+            const val = Number(e.valuePaid) || Number(e.valueExpected) || 0;
             if (val > 0) {
               const acc = matchBank(e.bank);
               if (acc) totalsByBank[acc.id] = Number(((totalsByBank[acc.id] || 0) - val).toFixed(2));
@@ -851,24 +886,22 @@ class DataStore {
             if (acc) totalsByBank[acc.id] = Number(((totalsByBank[acc.id] || 0) - Number(v.value)).toFixed(2));
           }
         });
-
-        const invoices = this.getCardInvoicesForMonth(m, targetYr);
-        invoices.forEach(inv => {
-          if ((inv.isPaid || inv.totalPaid > 0) && inv.bank) {
-            const val = Number(inv.totalPaid) || 0;
-            if (val > 0) {
-              const acc = matchBank(inv.bank);
-              if (acc) totalsByBank[acc.id] = Number(((totalsByBank[acc.id] || 0) - val).toFixed(2));
-            }
-          }
-        });
       }
     };
 
     if (this.data.years && Object.keys(this.data.years).length > 0) {
-      Object.entries(this.data.years).forEach(([yrKey, yrMonths]) => scanMonthsObj(yrMonths, yrKey));
+      Object.values(this.data.years).forEach(yrMonths => scanMonthsObj(yrMonths));
     } else {
-      scanMonthsObj(this.data.months, this.activeYear);
+      scanMonthsObj(this.data.months);
+    }
+
+    if (this.data.investments && Array.isArray(this.data.investments.stockEarnings)) {
+      this.data.investments.stockEarnings.forEach(se => {
+        if (se.bank && Number(se.amount) > 0) {
+          const acc = matchBank(se.bank);
+          if (acc) totalsByBank[acc.id] = Number(((totalsByBank[acc.id] || 0) + Number(se.amount)).toFixed(2));
+        }
+      });
     }
 
     (this.data.accounts || []).forEach(acc => {
@@ -1498,11 +1531,15 @@ class DataStore {
 
   setAllCardInstallmentsStatus(monthNum, status = 'Pago', year = this.activeYear) {
     const targetYear = Number(year) || this.activeYear;
-    const invoices = this.getCardInvoicesForMonth(monthNum, targetYear);
-    invoices.forEach(inv => {
-      if (inv.count > 0) {
-        const val = status === 'Pago' ? inv.totalExpected : 0;
-        this.setCardInvoiceStatus(monthNum, inv.key, status, val, targetYear);
+    const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
+    if (!m) return;
+    if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
+    if (!m.cardInstallmentPaid) m.cardInstallmentPaid = {};
+    const installments = this.getCardInstallmentsForMonth(monthNum, targetYear);
+    installments.forEach(inst => {
+      m.cardInstallmentStatus[inst.key] = status;
+      if (status === 'Pago' && (m.cardInstallmentPaid[inst.key] === undefined || m.cardInstallmentPaid[inst.key] === null)) {
+        m.cardInstallmentPaid[inst.key] = inst.value;
       }
     });
     this.save();
@@ -1528,10 +1565,7 @@ class DataStore {
 
   // Faturas consolidadas por cartão no mês (dinâmico conforme cartões cadastrados)
   getCardInvoicesForMonth(monthNum, year = this.activeYear) {
-    const targetYear = Number(year) || this.activeYear;
-    const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
-    const invoiceMetaMap = (m && m.cardInvoiceMeta && typeof m.cardInvoiceMeta === 'object') ? m.cardInvoiceMeta : {};
-    const installments = this.getCardInstallmentsForMonth(monthNum, targetYear);
+    const installments = this.getCardInstallmentsForMonth(monthNum, year);
     
     const configuredCards = (Array.isArray(this.data.creditCards) && this.data.creditCards.length > 0)
       ? this.data.creditCards
@@ -1571,7 +1605,6 @@ class DataStore {
       const isFullPaid = isPaid && (totalPaid >= totalExpected && totalExpected > 0);
       const isUnderPaid = isPaid && (totalPaid < totalExpected);
       const status = count === 0 ? 'Sem lançamentos' : (!isPaid ? 'Pendente' : (isFullPaid ? 'Pago' : 'Pago Abaixo'));
-      const meta = invoiceMetaMap[c.key] || invoiceMetaMap[c.id] || {};
 
       return {
         id: c.id,
@@ -1590,8 +1623,6 @@ class DataStore {
         isFullPaid,
         isUnderPaid,
         status,
-        bank: meta.bank || '',
-        paymentDate: meta.paymentDate || '',
         installments: matched
       };
     });
@@ -1611,7 +1642,6 @@ class DataStore {
       const isFullPaid = isPaid && (otherPaid >= otherExpected && otherExpected > 0);
       const isUnderPaid = isPaid && (otherPaid < otherExpected);
       const status = otherCount === 0 ? 'Sem lançamentos' : (!isPaid ? 'Pendente' : (isFullPaid ? 'Pago' : 'Pago Abaixo'));
-      const otherMeta = invoiceMetaMap['outros'] || {};
 
       result.push({
         id: 'outros',
@@ -1630,8 +1660,6 @@ class DataStore {
         isFullPaid,
         isUnderPaid,
         status,
-        bank: otherMeta.bank || '',
-        paymentDate: otherMeta.paymentDate || '',
         installments: otherMatched
       });
     }
@@ -1639,50 +1667,13 @@ class DataStore {
     return result;
   }
 
-  // Atualiza banco ou data de pagamento da fatura do cartão no mês e reconcilia saldo bancário se já estiver paga
-  updateCardInvoiceMeta(monthNum, cardKey, metaUpdates = {}, year = this.activeYear) {
-    const targetYear = Number(year) || this.activeYear;
-    const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
-    if (!m) return;
-    if (!m.cardInvoiceMeta) m.cardInvoiceMeta = {};
-
-    const invoices = this.getCardInvoicesForMonth(monthNum, targetYear);
-    const targetInv = invoices.find(inv =>
-      inv.key === cardKey ||
-      inv.id === cardKey ||
-      String(inv.name || '').toLowerCase() === String(cardKey || '').toLowerCase()
-    );
-    const resolvedKey = targetInv ? targetInv.key : cardKey;
-    const currentMeta = m.cardInvoiceMeta[resolvedKey] || { bank: '', paymentDate: '' };
-
-    const wasPaid = targetInv ? (targetInv.isPaid || targetInv.totalPaid > 0) : false;
-    const paidVal = targetInv ? (Number(targetInv.totalPaid) || 0) : 0;
-    const oldBank = currentMeta.bank || '';
-
-    m.cardInvoiceMeta[resolvedKey] = {
-      ...currentMeta,
-      ...metaUpdates
-    };
-
-    const newBank = m.cardInvoiceMeta[resolvedKey].bank || '';
-
-    // Se a fatura já está marcada como paga e o banco foi alterado/selecionado, reconcilia o saldo dos bancos
-    if (wasPaid && paidVal > 0 && oldBank !== newBank) {
-      if (oldBank) this.creditToBank(oldBank, paidVal);
-      if (newBank) this.debitFromBank(newBank, paidVal);
-    }
-
-    this.save();
-  }
-
   // Quitar ou definir status/valor pago de uma fatura específica de cartão
-  setCardInvoiceStatus(monthNum, cardKey, status = 'Pago', customPaidValue = null, year = this.activeYear, extraMeta = null) {
+  setCardInvoiceStatus(monthNum, cardKey, status = 'Pago', customPaidValue = null, year = this.activeYear) {
     const targetYear = Number(year) || this.activeYear;
     const m = (this.data.years && this.data.years[targetYear]) ? this.data.years[targetYear][monthNum] : this.data.months[monthNum];
     if (!m) return;
     if (!m.cardInstallmentStatus) m.cardInstallmentStatus = {};
     if (!m.cardInstallmentPaid) m.cardInstallmentPaid = {};
-    if (!m.cardInvoiceMeta) m.cardInvoiceMeta = {};
 
     const invoices = this.getCardInvoicesForMonth(monthNum, targetYear);
     const targetInv = invoices.find(inv =>
@@ -1690,26 +1681,9 @@ class DataStore {
       inv.id === cardKey ||
       String(inv.name || '').toLowerCase() === String(cardKey || '').toLowerCase()
     );
-    const resolvedKey = targetInv ? targetInv.key : cardKey;
     const cardInsts = targetInv ? targetInv.installments : [];
 
-    if (!m.cardInvoiceMeta[resolvedKey]) {
-      m.cardInvoiceMeta[resolvedKey] = { bank: '', paymentDate: '' };
-    }
-
-    const oldWasPaid = targetInv ? (targetInv.isPaid || targetInv.totalPaid > 0) : false;
-    const oldPaidVal = targetInv ? (Number(targetInv.totalPaid) || 0) : 0;
-    const oldBank = m.cardInvoiceMeta[resolvedKey].bank || '';
-
-    if (extraMeta && typeof extraMeta === 'object') {
-      if (extraMeta.bank !== undefined) m.cardInvoiceMeta[resolvedKey].bank = extraMeta.bank;
-      if (extraMeta.paymentDate !== undefined) m.cardInvoiceMeta[resolvedKey].paymentDate = extraMeta.paymentDate;
-    }
-
-    if (cardInsts.length === 0) {
-      this.save();
-      return;
-    }
+    if (cardInsts.length === 0) return;
 
     const totalExpected = cardInsts.reduce((acc, c) => acc + (Number(c.value) || 0), 0);
     const finalPaid = (customPaidValue !== null && customPaidValue !== undefined) 
@@ -1739,28 +1713,6 @@ class DataStore {
         m.cardInstallmentStatus[inst.key] = 'Pendente';
         m.cardInstallmentPaid[inst.key] = 0;
       });
-      if (!extraMeta || extraMeta.paymentDate === undefined) {
-        m.cardInvoiceMeta[resolvedKey].paymentDate = '';
-      }
-    }
-
-    const newBank = m.cardInvoiceMeta[resolvedKey].bank || '';
-    const newWasPaid = (targetStatus === 'Pago' && finalPaid > 0);
-
-    // Reconcilia o saldo bancário da conta vinculada à fatura
-    if (oldWasPaid && !newWasPaid) {
-      if (oldBank && oldPaidVal > 0) this.creditToBank(oldBank, oldPaidVal);
-    } else if (!oldWasPaid && newWasPaid) {
-      if (newBank && finalPaid > 0) this.debitFromBank(newBank, finalPaid);
-    } else if (oldWasPaid && newWasPaid) {
-      if (oldBank !== newBank) {
-        if (oldBank && oldPaidVal > 0) this.creditToBank(oldBank, oldPaidVal);
-        if (newBank && finalPaid > 0) this.debitFromBank(newBank, finalPaid);
-      } else if (newBank && finalPaid !== oldPaidVal) {
-        const diff = finalPaid - oldPaidVal;
-        if (diff > 0) this.debitFromBank(newBank, diff);
-        else if (diff < 0) this.creditToBank(newBank, Math.abs(diff));
-      }
     }
 
     this.save();
@@ -1771,10 +1723,10 @@ class DataStore {
     if (!m || !m.fixedExpenses) return;
     m.fixedExpenses.forEach(e => {
       const oldStatus = e.status;
-      const oldPaid = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : (Number(e.valueExpected) || 0);
+      const oldPaid = Number(e.valuePaid) || Number(e.valueExpected) || 0;
       e.status = status;
       if (status === 'Pago') {
-        if (e.valuePaid === undefined || e.valuePaid === null || e.valuePaid === '' || Number(e.valuePaid) === 0) {
+        if (!e.valuePaid || Number(e.valuePaid) === 0) {
           e.valuePaid = e.valueExpected;
         }
         const valToDebit = Number(e.valuePaid) || 0;
@@ -1826,9 +1778,8 @@ class DataStore {
     const fixedPct = fixedCount === 0 ? 100 : Math.round((fixedPaidCount / fixedCount) * 100);
 
     // FLUXO DE CAIXA REALIZADO (Regime de Caixa por Data de Pagamento)
-    // Permite que uma conta ou fatura de Dezembro paga em Novembro seja descontada no saldo de Novembro!
+    // Permite que uma conta de Dezembro paga em Novembro seja descontada no saldo de Novembro!
     let fixedPaidCash = 0;
-    let cardPaidCash = 0;
     const prepaidFromOtherMonths = [];
     const paidInOtherMonths = [];
     const targetYearNum = Number(this.activeYear) || new Date().getFullYear();
@@ -1836,62 +1787,17 @@ class DataStore {
 
     for (let mIdx = 1; mIdx <= 12; mIdx++) {
       const curM = monthsData[mIdx];
-      if (!curM) continue;
+      if (!curM || !Array.isArray(curM.fixedExpenses)) continue;
 
-      if (Array.isArray(curM.fixedExpenses)) {
-        curM.fixedExpenses.forEach(e => {
-          if (e.status === 'Pago') {
-            const vp = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : (Number(e.valueExpected) || 0);
-            
-            let payMonth = mIdx;
-            let payYear = targetYearNum;
-
-            if (e.paymentDate && typeof e.paymentDate === 'string' && e.paymentDate.includes('-')) {
-              const parts = e.paymentDate.split('-');
-              const py = parseInt(parts[0], 10);
-              const pm = parseInt(parts[1], 10);
-              if (!isNaN(pm) && pm >= 1 && pm <= 12) {
-                payMonth = pm;
-                payYear = py || targetYearNum;
-              }
-            }
-
-            if (payMonth === monthNum && payYear === targetYearNum) {
-              fixedPaidCash += vp;
-              if (mIdx !== monthNum) {
-                prepaidFromOtherMonths.push({
-                  ...e,
-                  expense: e,
-                  originalMonth: mIdx,
-                  originalMonthName: this.getMonthName(mIdx),
-                  valuePaid: vp
-                });
-              }
-            } else if (mIdx === monthNum && (payMonth !== monthNum || payYear !== targetYearNum)) {
-              paidInOtherMonths.push({
-                ...e,
-                expense: e,
-                paidMonth: payMonth,
-                paidYear: payYear,
-                paidMonthName: this.getMonthName(payMonth),
-                valuePaid: vp
-              });
-            }
-          }
-        });
-      }
-
-      const monthInvoices = this.getCardInvoicesForMonth(mIdx, targetYearNum);
-      monthInvoices.forEach(inv => {
-        if (inv.count > 0 && (inv.isPaid || inv.totalPaid > 0)) {
-          const vp = Number(inv.totalPaid) || 0;
-          if (vp <= 0) return;
-
+      curM.fixedExpenses.forEach(e => {
+        if (e.status === 'Pago') {
+          const vp = (e.valuePaid !== undefined && e.valuePaid !== null && e.valuePaid !== '') ? Number(e.valuePaid) : (Number(e.valueExpected) || 0);
+          
           let payMonth = mIdx;
           let payYear = targetYearNum;
 
-          if (inv.paymentDate && typeof inv.paymentDate === 'string' && inv.paymentDate.includes('-')) {
-            const parts = inv.paymentDate.split('-');
+          if (e.paymentDate && typeof e.paymentDate === 'string' && e.paymentDate.includes('-')) {
+            const parts = e.paymentDate.split('-');
             const py = parseInt(parts[0], 10);
             const pm = parseInt(parts[1], 10);
             if (!isNaN(pm) && pm >= 1 && pm <= 12) {
@@ -1901,30 +1807,24 @@ class DataStore {
           }
 
           if (payMonth === monthNum && payYear === targetYearNum) {
-            cardPaidCash += vp;
+            fixedPaidCash += vp;
             if (mIdx !== monthNum) {
               prepaidFromOtherMonths.push({
-                id: `fatura_${inv.key}_${mIdx}`,
-                description: `Fatura ${inv.name}`,
-                bank: inv.bank || '',
-                paymentDate: inv.paymentDate || '',
+                ...e,
+                expense: e,
                 originalMonth: mIdx,
                 originalMonthName: this.getMonthName(mIdx),
-                valuePaid: vp,
-                isCardInvoice: true
+                valuePaid: vp
               });
             }
           } else if (mIdx === monthNum && (payMonth !== monthNum || payYear !== targetYearNum)) {
             paidInOtherMonths.push({
-              id: `fatura_${inv.key}_${mIdx}`,
-              description: `Fatura ${inv.name}`,
-              bank: inv.bank || '',
-              paymentDate: inv.paymentDate || '',
+              ...e,
+              expense: e,
               paidMonth: payMonth,
               paidYear: payYear,
               paidMonthName: this.getMonthName(payMonth),
-              valuePaid: vp,
-              isCardInvoice: true
+              valuePaid: vp
             });
           }
         }
@@ -1947,8 +1847,8 @@ class DataStore {
     const cardPaidCount = cardInstallments.filter(c => c.status === 'Pago').length;
     const cardPct = cardCount === 0 ? 100 : (totalCard > 0 ? Math.min(100, Math.round((cardPaid / totalCard) * 100)) : (cardPaidCount === cardCount ? 100 : 0));
 
-    // Saldo Líquido do Mês: subtrai apenas despesas EFETIVAMENTE REALIZADAS / PAGAS neste caixa
-    const totalExpensesRealized = fixedPaid + totalVariable + cardPaidCash;
+    // Saldo Líquido do Mês: subtrai apenas despesas EFETIVAMENTE REALIZADAS / PAGAS
+    const totalExpensesRealized = fixedPaid + totalVariable + cardPaid;
     const totalExpensesExpected = fixedExpected + totalVariable + totalCard;
     const balance = totalRevenuesPaid - totalExpensesRealized;
 
@@ -1969,7 +1869,6 @@ class DataStore {
       card: totalCard,
       cardExpected: totalCard,
       cardPaid: cardPaid,
-      cardCashOutflow: cardPaidCash,
       cardPending: cardPending,
       cardCount: cardCount,
       cardPaidCount: cardPaidCount,
