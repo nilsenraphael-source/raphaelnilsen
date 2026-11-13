@@ -357,7 +357,13 @@ const INITIAL_DATABASE = {
     { id: 'pwd_bc_11', tabela: 'bancos_cartoes', banco: 'trio card ELO', tipo_conta: 'Cartao Credito', senha_principal: '0520', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
     { id: 'pwd_bc_12', tabela: 'bancos_cartoes', banco: 'Iphone', tipo_conta: 'Celular', senha_principal: '409601', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
     { id: 'pwd_bc_13', tabela: 'bancos_cartoes', banco: 'B3 Investimentos', tipo_conta: 'Investimentos', senha_principal: 'A253188a!', letra_auxiliar: '', login: '05202665954', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
-    { id: 'pwd_bc_14', tabela: 'bancos_cartoes', banco: 'Cartão Cidadão', tipo_conta: 'Outros', senha_principal: '424184', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' }
+    { id: 'pwd_bc_14', tabela: 'bancos_cartoes', banco: 'Cartão Cidadão', tipo_conta: 'Outros', senha_principal: '424184', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' },
+    { id: 'pwd_em_01', tabela: 'emails', servico: 'Gmail', login: 'nilsenraphael@gmail.com', senha: 'CJ274790a.', senha_auxiliar: 'A253188a!', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+    { id: 'pwd_em_02', tabela: 'emails', servico: 'Hotmail', login: 'raphael_nilsen@hotmail.com', senha: 'visual32', senha_auxiliar: 'J602202a!', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+    { id: 'pwd_em_03', tabela: 'emails', servico: 'Outlook', login: 'raphael_nilsen@outlook.com', senha: 'CJ904727a.', senha_auxiliar: 'A253188a!', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+    { id: 'pwd_em_04', tabela: 'emails', servico: 'Gmail', login: 'cbcsaojose2025@gmail.com', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+    { id: 'pwd_em_05', tabela: 'emails', servico: 'Gmail', login: 'rosangelarib1511@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+    { id: 'pwd_em_06', tabela: 'emails', servico: 'Gmail', login: 'KamilahinkelKamila@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' }
   ],
 
   // 9. Mapeando B3 (Radar Online de Dividendos & Oportunidades de Compra)
@@ -545,7 +551,7 @@ function normalizeSystemGroupsData(merged) {
     Object.values(merged.years).forEach(yMonths => sanitizeMonthsFixed(yMonths));
   }
 
-  // Garante que as 14 senhas reais de Bancos e Cartões estejam presentes e substitui os 4 registros fictícios antigos
+  // Garante que as 14 senhas reais de Bancos e Cartões e os 6 E-mails reais estejam presentes e substitui registros fictícios antigos
   if (!Array.isArray(merged.passwords) || merged.passwords.length === 0) {
     merged.passwords = JSON.parse(JSON.stringify(INITIAL_DATABASE.passwords));
   } else {
@@ -554,14 +560,19 @@ function normalizeSystemGroupsData(merged) {
       (p.id === 'pwd_banco_2' && p.senha_principal === 'Nu@2026')
     );
     const hasRealBancos = merged.passwords.some(p => p.id === 'pwd_bc_01' || (p.banco === 'Banco do Brasil' && p.senha_principal === '498679'));
-    if (hasOldDemoBancos || !hasRealBancos) {
-      const otherTabsPasswords = merged.passwords.filter(p => {
-        const isOldDemo = ['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4'].includes(p.id);
-        return !isOldDemo && !String(p.id || '').startsWith('pwd_bc_');
+    const hasOldDemoEmails = merged.passwords.some(p =>
+      p.id === 'pwd_email_1' || p.id === 'pwd_email_2'
+    );
+    const hasRealEmails = merged.passwords.some(p => p.id === 'pwd_em_01' || p.login === 'nilsenraphael@gmail.com');
+
+    if (hasOldDemoBancos || !hasRealBancos || hasOldDemoEmails || !hasRealEmails) {
+      const customPasswords = merged.passwords.filter(p => {
+        const isOldDemo = ['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4', 'pwd_email_1', 'pwd_email_2'].includes(p.id);
+        return !isOldDemo && !String(p.id || '').startsWith('pwd_bc_') && !String(p.id || '').startsWith('pwd_em_');
       });
       merged.passwords = [
         ...JSON.parse(JSON.stringify(INITIAL_DATABASE.passwords)),
-        ...otherTabsPasswords
+        ...customPasswords
       ];
     }
   }

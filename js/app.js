@@ -6512,9 +6512,19 @@ const app = {
       { id: 'pwd_bc_14', tabela: 'bancos_cartoes', banco: 'Cartão Cidadão', tipo_conta: 'Outros', senha_principal: '424184', letra_auxiliar: '', login: '', senha: '', senha_auxiliar: '', pix: '', observacoes: '' }
     ];
 
+    const defaultEmails = [
+      { id: 'pwd_em_01', tabela: 'emails', servico: 'Gmail', login: 'nilsenraphael@gmail.com', senha: 'CJ274790a.', senha_auxiliar: 'A253188a!', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+      { id: 'pwd_em_02', tabela: 'emails', servico: 'Hotmail', login: 'raphael_nilsen@hotmail.com', senha: 'visual32', senha_auxiliar: 'J602202a!', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+      { id: 'pwd_em_03', tabela: 'emails', servico: 'Outlook', login: 'raphael_nilsen@outlook.com', senha: 'CJ904727a.', senha_auxiliar: 'A253188a!', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+      { id: 'pwd_em_04', tabela: 'emails', servico: 'Gmail', login: 'cbcsaojose2025@gmail.com', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+      { id: 'pwd_em_05', tabela: 'emails', servico: 'Gmail', login: 'rosangelarib1511@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' },
+      { id: 'pwd_em_06', tabela: 'emails', servico: 'Gmail', login: 'KamilahinkelKamila@gmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'E-mail', status: 'ativo', observacoes: '' }
+    ];
+
     if (!store.data.passwords || store.data.passwords.length === 0) {
       store.data.passwords = [
         ...defaultBancosCartoes,
+        ...defaultEmails,
         // 2. LOGINS e SENHAS DE SITES (Padrão ACBCSJ)
         {
           id: 'pwd_site_1',
@@ -6538,29 +6548,6 @@ const app = {
           status: 'ativo',
           observacoes: 'Compras de insumos e ferramentas'
         },
-        // 3. EMAILS (Padrão ACBCSJ)
-        {
-          id: 'pwd_email_1',
-          tabela: 'emails',
-          servico: 'HOTMAIL / OUTLOOK',
-          url: 'https://outlook.live.com',
-          categoria: 'E-mail Principal',
-          login: 'raphael_nilsen@hotmail.com',
-          senha: 'Hotmail@Raphael2026',
-          status: 'ativo',
-          observacoes: 'E-mail principal para cadastros bancários e segurança'
-        },
-        {
-          id: 'pwd_email_2',
-          tabela: 'emails',
-          servico: 'GMAIL',
-          url: 'https://mail.google.com',
-          categoria: 'E-mail do Google',
-          login: 'raphael.nilsen@gmail.com',
-          senha: 'Gmail@Google2026',
-          status: 'ativo',
-          observacoes: 'E-mail Google Play, YouTube e serviços Android'
-        },
         // 4. SENHAS DONA TANIA (Padrão ACBCSJ)
         {
           id: 'pwd_tania_1',
@@ -6578,11 +6565,14 @@ const app = {
     } else {
       const hasOldDemoBancos = store.data.passwords.some(p => p.id === 'pwd_banco_1' && p.senha_principal === '1234');
       const hasRealBancos = store.data.passwords.some(p => p.id === 'pwd_bc_01');
-      if (hasOldDemoBancos || !hasRealBancos) {
-        const nonDemo = store.data.passwords.filter(p => !['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4'].includes(p.id));
-        const existingBcIds = new Set(nonDemo.map(p => p.id));
-        const newBcItems = defaultBancosCartoes.filter(p => !existingBcIds.has(p.id));
-        store.data.passwords = [...newBcItems, ...nonDemo];
+      const hasOldDemoEmails = store.data.passwords.some(p => p.id === 'pwd_email_1' || p.id === 'pwd_email_2');
+      const hasRealEmails = store.data.passwords.some(p => p.id === 'pwd_em_01');
+      if (hasOldDemoBancos || !hasRealBancos || hasOldDemoEmails || !hasRealEmails) {
+        const nonDemo = store.data.passwords.filter(p => !['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4', 'pwd_email_1', 'pwd_email_2'].includes(p.id));
+        const existingIds = new Set(nonDemo.map(p => p.id));
+        const newBcItems = defaultBancosCartoes.filter(p => !existingIds.has(p.id));
+        const newEmItems = defaultEmails.filter(p => !existingIds.has(p.id));
+        store.data.passwords = [...newBcItems, ...newEmItems, ...nonDemo];
         store.save();
       }
     }
@@ -6792,6 +6782,8 @@ const app = {
       document.getElementById('geral_status').value = item.status || 'ativo';
       document.getElementById('geral_login').value = item.login || item.username || '';
       document.getElementById('geral_senha').value = item.senha || item.password || '';
+      const auxEl = document.getElementById('geral_senha_auxiliar');
+      if (auxEl) auxEl.value = item.senha_auxiliar || '';
       document.getElementById('geral_url').value = item.url || '';
       document.getElementById('geral_obs').value = item.observacoes || item.notes || '';
       document.getElementById('modalSenhaGeralTitulo').textContent = `🔐 Editar: ${item.servico || item.service || 'Acesso'}`;
@@ -7008,6 +7000,16 @@ const app = {
                     ` : ''}
                   </div>
                 </div>
+                ${p.senha_auxiliar ? `
+                  <div class="senhas-card-row">
+                    <span class="senhas-card-label">Senha Auxiliar:</span>
+                    <div class="credential-box password-box">
+                      <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_auxiliar) : '••••••••'}</span>
+                      <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                      <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_auxiliar)}', 'Senha auxiliar copiada!')" title="Copiar">📋</button>
+                    </div>
+                  </div>
+                ` : ''}
                 <div class="senhas-card-row">
                   <span class="senhas-card-label">Status:</span>
                   <span class="badge-status ${status}">${status === 'ativo' ? 'Ativo' : status === 'desuso' ? 'Em Desuso' : 'Revisão'}</span>
@@ -7165,13 +7167,14 @@ const app = {
         `;
       });
     } else {
-      // TABELAS DE SITES, EMAILS E DONA TANIA (PADRÃO ACBCSJ)
+      // TABELAS DE SITES, EMAILS E DONA TANIA
       tableHtml += `
         <thead>
           <tr>
-            <th>SERVIÇO / CONTA</th>
-            <th>LOGIN / USUÁRIO</th>
+            <th>SITE / APP</th>
+            <th>LOGIN</th>
             <th>SENHA</th>
+            <th>SENHA AUXILIAR</th>
             <th>STATUS</th>
             <th>OBSERVAÇÕES</th>
             <th style="text-align:center;">AÇÕES</th>
@@ -7188,7 +7191,7 @@ const app = {
 
         tableHtml += `
           <tr>
-            <!-- 1. SERVIÇO / CONTA -->
+            <!-- 1. SITE / APP -->
             <td>
               <div style="display:flex; align-items:center; gap:0.6rem;">
                 <span style="font-size:1.3rem;">${icone}</span>
@@ -7202,7 +7205,7 @@ const app = {
               </div>
             </td>
 
-            <!-- 2. LOGIN / USUÁRIO -->
+            <!-- 2. LOGIN -->
             <td>
               <div class="credential-box">
                 <span class="credential-text">${escapeHtml(p.login || p.username || '-')}</span>
@@ -7223,7 +7226,18 @@ const app = {
               </div>
             </td>
 
-            <!-- 4. STATUS -->
+            <!-- 4. SENHA AUXILIAR -->
+            <td>
+              <div class="credential-box password-box">
+                <span class="credential-text font-mono">${isRevealed ? escapeHtml(p.senha_auxiliar || '-') : (p.senha_auxiliar ? '••••••••' : '-')}</span>
+                ${p.senha_auxiliar ? `
+                  <button type="button" class="btn-eye-mini" onclick="app.toggleSenhasRevelarItem('${p.id}')" title="Ver / Ocultar">👁️</button>
+                  <button type="button" class="btn-copy-mini" onclick="app.copyToClipboard('${escapeHtml(p.senha_auxiliar)}', 'Senha auxiliar copiada!')" title="Copiar Senha Auxiliar">📋</button>
+                ` : ''}
+              </div>
+            </td>
+
+            <!-- 5. STATUS -->
             <td>
               <span class="badge-status ${status}">${statusLabel}</span>
             </td>
@@ -9354,6 +9368,7 @@ const app = {
           status: document.getElementById('geral_status')?.value || 'ativo',
           login: (document.getElementById('geral_login')?.value || '').trim(),
           senha: (document.getElementById('geral_senha')?.value || '').trim(),
+          senha_auxiliar: (document.getElementById('geral_senha_auxiliar')?.value || '').trim(),
           url: (document.getElementById('geral_url')?.value || '').trim(),
           observacoes: (document.getElementById('geral_obs')?.value || '').trim()
         };

@@ -3194,9 +3194,20 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Endereço de Acesso (URL / Site)</label>
-            <input type="url" id="geral_url" class="form-input" placeholder="https://exemplo.com.br">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+                <label class="form-label" style="margin-bottom:0;">Senha Auxiliar</label>
+              </div>
+              <div style="position: relative;">
+                <input type="password" id="geral_senha_auxiliar" class="form-input" placeholder="Senha auxiliar (opcional)" style="padding-right: 38px;">
+                <button type="button" class="btn-eye-mini" onclick="app.toggleFieldVisibility('geral_senha_auxiliar')" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%);" title="Ver / Ocultar">👁️</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Endereço de Acesso (URL / Site)</label>
+              <input type="url" id="geral_url" class="form-input" placeholder="https://exemplo.com.br">
+            </div>
           </div>
 
           <div class="form-group">
@@ -3559,8 +3570,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/data.js?v=20261113_v27"></script>
-  <script src="js/supabase.js?v=20261113_v27"></script>
-  <script src="js/app.js?v=20261113_v27"></script>
+  <script src="js/data.js?v=20261113_v28"></script>
+  <script src="js/supabase.js?v=20261113_v28"></script>
+  <script src="js/app.js?v=20261113_v28"></script>
 </body>
 </html>
