@@ -6538,34 +6538,52 @@ const app = {
       { id: 'pwd_dt_14', tabela: 'dona_tania', servico: 'Celesc', login: '41776291972', senha: 'J602202a!', senha_auxiliar: '', categoria: 'D. Tânia', status: 'ativo', observacoes: '' }
     ];
 
+    const defaultLoginsSites = [
+      { id: 'pwd_ls_01', tabela: 'logins_sites', servico: 'Mercado Livre', login: 'raphael_nilsen@hotmail.com', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_02', tabela: 'logins_sites', servico: 'Atual Card', login: 'raphael_nilsen@hotmail.com', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_03', tabela: 'logins_sites', servico: 'Facebook', login: 'raphael_nilsen@hotmail.com', senha: 'A253188a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_04', tabela: 'logins_sites', servico: 'Instagran', login: 'raphaelnilsen', senha: 'CJ274790a.', senha_auxiliar: 'A253188a!', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_05', tabela: 'logins_sites', servico: 'Icloud', login: 'raphael_nilsen@hotmail.com', senha: 'CJ274790a.', senha_auxiliar: 'A253188a!', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_06', tabela: 'logins_sites', servico: 'Tim', login: '48984041027', senha: '1027', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_07', tabela: 'logins_sites', servico: 'CNH digital', login: 'raphael_nilsen@hotmail.com', senha: '1027', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_08', tabela: 'logins_sites', servico: 'Pro Sindico', login: '01454207306', senha: '139763', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_09', tabela: 'logins_sites', servico: 'Winker', login: 'raphael_nilsen@hotmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_10', tabela: 'logins_sites', servico: 'WIFI Casa', login: 'Raphael', senha: 'J602202a', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_11', tabela: 'logins_sites', servico: 'Trello', login: 'raphael_nilsen@hotmail.com', senha: 'A253188a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_12', tabela: 'logins_sites', servico: 'Vero', login: '41776291972', senha: 'A253188a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_13', tabela: 'logins_sites', servico: 'Gov.br', login: '05202665954', senha: 'CJ472790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_14', tabela: 'logins_sites', servico: 'SCI (jotur)', login: 'raphael_nilsen@hotmail.com', senha: 'A253188a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_15', tabela: 'logins_sites', servico: 'Netflix', login: 'nilsenraphael@gmail.com', senha: 'A253188a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_16', tabela: 'logins_sites', servico: 'Sinesp', login: '05202665954', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_17', tabela: 'logins_sites', servico: 'ChatGPT', login: 'raphael_nilsen@hotmail.com', senha: 'J602202a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_18', tabela: 'logins_sites', servico: 'Bradesco Financiamentos', login: '05202665954', senha: 'A253188a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_19', tabela: 'logins_sites', servico: 'Banco Yamaha', login: '05202665954', senha: 'A253188a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_20', tabela: 'logins_sites', servico: 'OLX', login: 'raphael_nilsen@hotmail.com', senha: 'A253188a!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_21', tabela: 'logins_sites', servico: 'Vero', login: '05202665954', senha: '253188', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_22', tabela: 'logins_sites', servico: 'Hemosc', login: '05202665954', senha: 'Hemosc052', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_23', tabela: 'logins_sites', servico: 'Whatsapp', login: '', senha: '498679', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_24', tabela: 'logins_sites', servico: 'Freepik', login: 'contato@reckdesigner.com.br', senha: 'Uhtred&Brida2025', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_25', tabela: 'logins_sites', servico: 'Celesc CASA', login: 'raphael_nilsen@hotmail.com', senha: 'A253188a!', senha_auxiliar: 'J602202a!', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_26', tabela: 'logins_sites', servico: 'CELESC AP', login: 'nilsenraphael@gmail.com', senha: 'CJ274790a.CJ274790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_27', tabela: 'logins_sites', servico: 'Alianz', login: '05202665954', senha: 'A253188a', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_28', tabela: 'logins_sites', servico: 'Iphone', login: '', senha: '409601', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_29', tabela: 'logins_sites', servico: 'Amazon', login: 'raphael_nilsen@hotmail.com', senha: '', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_30', tabela: 'logins_sites', servico: 'Ultragas', login: '05202665954', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_31', tabela: 'logins_sites', servico: 'Notion', login: 'nilsenraphael@gmail.com', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_32', tabela: 'logins_sites', servico: 'Giassi', login: 'raphael_nilsen@hotmail.com', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_33', tabela: 'logins_sites', servico: 'infinite pay', login: 'raphael_nilsen@hotmail.com', senha: '498679', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_34', tabela: 'logins_sites', servico: 'Ton', login: 'raphael_nilsen@hotmail.com', senha: 'J602202a!', senha_auxiliar: '498679', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_35', tabela: 'logins_sites', servico: 'Portal acbcsj', login: 'nilsenraphael@gmail.com', senha: 'CJ274790a.acbcsj', senha_auxiliar: 'todos logins pelo gmail', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_36', tabela: 'logins_sites', servico: 'BTGpactual', login: '05202665954', senha: 'CJ274790a.', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' },
+      { id: 'pwd_ls_37', tabela: 'logins_sites', servico: 'Sest Senat', login: '05202665954', senha: 'CJ274790a.!', senha_auxiliar: '', categoria: 'Site / APP', status: 'ativo', observacoes: '' }
+    ];
+
     if (!store.data.passwords || store.data.passwords.length === 0) {
       store.data.passwords = [
         ...defaultBancosCartoes,
         ...defaultEmails,
         ...defaultDonaTania,
-        // 2. LOGINS e SENHAS DE SITES (Padrão ACBCSJ)
-        {
-          id: 'pwd_site_1',
-          tabela: 'logins_sites',
-          servico: 'MERCADO LIVRE',
-          url: 'https://www.mercadolivre.com.br',
-          categoria: 'Compras / Marketplace',
-          login: 'raphael_nilsen@hotmail.com',
-          senha: 'ML_Senha@2026',
-          status: 'ativo',
-          observacoes: 'Compras e entregas com frete Full'
-        },
-        {
-          id: 'pwd_site_2',
-          tabela: 'logins_sites',
-          servico: 'SHOPEE',
-          url: 'https://shopee.com.br',
-          categoria: 'Compras / Marketplace',
-          login: 'raphael_nilsen@hotmail.com',
-          senha: 'Shopee@Pass2026',
-          status: 'ativo',
-          observacoes: 'Compras de insumos e ferramentas'
-        }
+        ...defaultLoginsSites
       ];
       store.save();
     } else {
@@ -6575,13 +6593,16 @@ const app = {
       const hasRealEmails = store.data.passwords.some(p => p.id === 'pwd_em_01');
       const hasOldDemoTania = store.data.passwords.some(p => p.id === 'pwd_tania_1');
       const hasRealTania = store.data.passwords.some(p => p.id === 'pwd_dt_01');
-      if (hasOldDemoBancos || !hasRealBancos || hasOldDemoEmails || !hasRealEmails || hasOldDemoTania || !hasRealTania) {
-        const nonDemo = store.data.passwords.filter(p => !['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4', 'pwd_email_1', 'pwd_email_2', 'pwd_tania_1'].includes(p.id));
+      const hasOldDemoSites = store.data.passwords.some(p => p.id === 'pwd_site_1' || p.id === 'pwd_site_2');
+      const hasRealSites = store.data.passwords.some(p => p.id === 'pwd_ls_01');
+      if (hasOldDemoBancos || !hasRealBancos || hasOldDemoEmails || !hasRealEmails || hasOldDemoTania || !hasRealTania || hasOldDemoSites || !hasRealSites) {
+        const nonDemo = store.data.passwords.filter(p => !['pwd_banco_1', 'pwd_banco_2', 'pwd_banco_3', 'pwd_banco_4', 'pwd_email_1', 'pwd_email_2', 'pwd_tania_1', 'pwd_site_1', 'pwd_site_2'].includes(p.id));
         const existingIds = new Set(nonDemo.map(p => p.id));
         const newBcItems = defaultBancosCartoes.filter(p => !existingIds.has(p.id));
         const newEmItems = defaultEmails.filter(p => !existingIds.has(p.id));
         const newDtItems = defaultDonaTania.filter(p => !existingIds.has(p.id));
-        store.data.passwords = [...newBcItems, ...newEmItems, ...newDtItems, ...nonDemo];
+        const newLsItems = defaultLoginsSites.filter(p => !existingIds.has(p.id));
+        store.data.passwords = [...newBcItems, ...newEmItems, ...newDtItems, ...newLsItems, ...nonDemo];
         store.save();
       }
     }
